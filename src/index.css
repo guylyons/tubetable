@@ -2,49 +2,95 @@
 
 @layer base {
   :root {
-    @apply text-[rgba(255,255,255,0.87)] bg-[#242424] font-sans;
+    color-scheme: light;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply grid place-items-center min-w-[320px] min-h-screen relative m-0;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background: #f8fbff;
+    color: #0f172a;
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(59, 130, 246, 0.18);
+    color: #0f172a;
   }
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  opacity: 0.05;
-  background: url("./logo.svg");
-  background-size: 256px;
-  transform: rotate(-12deg) scale(1.35);
-  animation: slide 30s linear infinite;
-  pointer-events: none;
+@layer components {
+  .tubetable-slider {
+    accent-color: #2563eb;
+  }
+
+  .tubetable-slider-vertical {
+    width: 1rem;
+    height: 15rem;
+    writing-mode: vertical-lr;
+    direction: rtl;
+  }
+
+  .tubetable-slider::-webkit-slider-runnable-track {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #60a5fa, #bfdbfe);
+  }
+
+  .tubetable-slider::-moz-range-track {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #60a5fa, #bfdbfe);
+  }
+
+  .tubetable-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: -0.16rem;
+    border-radius: 9999px;
+    border: 2px solid white;
+    background: #2563eb;
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.14);
+  }
+
+  .tubetable-slider::-moz-range-thumb {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 9999px;
+    border: 2px solid white;
+    background: #2563eb;
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.14);
+  }
 }
 
-@keyframes slide {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 256px 224px;
-  }
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+::-webkit-scrollbar-track {
+  background: #e2e8f0;
 }
 
-@media (prefers-reduced-motion) {
-  *,
-  ::before,
-  ::after {
-    animation: none !important;
-  }
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
 }
