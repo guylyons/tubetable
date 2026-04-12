@@ -4,6 +4,7 @@ import type { MixChannelState } from "../types";
 type TableSectionProps = {
   channelStates: MixChannelState[];
   onRemoveChannel: (channelId: string) => void;
+  onToggleLoop: (channelId: string) => void;
   onToggleMute: (channelId: string) => void;
   onTogglePause: (channelId: string) => void;
   transportPlaying: boolean;
@@ -12,6 +13,7 @@ type TableSectionProps = {
 export function TableSection({
   channelStates,
   onRemoveChannel,
+  onToggleLoop,
   onToggleMute,
   onTogglePause,
   transportPlaying,
@@ -34,6 +36,7 @@ export function TableSection({
               channel={channel}
               effectiveVolume={channel.effectiveVolume}
               onRemove={onRemoveChannel}
+              onToggleLoop={onToggleLoop}
               onToggleMute={onToggleMute}
               onTogglePause={onTogglePause}
               transportPlaying={transportPlaying}

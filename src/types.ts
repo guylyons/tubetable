@@ -19,6 +19,7 @@ export type MixChannel = {
   muted: boolean;
   solo: boolean;
   paused: boolean;
+  looped: boolean;
 };
 
 export type MixChannelState = MixChannel & {

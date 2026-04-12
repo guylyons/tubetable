@@ -349,6 +349,9 @@ export function App() {
             <TableSection
               channelStates={channelStates}
               onRemoveChannel={channelId => setChannels(currentChannels => currentChannels.filter(item => item.id !== channelId))}
+              onToggleLoop={channelId =>
+                updateChannel(channelId, currentChannel => ({ ...currentChannel, looped: !currentChannel.looped }))
+              }
               onToggleMute={channelId =>
                 updateChannel(channelId, currentChannel => ({ ...currentChannel, muted: !currentChannel.muted }))
               }

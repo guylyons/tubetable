@@ -4,6 +4,7 @@ export type YouTubePlayer = {
   mute: () => void;
   pauseVideo: () => void;
   playVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
   setVolume: (volume: number) => void;
   unMute: () => void;
 };
@@ -11,6 +12,7 @@ export type YouTubePlayer = {
 type YouTubePlayerOptions = {
   events?: {
     onReady?: (event: { target: YouTubePlayer }) => void;
+    onStateChange?: (event: { data: number; target: YouTubePlayer }) => void;
   };
   height?: string;
   playerVars?: Record<string, number | string>;
@@ -30,6 +32,7 @@ declare global {
 }
 
 const YT_PLAYER_STATE_UNSTARTED = -1;
+export const YT_PLAYER_STATE_ENDED = 0;
 const YT_PLAYER_STATE_PLAYING = 1;
 const YT_PLAYER_STATE_PAUSED = 2;
 const YT_PLAYER_STATE_BUFFERING = 3;

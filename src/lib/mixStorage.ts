@@ -1,4 +1,12 @@
-import { DRAFT_MIX_KEY, MAX_CHANNELS, STORAGE_KEY, type MixStorage, type PersistedMix, type SavedMix } from "../types";
+import {
+  DRAFT_MIX_KEY,
+  MAX_CHANNELS,
+  STORAGE_KEY,
+  type MixChannel,
+  type MixStorage,
+  type PersistedMix,
+  type SavedMix,
+} from "../types";
 
 export function createMixId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `mix-${Date.now()}`;
@@ -23,11 +31,60 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
     return null;
   }
 
+  const channels = record.channels
+    .map(channel => sanitizeMixChannel(channel))
+    .filter((channel): channel is MixChannel => channel !== null)
+    .slice(0, MAX_CHANNELS);
+
   return {
     name: typeof record.name === "string" ? record.name : "",
-    channels: record.channels.slice(0, MAX_CHANNELS) as PersistedMix["channels"],
+    channels,
     masterVolume: typeof record.masterVolume === "number" ? record.masterVolume : 82,
     transportPlaying: Boolean(record.transportPlaying),
+  };
+}
+
+function sanitizeMixChannel(value: unknown): MixChannel | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const video = record.video;
+  if (!video || typeof video !== "object") {
+    return null;
+  }
+
+  const videoRecord = video as Record<string, unknown>;
+  if (
+    typeof record.id !== "string" ||
+    typeof record.volume !== "number" ||
+    typeof record.muted !== "boolean" ||
+    typeof record.solo !== "boolean" ||
+    typeof record.paused !== "boolean" ||
+    typeof videoRecord.videoId !== "string" ||
+    typeof videoRecord.title !== "string" ||
+    typeof videoRecord.channelTitle !== "string" ||
+    typeof videoRecord.thumbnail !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    video: {
+      videoId: videoRecord.videoId,
+      title: videoRecord.title,
+      channelTitle: videoRecord.channelTitle,
+      thumbnail: videoRecord.thumbnail,
+      durationText: typeof videoRecord.durationText === "string" ? videoRecord.durationText : undefined,
+      viewCountText: typeof videoRecord.viewCountText === "string" ? videoRecord.viewCountText : undefined,
+    },
+    volume: record.volume,
+    muted: record.muted,
+    solo: record.solo,
+    paused: record.paused,
+    looped: typeof record.looped === "boolean" ? record.looped : true,
   };
 }
 

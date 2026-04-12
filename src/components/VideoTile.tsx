@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { MixChannel } from "../types";
-import { applyPlayerVolume, loadIframeApi, syncPlayerPlayback, type YouTubePlayer } from "../lib/youtube";
+import {
+  applyPlayerVolume,
+  loadIframeApi,
+  syncPlayerPlayback,
+  YT_PLAYER_STATE_ENDED,
+  type YouTubePlayer,
+} from "../lib/youtube";
 
 type VideoTileProps = {
   channel: MixChannel;
   effectiveVolume: number;
   onRemove: (id: string) => void;
+  onToggleLoop: (id: string) => void;
   onToggleMute: (id: string) => void;
   onTogglePause: (id: string) => void;
   transportPlaying: boolean;
@@ -15,14 +22,28 @@ export function VideoTile({
   channel,
   effectiveVolume,
   onRemove,
+  onToggleLoop,
   onToggleMute,
   onTogglePause,
   transportPlaying,
 }: VideoTileProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const playbackStateRef = useRef({
+    looped: channel.looped,
+    paused: channel.paused,
+    transportPlaying,
+  });
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    playbackStateRef.current = {
+      looped: channel.looped,
+      paused: channel.paused,
+      transportPlaying,
+    };
+  }, [channel.looped, channel.paused, transportPlaying]);
 
   useEffect(() => {
     let disposed = false;
@@ -44,10 +65,9 @@ export function VideoTile({
             controls: 1,
             enablejsapi: 1,
             origin: window.location.origin,
-            loop: 1,
+            loop: 0,
             modestbranding: 1,
             playsinline: 1,
-            playlist: channel.video.videoId,
             rel: 0,
           },
           events: {
@@ -60,6 +80,23 @@ export function VideoTile({
               setLoadError(null);
               applyPlayerVolume(event.target, effectiveVolume);
               syncPlayerPlayback(event.target, transportPlaying && !channel.paused);
+            },
+            onStateChange: event => {
+              const playbackState = playbackStateRef.current;
+
+              if (
+                event.data === YT_PLAYER_STATE_ENDED &&
+                playbackState.looped &&
+                playbackState.transportPlaying &&
+                !playbackState.paused
+              ) {
+                try {
+                  event.target.seekTo(0, true);
+                  event.target.playVideo();
+                } catch {
+                  // The YouTube iframe can briefly reject restart commands during state transitions.
+                }
+              }
             },
           },
         });
@@ -150,6 +187,17 @@ export function VideoTile({
             }`}
           >
             {channel.muted ? "Unmute" : "Mute"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleLoop(channel.id)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              channel.looped
+                ? "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+            }`}
+          >
+            {channel.looped ? "Loop on" : "Loop off"}
           </button>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Output {effectiveVolume}%</span>
         </div>
