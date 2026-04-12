@@ -7,7 +7,7 @@ import { SavedMixesPanel } from "./components/SavedMixesPanel";
 import { SearchPanel } from "./components/SearchPanel";
 import { TableSection } from "./components/TableSection";
 import { deriveMixName } from "./lib/mixNaming";
-import { buildChannelStates, createChannel } from "./lib/mixChannels";
+import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
 import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
 import { parseYouTubeVideoId } from "./lib/youtube";
 import {
@@ -348,6 +348,9 @@ export function App() {
           <div className="space-y-6">
             <TableSection
               channelStates={channelStates}
+              onReorderChannel={(draggedChannelId, targetChannelId) =>
+                setChannels(currentChannels => reorderChannels(currentChannels, draggedChannelId, targetChannelId))
+              }
               onRemoveChannel={channelId => setChannels(currentChannels => currentChannels.filter(item => item.id !== channelId))}
               onToggleLoop={channelId =>
                 updateChannel(channelId, currentChannel => ({ ...currentChannel, looped: !currentChannel.looped }))

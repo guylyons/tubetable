@@ -54,28 +54,15 @@ export function MixHeader({
             Build your own layered ambient mix.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-            Search YouTube, add up to five channels, and balance them in one clean workspace with simple blue
-            controls.
+            Search YouTube, add up to five channels, and balance them in one
+            clean workspace with simple blue controls.
           </p>
 
           <div className="flex max-w-xl flex-col gap-3 sm:flex-row sm:items-center">
-            <select
-              value={currentMixKey}
-              onChange={event => onSelectMix(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-300"
-            >
-              <option value={DRAFT_MIX_KEY}>Draft mix</option>
-              {savedMixes.map(savedMix => (
-                <option key={savedMix.id} value={savedMix.id}>
-                  {savedMix.name || deriveMixName(savedMix.channels)}
-                </option>
-              ))}
-            </select>
-
             <input
               type="text"
               value={mixTitle}
-              onChange={event => onSetMixTitle(event.target.value)}
+              onChange={(event) => onSetMixTitle(event.target.value)}
               placeholder={generatedMixName}
               className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white"
             />
@@ -99,27 +86,30 @@ export function MixHeader({
 
           <p className="text-sm font-medium text-blue-700">
             Current mix: {mixName}
-            {saveMessage ? <span className="ml-3 text-slate-500">{saveMessage}</span> : null}
+            {saveMessage ? (
+              <span className="ml-3 text-slate-500">{saveMessage}</span>
+            ) : null}
           </p>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Channels</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Channels
+          </p>
           <p className="mt-3 text-3xl font-semibold text-slate-950">
             {channelsCount}
-            <span className="ml-2 text-base text-slate-400">/ {MAX_CHANNELS}</span>
+            <span className="ml-2 text-base text-slate-400">
+              / {MAX_CHANNELS}
+            </span>
           </p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Live Now</p>
-          <p className="mt-3 text-3xl font-semibold text-slate-950">{audibleChannels}</p>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Transport</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Transport
+          </p>
           <button
             type="button"
             onClick={onToggleTransport}

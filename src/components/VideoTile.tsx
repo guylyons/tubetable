@@ -11,6 +11,11 @@ import {
 type VideoTileProps = {
   channel: MixChannel;
   effectiveVolume: number;
+  isDragging: boolean;
+  isDragTarget: boolean;
+  onDragEnd: () => void;
+  onDragStart: () => void;
+  trackLabel: string;
   onRemove: (id: string) => void;
   onToggleLoop: (id: string) => void;
   onToggleMute: (id: string) => void;
@@ -21,6 +26,11 @@ type VideoTileProps = {
 export function VideoTile({
   channel,
   effectiveVolume,
+  isDragging,
+  isDragTarget,
+  onDragEnd,
+  onDragStart,
+  trackLabel,
   onRemove,
   onToggleLoop,
   onToggleMute,
@@ -131,9 +141,29 @@ export function VideoTile({
   }, [channel.paused, ready, transportPlaying]);
 
   return (
-    <article className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <article
+      className={`group relative overflow-hidden rounded-3xl border bg-white shadow-sm transition ${
+        isDragTarget ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200"
+      } ${isDragging ? "scale-[0.98] opacity-70" : ""}`}
+    >
       <div className="relative aspect-video overflow-hidden bg-slate-100">
         <div ref={playerContainerRef} className="h-full w-full" />
+        <button
+          type="button"
+          draggable
+          onDragEnd={onDragEnd}
+          onDragStart={event => {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", channel.id);
+            onDragStart();
+          }}
+          className="absolute left-3 top-3 z-20 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+          aria-label={`Drag ${trackLabel} to reorder`}
+          title="Drag to reorder"
+        >
+          <span aria-hidden="true">::</span>
+          {trackLabel}
+        </button>
         <button
           type="button"
           onClick={() => onRemove(channel.id)}
@@ -157,6 +187,7 @@ export function VideoTile({
 
       <div className="space-y-4 p-5">
         <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">{trackLabel}</p>
           <p className="line-clamp-2 text-base font-semibold text-slate-900">{channel.video.title}</p>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span>{channel.video.channelTitle}</span>

@@ -21,21 +21,31 @@ export function MasterBusPanel({
     <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Master bus</p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-950">Room balance</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+            Master bus
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+            Room balance
+          </h2>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">{masterVolume}%</span>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
+          {masterVolume}%
+        </span>
       </div>
 
       <div className="mt-5 space-y-5">
         <label className="block">
-          <span className="mb-2 block text-sm text-slate-600">Master volume</span>
+          <span className="mb-2 block text-sm text-slate-600">
+            Master volume
+          </span>
           <input
             type="range"
             min={0}
             max={100}
             value={masterVolume}
-            onChange={event => onChangeMasterVolume(Number(event.target.value))}
+            onChange={(event) =>
+              onChangeMasterVolume(Number(event.target.value))
+            }
             className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
           />
         </label>
@@ -43,26 +53,10 @@ export function MasterBusPanel({
         <div className="grid gap-3">
           <button
             type="button"
-            onClick={onToggleTransport}
-            className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
-          >
-            {getTransportLabel(transportPlaying)}
-          </button>
-
-          <button
-            type="button"
             onClick={onResetChannelBalances}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
           >
             Reset channel balances
-          </button>
-
-          <button
-            type="button"
-            onClick={onClearMix}
-            className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-100"
-          >
-            Clear entire mix
           </button>
         </div>
       </div>
