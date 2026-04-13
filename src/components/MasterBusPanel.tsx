@@ -24,9 +24,6 @@ export function MasterBusPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
             Master bus
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-            Room balance
-          </h2>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
           {masterVolume}%
