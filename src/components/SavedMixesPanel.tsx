@@ -41,7 +41,7 @@ export function SavedMixesPanel({
             >
               {savedMix.id === currentMixKey && transportPlaying ? (
                 <span className="absolute right-3 top-3 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
-                  Now Playing
+                  Playing
                 </span>
               ) : null}
 
@@ -49,7 +49,7 @@ export function SavedMixesPanel({
                 <button
                   type="button"
                   onClick={() => onSelectMix(savedMix.id)}
-                  className="min-w-0 flex-1 pr-12 text-left"
+                  className="min-w-0 flex-1 cursor-pointer pr-12 text-left"
                 >
                   <p className="text-sm font-semibold text-slate-900">
                     {savedMix.name || deriveMixName(savedMix.channels)}

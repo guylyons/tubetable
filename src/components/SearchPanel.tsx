@@ -40,7 +40,7 @@ export function SearchPanel({
   showResults,
 }: SearchPanelProps) {
   return (
-    <section className="relative z-40 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section className="relative z-40 rounded-[28px] bg-white p-4 shadow-sm sm:p-5">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
           Search
@@ -106,7 +106,7 @@ export function SearchPanel({
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => onSelectSuggestion(suggestion)}
-                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      className="cursor-pointer rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                     >
                       {suggestion}
                     </button>
@@ -131,7 +131,7 @@ export function SearchPanel({
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => onSelectResult(result)}
                       disabled={isAlreadyAdded || !canAddMore}
-                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <img
                         src={result.thumbnail}
