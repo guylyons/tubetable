@@ -31,45 +31,44 @@ export function SavedMixesPanel({
       <div className="mt-5 space-y-3">
         {savedMixes.length > 0 ? (
           savedMixes.map((savedMix) => (
-            <div
+            <article
               key={savedMix.id}
-              className={`relative block w-full rounded-2xl border px-4 py-3 text-left transition ${
+              className={`relative rounded-2xl border transition ${
                 savedMix.id === currentMixKey
                   ? "border-blue-200 bg-blue-50"
                   : "border-slate-200 bg-slate-50 hover:border-blue-200 hover:bg-blue-50/60"
               }`}
             >
+              <button
+                type="button"
+                onClick={() => onSelectMix(savedMix.id)}
+                className="block w-full cursor-pointer rounded-2xl px-4 py-3 pr-16 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                <p className="text-sm font-semibold text-slate-900">
+                  {savedMix.name || deriveMixName(savedMix.channels)}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {savedMix.channels.length} tracks ·{" "}
+                  {new Date(savedMix.updatedAt).toLocaleDateString()}
+                </p>
+              </button>
+
               {savedMix.id === currentMixKey && transportPlaying ? (
-                <span className="absolute right-3 top-3 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
+                <span className="absolute -top-[13px] right-0 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
                   Playing
                 </span>
               ) : null}
 
-              <div className="flex items-start gap-3">
-                <button
-                  type="button"
-                  onClick={() => onSelectMix(savedMix.id)}
-                  className="min-w-0 flex-1 cursor-pointer pr-12 text-left"
-                >
-                  <p className="text-sm font-semibold text-slate-900">
-                    {savedMix.name || deriveMixName(savedMix.channels)}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {savedMix.channels.length} tracks ·{" "}
-                    {new Date(savedMix.updatedAt).toLocaleDateString()}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDeleteMix(savedMix.id)}
-                  className="mt-8 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-base font-semibold text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                  aria-label={`Delete mix ${savedMix.name || deriveMixName(savedMix.channels)}`}
-                  title="Delete mix"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
+              <button
+                type="button"
+                onClick={() => onDeleteMix(savedMix.id)}
+                className="absolute bottom-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-base font-semibold text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                aria-label={`Delete mix ${savedMix.name || deriveMixName(savedMix.channels)}`}
+                title="Delete mix"
+              >
+                ×
+              </button>
+            </article>
           ))
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">

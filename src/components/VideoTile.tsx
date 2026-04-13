@@ -157,7 +157,7 @@ export function VideoTile({
       } ${isDragging ? "scale-[0.98] opacity-70" : ""}`}
     >
       <div
-        className={`relative overflow-hidden bg-slate-100 ${
+        className={`group/video relative overflow-hidden bg-slate-100 ${
           isFocusPresentation ? "aspect-video md:aspect-[21/9]" : "aspect-video"
         }`}
       >
@@ -181,7 +181,7 @@ export function VideoTile({
         <button
           type="button"
           onClick={() => onRemove(channel.id)}
-          className="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-lg font-semibold text-slate-700 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          className="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-lg font-semibold text-slate-700 shadow-sm transition-opacity duration-150 hover:border-red-200 hover:bg-red-50 hover:text-red-600 group-hover/video:pointer-events-auto group-hover/video:opacity-100 group-focus-within/video:pointer-events-auto group-focus-within/video:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 pointer-events-none opacity-0"
           aria-label={`Remove ${channel.video.title} from mix`}
           title="Remove from mix"
         >
@@ -190,11 +190,11 @@ export function VideoTile({
         <button
           type="button"
           onClick={() => onFocus(channel.id)}
-          className={`absolute bottom-3 right-3 z-20 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm transition ${
+          className={`absolute bottom-3 right-3 z-20 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm transition-opacity duration-150 group-hover/video:pointer-events-auto group-hover/video:opacity-100 group-focus-within/video:pointer-events-auto group-focus-within/video:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 ${
             isFocused
               ? "border-blue-200 bg-blue-600 text-white hover:bg-blue-700"
               : "border-slate-200 bg-white/95 text-slate-700 hover:border-blue-200 hover:text-blue-700"
-          }`}
+          } pointer-events-none opacity-0`}
           aria-pressed={isFocused}
         >
           {isFocused ? "Exit focus" : "Focus"}

@@ -50,14 +50,12 @@ export function TableSection({
   const focusedChannel = focusedChannelId
     ? channelStates.find(channel => channel.id === focusedChannelId) ?? null
     : null;
-  const remainingChannels = focusedChannel
-    ? channelStates.filter(channel => channel.id !== focusedChannel.id)
-    : channelStates;
 
   function renderTile(channel: MixChannelState, index: number, presentation: "default" | "focus" = "default") {
     return (
       <div
         key={channel.id}
+        className={presentation === "focus" ? "order-first md:col-span-2 2xl:col-span-3" : undefined}
         onDragOver={(event) => {
           if (!draggedChannelId || draggedChannelId === channel.id) {
             return;
@@ -115,34 +113,28 @@ export function TableSection({
       {channelStates.length > 0 ? (
         <div className="space-y-5">
           {focusedChannel ? (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-blue-100 bg-blue-50/70 px-4 py-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Focus mode</p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Theatre view keeps one channel large while the rest stay parked below.
-                  </p>
-                </div>
-                <p className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600">
-                  Drag any card here or tap focus on another track to swap it in.
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-blue-100 bg-blue-50/70 px-4 py-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Focus mode</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Theatre view keeps one channel large while the rest stay parked below.
                 </p>
               </div>
-
-              {renderTile(
-                focusedChannel,
-                channelStates.findIndex(channel => channel.id === focusedChannel.id),
-                "focus",
-              )}
+              <p className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                Drag any card here or tap focus on another track to swap it in.
+              </p>
             </div>
           ) : null}
 
-          {remainingChannels.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {remainingChannels.map(channel =>
-                renderTile(channel, channelStates.findIndex(item => item.id === channel.id)),
-              )}
-            </div>
-          ) : null}
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            {channelStates.map(channel =>
+              renderTile(
+                channel,
+                channelStates.findIndex(item => item.id === channel.id),
+                focusedChannel?.id === channel.id ? "focus" : "default",
+              ),
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid min-h-[420px] place-items-center rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
