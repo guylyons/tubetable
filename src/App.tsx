@@ -125,11 +125,11 @@ export function App() {
           signal: controller.signal,
         });
 
+        const data = (await response.json()) as YouTubeSearchPayload & { error?: string };
         if (!response.ok) {
-          throw new Error("YouTube search is temporarily unavailable.");
+          throw new Error(data.error ?? "YouTube search is temporarily unavailable.");
         }
 
-        const data = (await response.json()) as YouTubeSearchPayload;
         setSearchResults(data.results);
         setSearchSuggestions(data.suggestions);
         setShowResults(true);

@@ -8,6 +8,93 @@ import {
   type SavedMix,
 } from "../types";
 
+const EXAMPLE_MIX_NAME = "Example Mix";
+const EXAMPLE_MIX_ID = "example-mix";
+const EXAMPLE_UPDATED_AT = "2024-01-01T00:00:00.000Z";
+const EXAMPLE_CHANNELS: MixChannel[] = [
+  {
+    id: "example-channel-1",
+    video: {
+      videoId: "CxHa5KaMBcM",
+      title: "5 Hours of The Shipping Forecast on BBC Radio 4!",
+      channelTitle: "BBC Radio 4",
+      thumbnail: "https://i.ytimg.com/vi/CxHa5KaMBcM/hqdefault.jpg",
+    },
+    volume: 76,
+    muted: false,
+    solo: false,
+    paused: false,
+    looped: true,
+  },
+  {
+    id: "example-channel-2",
+    video: {
+      videoId: "vNwYtllyt3Q",
+      title: "Brian Eno - Ambient 1: Music for Airports [Full Album]",
+      channelTitle: "Brian Eno",
+      thumbnail: "https://i.ytimg.com/vi/vNwYtllyt3Q/hqdefault.jpg",
+    },
+    volume: 76,
+    muted: false,
+    solo: false,
+    paused: false,
+    looped: true,
+  },
+  {
+    id: "example-channel-3",
+    video: {
+      videoId: "mPZkdNFkNps",
+      title: "Rain Sound On Window with Thunder Sounds | Heavy Rain for Sleep, Study and Relaxation, Meditation",
+      channelTitle: "BIRDZ",
+      thumbnail: "https://i.ytimg.com/vi/mPZkdNFkNps/hqdefault.jpg",
+    },
+    volume: 76,
+    muted: false,
+    solo: false,
+    paused: false,
+    looped: true,
+  },
+];
+
+function createExampleMix(): PersistedMix {
+  return {
+    name: EXAMPLE_MIX_NAME,
+    channels: EXAMPLE_CHANNELS,
+    masterVolume: 82,
+    transportPlaying: false,
+    focusedChannelId: null,
+  };
+}
+
+function createExampleSavedMix(): SavedMix {
+  return {
+    ...createExampleMix(),
+    id: EXAMPLE_MIX_ID,
+    updatedAt: EXAMPLE_UPDATED_AT,
+  };
+}
+
+function ensureExampleSavedMix(savedMixes: SavedMix[]): SavedMix[] {
+  return savedMixes.some(mix => mix.id === EXAMPLE_MIX_ID)
+    ? savedMixes
+    : [createExampleSavedMix(), ...savedMixes];
+}
+
+function createDefaultMixState(): MixStorage {
+  const exampleMix = createExampleMix();
+  const exampleSavedMix = createExampleSavedMix();
+
+  return {
+    currentMixKey: EXAMPLE_MIX_ID,
+    draft: exampleMix,
+    draftCache: {
+      [DRAFT_MIX_KEY]: createEmptyMix(),
+      [EXAMPLE_MIX_ID]: exampleMix,
+    },
+    savedMixes: [exampleSavedMix],
+  };
+}
+
 export function createMixId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `mix-${Date.now()}`;
 }
@@ -94,26 +181,14 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
 }
 
 export function readStoredMixState(): MixStorage {
-  const emptyMix = createEmptyMix();
-
   if (typeof window === "undefined") {
-    return {
-      currentMixKey: DRAFT_MIX_KEY,
-      draft: emptyMix,
-      draftCache: { [DRAFT_MIX_KEY]: emptyMix },
-      savedMixes: [],
-    };
+    return createDefaultMixState();
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return {
-        currentMixKey: DRAFT_MIX_KEY,
-        draft: emptyMix,
-        draftCache: { [DRAFT_MIX_KEY]: emptyMix },
-        savedMixes: [],
-      };
+      return createDefaultMixState();
     }
 
     const parsed = JSON.parse(raw) as unknown;
@@ -138,6 +213,7 @@ export function readStoredMixState(): MixStorage {
           .filter((item): item is SavedMix => item !== null)
           .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       : [];
+    const normalizedSavedMixes = ensureExampleSavedMix(savedMixes);
 
     const rawDraftCache =
       record?.draftCache && typeof record.draftCache === "object" ? (record.draftCache as Record<string, unknown>) : {};
@@ -157,11 +233,11 @@ export function readStoredMixState(): MixStorage {
         currentMixKey,
         draft,
         draftCache: {
-          [DRAFT_MIX_KEY]: emptyMix,
+          [DRAFT_MIX_KEY]: createEmptyMix(),
           ...draftCache,
           [currentMixKey]: draft,
         },
-        savedMixes,
+        savedMixes: normalizedSavedMixes,
       };
     }
 
@@ -171,22 +247,12 @@ export function readStoredMixState(): MixStorage {
         currentMixKey: DRAFT_MIX_KEY,
         draft: legacyMix,
         draftCache: { [DRAFT_MIX_KEY]: legacyMix },
-        savedMixes: [],
+        savedMixes: ensureExampleSavedMix([]),
       };
     }
 
-    return {
-      currentMixKey: DRAFT_MIX_KEY,
-      draft: emptyMix,
-      draftCache: { [DRAFT_MIX_KEY]: emptyMix },
-      savedMixes: [],
-    };
+    return createDefaultMixState();
   } catch {
-    return {
-      currentMixKey: DRAFT_MIX_KEY,
-      draft: emptyMix,
-      draftCache: { [DRAFT_MIX_KEY]: emptyMix },
-      savedMixes: [],
-    };
+    return createDefaultMixState();
   }
 }
