@@ -1,9 +1,16 @@
 import { deriveMixName } from "../lib/mixNaming";
 import { getTransportLabel } from "../lib/mixChannels";
-import { DRAFT_MIX_KEY, MAX_CHANNELS, type SavedMix } from "../types";
+import {
+  DRAFT_MIX_KEY,
+  MAX_CHANNELS,
+  type MixChannelState,
+  type SavedMix,
+} from "../types";
+import { TransportVisualizer } from "./TransportVisualizer";
 
 type MixHeaderProps = {
   audibleChannels: number;
+  channelStates: MixChannelState[];
   channelsCount: number;
   currentMixKey: string;
   generatedMixName: string;
@@ -22,6 +29,7 @@ type MixHeaderProps = {
 
 export function MixHeader({
   audibleChannels,
+  channelStates,
   channelsCount,
   currentMixKey,
   generatedMixName,
@@ -99,14 +107,15 @@ export function MixHeader({
           </p>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Transport
-          </p>
+        <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2 lg:col-span-1">
+          <TransportVisualizer
+            channelStates={channelStates}
+            transportPlaying={transportPlaying}
+          />
           <button
             type="button"
             onClick={onToggleTransport}
-            className="mt-3 inline-flex rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            className="inline-flex w-full items-center justify-center rounded-full bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
           >
             {getTransportLabel(transportPlaying)}
           </button>

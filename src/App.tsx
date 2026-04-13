@@ -272,6 +272,7 @@ export function App() {
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col gap-8 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <MixHeader
           audibleChannels={audibleChannels}
+          channelStates={channelStates}
           channelsCount={channels.length}
           currentMixKey={currentMixKey}
           generatedMixName={generatedMixName}
