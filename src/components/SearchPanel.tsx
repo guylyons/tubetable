@@ -7,6 +7,7 @@ type SearchPanelProps = {
   existingVideoIds: Set<string>;
   isResolvingInput: boolean;
   isSearching: boolean;
+  isDarkMode: boolean;
   onChangeQuery: (value: string) => void;
   onCloseResults: () => void;
   onOpenResults: () => void;
@@ -27,6 +28,7 @@ export function SearchPanel({
   existingVideoIds,
   isResolvingInput,
   isSearching,
+  isDarkMode,
   onChangeQuery,
   onCloseResults,
   onOpenResults,
@@ -40,12 +42,12 @@ export function SearchPanel({
   showResults,
 }: SearchPanelProps) {
   return (
-    <section className="relative z-40 rounded-[28px] bg-white p-4 shadow-sm sm:p-5">
+    <section className={`relative z-40 rounded-[28px] p-4 sm:p-5 ${isDarkMode ? "bg-slate-900 text-slate-100 shadow-black/20" : "bg-white text-slate-900 shadow-sm"}`}>
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
           Search
         </p>
-        <p className="text-sm leading-6 text-slate-600">
+        <p className={`text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
           Search by title, channel, or mood. Paste a YouTube URL to add it
           directly.
         </p>
@@ -70,7 +72,11 @@ export function SearchPanel({
               }}
               rows={2}
               placeholder="Search by title, channel, mood, or paste a YouTube URL"
-              className="min-h-[84px] w-full resize-none rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white"
+              className={`min-h-[84px] w-full resize-none rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
+                isDarkMode
+                  ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
+                  : "border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-300 focus:bg-white"
+              }`}
               disabled={!canAddMore}
             />
           </label>
@@ -78,7 +84,9 @@ export function SearchPanel({
           <button
             type="submit"
             disabled={!canAddMore || isResolvingInput}
-            className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDarkMode ? "bg-sky-500 hover:bg-sky-400" : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
             {isResolvingInput
               ? "Adding channel..."
@@ -87,9 +95,9 @@ export function SearchPanel({
         </form>
 
         {showResults ? (
-          <div className="absolute inset-x-0 top-[calc(100%+14px)] z-[120] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl">
+          <div className={`absolute inset-x-0 top-[calc(100%+14px)] z-[120] overflow-hidden rounded-[28px] border shadow-xl ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}>
             {isSearching ? (
-              <p className="px-4 py-5 text-sm text-slate-500">
+              <p className={`px-4 py-5 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
                 Searching YouTube...
               </p>
             ) : null}
@@ -106,7 +114,11 @@ export function SearchPanel({
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => onSelectSuggestion(suggestion)}
-                      className="cursor-pointer rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs transition ${
+                        isDarkMode
+                          ? "border-slate-700 bg-slate-800 text-slate-200 hover:border-sky-400 hover:bg-slate-700 hover:text-sky-200"
+                          : "border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      }`}
                     >
                       {suggestion}
                     </button>
@@ -131,7 +143,9 @@ export function SearchPanel({
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => onSelectResult(result)}
                       disabled={isAlreadyAdded || !canAddMore}
-                      className="flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        isDarkMode ? "hover:bg-slate-800" : "hover:bg-slate-50"
+                      }`}
                     >
                       <img
                         src={result.thumbnail}
@@ -140,13 +154,13 @@ export function SearchPanel({
                         loading="lazy"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-medium text-slate-900">
+                        <p className={`line-clamp-2 text-sm font-medium ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
                           {result.title}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className={`mt-1 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
                           {result.channelTitle}
                         </p>
-                        <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-400">
+                        <div className={`mt-1 flex flex-wrap gap-2 text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
                           {result.durationText ? (
                             <span>{result.durationText}</span>
                           ) : null}
@@ -167,7 +181,7 @@ export function SearchPanel({
             ) : null}
 
             {!isSearching && searchError ? (
-              <p className="px-4 py-5 text-sm text-red-600">{searchError}</p>
+              <p className={`px-4 py-5 text-sm ${isDarkMode ? "text-red-300" : "text-red-600"}`}>{searchError}</p>
             ) : null}
 
             {!isSearching &&
@@ -184,10 +198,10 @@ export function SearchPanel({
       </div>
 
       {addError ? (
-        <p className="mt-3 text-sm text-red-600">{addError}</p>
+        <p className={`mt-3 text-sm ${isDarkMode ? "text-red-300" : "text-red-600"}`}>{addError}</p>
       ) : null}
       {!canAddMore ? (
-        <p className="mt-3 text-sm text-slate-500">
+        <p className={`mt-3 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
           The grid is full. Remove a channel before adding another one.
         </p>
       ) : null}

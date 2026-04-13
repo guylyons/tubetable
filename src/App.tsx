@@ -22,8 +22,27 @@ import {
   type YouTubeSearchResult,
 } from "./types";
 
+const THEME_STORAGE_KEY = "tubetable.theme.v1";
+type ThemeMode = "light" | "dark";
+
 export function App() {
   const storedMixState = useMemo(() => readStoredMixState(), []);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+
+    try {
+      const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        return storedTheme;
+      }
+    } catch {
+      // Ignore storage access issues and fall back to system preference.
+    }
+
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
   const [channels, setChannels] = useState<MixChannel[]>(() => storedMixState.draft.channels);
   const [masterVolume, setMasterVolume] = useState<number>(() => storedMixState.draft.masterVolume);
   const [transportPlaying, setTransportPlaying] = useState<boolean>(() => storedMixState.draft.transportPlaying);
@@ -65,6 +84,14 @@ export function App() {
   );
   const channelStates = useMemo(() => buildChannelStates(channels, masterVolume), [channels, masterVolume]);
   const audibleChannels = channelStates.filter(channel => channel.effectiveVolume > 0).length;
+  const isDarkMode = themeMode === "dark";
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = themeMode;
+    root.style.colorScheme = themeMode;
+    window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -311,7 +338,13 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div
+      className={`min-h-screen transition-colors ${
+        isDarkMode
+          ? "bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.16),_transparent_36%),linear-gradient(180deg,_#020617,_#0f172a_55%,_#111827)] text-slate-100"
+          : "bg-slate-50 text-slate-900"
+      }`}
+    >
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col gap-8 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <MixHeader
           addError={addError}
@@ -324,6 +357,7 @@ export function App() {
           isSavedMix={isSavedMix}
           isResolvingInput={isResolvingInput}
           isSearching={isSearching}
+          isDarkMode={isDarkMode}
           onChangeQuery={value => {
             setSearchQuery(value);
             setShowResults(true);
@@ -340,6 +374,7 @@ export function App() {
           onSubmitSearch={() => {
             void resolveInputToVideo();
           }}
+          onToggleTheme={() => setThemeMode(currentMode => (currentMode === "dark" ? "light" : "dark"))}
           onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
           searchError={searchError}
           searchQuery={searchQuery}
@@ -352,6 +387,7 @@ export function App() {
         <main className="grid flex-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="space-y-6">
             <MixControlPanel
+              isDarkMode={isDarkMode}
               generatedMixName={generatedMixName}
               isSavedMix={isSavedMix}
               mixTitle={mixTitle}
@@ -362,6 +398,7 @@ export function App() {
             />
 
             <SavedMixesPanel
+              isDarkMode={isDarkMode}
               currentMixKey={currentMixKey}
               onDeleteMix={deleteMix}
               onSelectMix={selectMix}
@@ -371,6 +408,7 @@ export function App() {
 
 
             <MasterBusPanel
+              isDarkMode={isDarkMode}
               masterVolume={masterVolume}
               onChangeMasterVolume={setMasterVolume}
               onClearMix={() => {
@@ -396,6 +434,7 @@ export function App() {
 
           <div className="space-y-6">
             <TableSection
+              isDarkMode={isDarkMode}
               channelStates={channelStates}
               focusedChannelId={focusedChannelId}
               onFocusChannel={channelId =>
@@ -425,6 +464,7 @@ export function App() {
             />
 
             <MixerSection
+              isDarkMode={isDarkMode}
               channelStates={channelStates}
               onChangeChannelVolume={(channelId, volume) =>
                 updateChannel(channelId, currentChannel => ({

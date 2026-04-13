@@ -3,6 +3,24 @@
 @layer base {
   :root {
     color-scheme: light;
+    --tubetable-bg: #f8fbff;
+    --tubetable-fg: #0f172a;
+    --tubetable-selection-bg: rgba(59, 130, 246, 0.18);
+    --tubetable-selection-fg: #0f172a;
+    --tubetable-scrollbar-track: #e2e8f0;
+    --tubetable-scrollbar-thumb-start: #60a5fa;
+    --tubetable-scrollbar-thumb-end: #2563eb;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --tubetable-bg: #020617;
+    --tubetable-fg: #e2e8f0;
+    --tubetable-selection-bg: rgba(56, 189, 248, 0.24);
+    --tubetable-selection-fg: #f8fafc;
+    --tubetable-scrollbar-track: #0f172a;
+    --tubetable-scrollbar-thumb-start: #38bdf8;
+    --tubetable-scrollbar-thumb-end: #2563eb;
   }
 
   * {
@@ -17,8 +35,8 @@
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background: #f8fbff;
-    color: #0f172a;
+    background: var(--tubetable-bg);
+    color: var(--tubetable-fg);
     font-family:
       ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
@@ -30,8 +48,8 @@
   }
 
   ::selection {
-    background: rgba(59, 130, 246, 0.18);
-    color: #0f172a;
+    background: var(--tubetable-selection-bg);
+    color: var(--tubetable-selection-fg);
   }
 }
 
@@ -87,10 +105,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #e2e8f0;
+  background: var(--tubetable-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: linear-gradient(180deg, #60a5fa, #2563eb);
+  background: linear-gradient(
+    180deg,
+    var(--tubetable-scrollbar-thumb-start),
+    var(--tubetable-scrollbar-thumb-end)
+  );
 }

@@ -9,6 +9,7 @@ import {
 } from "../lib/youtube";
 
 type VideoTileProps = {
+  isDarkMode?: boolean;
   channel: MixChannel;
   effectiveVolume: number;
   isDragging: boolean;
@@ -28,6 +29,7 @@ type VideoTileProps = {
 };
 
 export function VideoTile({
+  isDarkMode = false,
   channel,
   effectiveVolume,
   isDragging,
@@ -152,8 +154,18 @@ export function VideoTile({
 
   return (
     <article
-      className={`group relative overflow-hidden rounded-3xl border bg-white shadow-sm transition ${
-        isDragTarget ? "border-blue-300 ring-2 ring-blue-100" : isFocused ? "border-blue-200" : "border-slate-200"
+      className={`group relative overflow-hidden rounded-3xl border shadow-sm transition ${
+        isDarkMode
+          ? isDragTarget
+            ? "border-sky-400/40 bg-slate-950 text-slate-100 ring-2 ring-sky-400/20"
+            : isFocused
+              ? "border-sky-400/30 bg-slate-950 text-slate-100"
+              : "border-slate-800 bg-slate-900 text-slate-100"
+          : isDragTarget
+            ? "border-blue-300 bg-white ring-2 ring-blue-100"
+            : isFocused
+              ? "border-blue-200 bg-white"
+              : "border-slate-200 bg-white"
       } ${isDragging ? "scale-[0.98] opacity-70" : ""}`}
     >
       <div
@@ -171,7 +183,11 @@ export function VideoTile({
             event.dataTransfer.setData("text/plain", channel.id);
             onDragStart();
           }}
-          className="absolute left-3 top-3 z-20 inline-flex cursor-grab items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 shadow-sm transition hover:border-blue-200 hover:text-blue-700 active:cursor-grabbing"
+          className={`absolute left-3 top-3 z-20 inline-flex cursor-grab items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm transition hover:text-blue-700 active:cursor-grabbing ${
+            isDarkMode
+              ? "border-slate-700 bg-slate-900/95 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+              : "border-slate-200 bg-white/95 text-slate-600 hover:border-blue-200"
+          }`}
           aria-label={`Drag ${trackLabel} to reorder`}
           title="Drag to reorder"
         >
@@ -181,7 +197,11 @@ export function VideoTile({
         <button
           type="button"
           onClick={() => onRemove(channel.id)}
-          className="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-lg font-semibold text-slate-700 shadow-sm transition-opacity duration-150 hover:border-red-200 hover:bg-red-50 hover:text-red-600 group-hover/video:pointer-events-auto group-hover/video:opacity-100 group-focus-within/video:pointer-events-auto group-focus-within/video:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 pointer-events-none opacity-0"
+          className={`absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border text-lg font-semibold shadow-sm transition-opacity duration-150 group-hover/video:pointer-events-auto group-hover/video:opacity-100 group-focus-within/video:pointer-events-auto group-focus-within/video:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 pointer-events-none opacity-0 ${
+            isDarkMode
+              ? "border-slate-700 bg-slate-900/95 text-slate-300 hover:border-red-400 hover:bg-red-500/10 hover:text-red-300"
+              : "border-slate-200 bg-white/95 text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          }`}
           aria-label={`Remove ${channel.video.title} from mix`}
           title="Remove from mix"
         >
@@ -192,20 +212,24 @@ export function VideoTile({
           onClick={() => onFocus(channel.id)}
           className={`absolute bottom-3 right-3 z-20 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm transition-opacity duration-150 group-hover/video:pointer-events-auto group-hover/video:opacity-100 group-focus-within/video:pointer-events-auto group-focus-within/video:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 ${
             isFocused
-              ? "border-blue-200 bg-blue-600 text-white hover:bg-blue-700"
-              : "border-slate-200 bg-white/95 text-slate-700 hover:border-blue-200 hover:text-blue-700"
+              ? isDarkMode
+                ? "border-sky-400/40 bg-sky-500 text-white hover:bg-sky-400"
+                : "border-blue-200 bg-blue-600 text-white hover:bg-blue-700"
+              : isDarkMode
+                ? "border-slate-700 bg-slate-900/95 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                : "border-slate-200 bg-white/95 text-slate-700 hover:border-blue-200 hover:text-blue-700"
           } pointer-events-none opacity-0`}
           aria-pressed={isFocused}
         >
           {isFocused ? "Exit focus" : "Focus"}
         </button>
         {!ready && !loadError ? (
-          <div className="absolute inset-0 grid place-items-center bg-white/90 text-sm text-slate-500">
+          <div className={`absolute inset-0 grid place-items-center text-sm ${isDarkMode ? "bg-slate-950/90 text-slate-300" : "bg-white/90 text-slate-500"}`}>
             Buffering channel...
           </div>
         ) : null}
         {loadError ? (
-          <div className="absolute inset-0 grid place-items-center bg-white/95 px-6 text-center text-sm text-red-600">
+          <div className={`absolute inset-0 grid place-items-center px-6 text-center text-sm ${isDarkMode ? "bg-slate-950/95 text-red-300" : "bg-white/95 text-red-600"}`}>
             {loadError}
           </div>
         ) : null}
@@ -213,16 +237,16 @@ export function VideoTile({
 
       <div className={`space-y-4 ${isFocusPresentation ? "p-6" : "p-5"}`}>
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">{trackLabel}</p>
-          <p className={`line-clamp-2 font-semibold text-slate-900 ${isFocusPresentation ? "text-xl" : "text-base"}`}>
+          <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>{trackLabel}</p>
+          <p className={`line-clamp-2 font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-900"} ${isFocusPresentation ? "text-xl" : "text-base"}`}>
             {channel.video.title}
           </p>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <div className={`flex flex-wrap items-center gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
             <span>{channel.video.channelTitle}</span>
             {channel.video.durationText ? <span>{channel.video.durationText}</span> : null}
             {channel.video.viewCountText ? <span>{channel.video.viewCountText}</span> : null}
             {isFocused ? (
-              <span className="rounded-full bg-blue-50 px-2 py-1 font-semibold uppercase tracking-[0.14em] text-blue-700">
+              <span className={`rounded-full px-2 py-1 font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "bg-sky-400/15 text-sky-200" : "bg-blue-50 text-blue-700"}`}>
                 Theatre
               </span>
             ) : null}
@@ -235,8 +259,12 @@ export function VideoTile({
             onClick={() => onTogglePause(channel.id)}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.paused
-                ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                ? isDarkMode
+                  ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
+                  : "border-blue-200 bg-blue-50 text-blue-700"
+                : isDarkMode
+                  ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-400 hover:text-sky-200"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
             {channel.paused ? "Resume channel" : "Pause channel"}
@@ -246,8 +274,12 @@ export function VideoTile({
             onClick={() => onToggleMute(channel.id)}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.muted
-                ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                ? isDarkMode
+                  ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
+                  : "border-blue-200 bg-blue-50 text-blue-700"
+                : isDarkMode
+                  ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-400 hover:text-sky-200"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
             {channel.muted ? "Unmute" : "Mute"}
@@ -257,8 +289,12 @@ export function VideoTile({
             onClick={() => onToggleSolo(channel.id)}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.solo
-                ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                ? isDarkMode
+                  ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
+                  : "border-blue-200 bg-blue-50 text-blue-700"
+                : isDarkMode
+                  ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-400 hover:text-sky-200"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
             {channel.solo ? "Solo on" : "Solo"}
@@ -268,13 +304,17 @@ export function VideoTile({
             onClick={() => onToggleLoop(channel.id)}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.looped
-                ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                ? isDarkMode
+                  ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
+                  : "border-blue-200 bg-blue-50 text-blue-700"
+                : isDarkMode
+                  ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-400 hover:text-sky-200"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
             {channel.looped ? "Loop on" : "Loop off"}
           </button>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Output {effectiveVolume}%</span>
+          <span className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>Output {effectiveVolume}%</span>
         </div>
       </div>
     </article>
