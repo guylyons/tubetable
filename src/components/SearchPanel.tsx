@@ -40,19 +40,18 @@ export function SearchPanel({
   showResults,
 }: SearchPanelProps) {
   return (
-    <section className="relative z-40 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="space-y-3">
+    <section className="relative z-40 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
           Search
         </p>
-        <h2 className="text-2xl font-semibold text-slate-950"></h2>
         <p className="text-sm leading-6 text-slate-600">
           Type a lofi cue, rain loop, jazz texture, or paste a direct YouTube
           URL. Selecting a result drops it straight into the grid.
         </p>
       </div>
 
-      <div className="relative mt-5">
+      <div className="relative mt-4">
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -69,9 +68,9 @@ export function SearchPanel({
               onBlur={() => {
                 window.setTimeout(onCloseResults, 120);
               }}
-              rows={3}
+              rows={2}
               placeholder="Try: rainy lofi beat, brown noise, fireplace jazz..."
-              className="min-h-[118px] w-full resize-none rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white"
+              className="min-h-[84px] w-full resize-none rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white"
               disabled={!canAddMore}
             />
           </label>

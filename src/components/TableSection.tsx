@@ -9,6 +9,7 @@ type TableSectionProps = {
   onToggleLoop: (channelId: string) => void;
   onToggleMute: (channelId: string) => void;
   onTogglePause: (channelId: string) => void;
+  onToggleSolo: (channelId: string) => void;
   transportPlaying: boolean;
 };
 
@@ -19,6 +20,7 @@ export function TableSection({
   onToggleLoop,
   onToggleMute,
   onTogglePause,
+  onToggleSolo,
   transportPlaying,
 }: TableSectionProps) {
   const [draggedChannelId, setDraggedChannelId] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export function TableSection({
                 onToggleLoop={onToggleLoop}
                 onToggleMute={onToggleMute}
                 onTogglePause={onTogglePause}
+                onToggleSolo={onToggleSolo}
                 transportPlaying={transportPlaying}
               />
             </div>

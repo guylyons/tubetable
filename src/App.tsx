@@ -2,9 +2,9 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import "./index.css";
 import { MasterBusPanel } from "./components/MasterBusPanel";
 import { MixerSection } from "./components/MixerSection";
+import { MixControlPanel } from "./components/MixControlPanel";
 import { MixHeader } from "./components/MixHeader";
 import { SavedMixesPanel } from "./components/SavedMixesPanel";
-import { SearchPanel } from "./components/SearchPanel";
 import { TableSection } from "./components/TableSection";
 import { deriveMixName } from "./lib/mixNaming";
 import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
@@ -214,6 +214,30 @@ export function App() {
     }
   }
 
+  function deleteMix(targetMixKey: string) {
+    const deletingCurrentMix = currentMixKey === targetMixKey;
+
+    setSavedMixes(currentMixes => currentMixes.filter(mix => mix.id !== targetMixKey));
+    setDraftCache(currentCache => {
+      const nextCache = { ...currentCache };
+      delete nextCache[targetMixKey];
+
+      if (deletingCurrentMix) {
+        nextCache[DRAFT_MIX_KEY] = activeDraft;
+      }
+
+      return nextCache;
+    });
+
+    if (deletingCurrentMix) {
+      setCurrentMixKey(DRAFT_MIX_KEY);
+      setSaveMessage("Mix deleted");
+      return;
+    }
+
+    setSaveMessage("Mix deleted");
+  }
+
   function addResultToMix(video: YouTubeSearchResult) {
     if (!canAddMore) {
       setAddError(`You can mix up to ${MAX_CHANNELS} channels at once.`);
@@ -271,57 +295,61 @@ export function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col gap-8 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <MixHeader
+          addError={addError}
           audibleChannels={audibleChannels}
+          canAddMore={canAddMore}
           channelStates={channelStates}
           channelsCount={channels.length}
-          currentMixKey={currentMixKey}
-          generatedMixName={generatedMixName}
+          deferredQuery={deferredQuery}
+          existingVideoIds={existingVideoIds}
           isSavedMix={isSavedMix}
-          mixName={mixName}
-          mixTitle={mixTitle}
-          onCreateNewMix={createNewMix}
-          onSaveMix={saveCurrentMix}
-          onSelectMix={selectMix}
-          onSetMixTitle={setMixTitle}
+          isResolvingInput={isResolvingInput}
+          isSearching={isSearching}
+          onChangeQuery={value => {
+            setSearchQuery(value);
+            setShowResults(true);
+            setAddError(null);
+          }}
+          onCloseResults={() => setShowResults(false)}
+          onOpenResults={() => setShowResults(true)}
+          onSelectResult={addResultToMix}
+          onSelectSuggestion={suggestion => {
+            setSearchQuery(suggestion);
+            setShowResults(true);
+            setAddError(null);
+          }}
+          onSubmitSearch={() => {
+            void resolveInputToVideo();
+          }}
           onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
-          saveMessage={saveMessage}
-          savedMixes={savedMixes}
+          searchError={searchError}
+          searchQuery={searchQuery}
+          searchResults={searchResults}
+          searchSuggestions={searchSuggestions}
+          showResults={showResults}
           transportPlaying={transportPlaying}
         />
 
         <main className="grid flex-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="space-y-6">
-            <SearchPanel
-              addError={addError}
-              canAddMore={canAddMore}
-              deferredQuery={deferredQuery}
-              existingVideoIds={existingVideoIds}
-              isResolvingInput={isResolvingInput}
-              isSearching={isSearching}
-              onChangeQuery={value => {
-                setSearchQuery(value);
-                setShowResults(true);
-                setAddError(null);
-              }}
-              onCloseResults={() => setShowResults(false)}
-              onOpenResults={() => setShowResults(true)}
-              onSelectResult={addResultToMix}
-              onSelectSuggestion={suggestion => {
-                setSearchQuery(suggestion);
-                setShowResults(true);
-                setAddError(null);
-              }}
-              onSubmit={() => {
-                void resolveInputToVideo();
-              }}
-              searchError={searchError}
-              searchQuery={searchQuery}
-              searchResults={searchResults}
-              searchSuggestions={searchSuggestions}
-              showResults={showResults}
+            <MixControlPanel
+              generatedMixName={generatedMixName}
+              isSavedMix={isSavedMix}
+              mixTitle={mixTitle}
+              onCreateNewMix={createNewMix}
+              onSaveMix={saveCurrentMix}
+              onSetMixTitle={setMixTitle}
+              saveMessage={saveMessage}
             />
 
-            <SavedMixesPanel currentMixKey={currentMixKey} onSelectMix={selectMix} savedMixes={savedMixes} />
+            <SavedMixesPanel
+              currentMixKey={currentMixKey}
+              onDeleteMix={deleteMix}
+              onSelectMix={selectMix}
+              savedMixes={savedMixes}
+              transportPlaying={transportPlaying}
+            />
+
 
             <MasterBusPanel
               masterVolume={masterVolume}
@@ -361,6 +389,9 @@ export function App() {
               }
               onTogglePause={channelId =>
                 updateChannel(channelId, currentChannel => ({ ...currentChannel, paused: !currentChannel.paused }))
+              }
+              onToggleSolo={channelId =>
+                updateChannel(channelId, currentChannel => ({ ...currentChannel, solo: !currentChannel.solo }))
               }
               transportPlaying={transportPlaying}
             />

@@ -1,48 +1,61 @@
-import { deriveMixName } from "../lib/mixNaming";
 import { getTransportLabel } from "../lib/mixChannels";
 import {
-  DRAFT_MIX_KEY,
   MAX_CHANNELS,
   type MixChannelState,
-  type SavedMix,
+  type YouTubeSearchResult,
 } from "../types";
 import { TransportVisualizer } from "./TransportVisualizer";
+import { SearchPanel } from "./SearchPanel";
 
 type MixHeaderProps = {
+  addError: string | null;
   audibleChannels: number;
+  canAddMore: boolean;
   channelStates: MixChannelState[];
   channelsCount: number;
-  currentMixKey: string;
-  generatedMixName: string;
+  deferredQuery: string;
+  existingVideoIds: Set<string>;
   isSavedMix: boolean;
-  mixName: string;
-  mixTitle: string;
-  onCreateNewMix: () => void;
-  onSaveMix: () => void;
-  onSelectMix: (mixKey: string) => void;
-  onSetMixTitle: (value: string) => void;
+  isResolvingInput: boolean;
+  isSearching: boolean;
+  onChangeQuery: (value: string) => void;
+  onCloseResults: () => void;
+  onOpenResults: () => void;
+  onSelectResult: (result: YouTubeSearchResult) => void;
+  onSelectSuggestion: (suggestion: string) => void;
+  onSubmitSearch: () => void;
   onToggleTransport: () => void;
-  saveMessage: string | null;
-  savedMixes: SavedMix[];
+  searchError: string | null;
+  searchQuery: string;
+  searchResults: YouTubeSearchResult[];
+  searchSuggestions: string[];
+  showResults: boolean;
   transportPlaying: boolean;
 };
 
 export function MixHeader({
+  addError,
   audibleChannels,
+  canAddMore,
   channelStates,
   channelsCount,
-  currentMixKey,
-  generatedMixName,
+  deferredQuery,
+  existingVideoIds,
   isSavedMix,
-  mixName,
-  mixTitle,
-  onCreateNewMix,
-  onSaveMix,
-  onSelectMix,
-  onSetMixTitle,
+  isResolvingInput,
+  isSearching,
+  onChangeQuery,
+  onCloseResults,
+  onOpenResults,
+  onSelectResult,
+  onSelectSuggestion,
+  onSubmitSearch,
   onToggleTransport,
-  saveMessage,
-  savedMixes,
+  searchError,
+  searchQuery,
+  searchResults,
+  searchSuggestions,
+  showResults,
   transportPlaying,
 }: MixHeaderProps) {
   return (
@@ -65,33 +78,27 @@ export function MixHeader({
             Search YouTube, add up to five channels, and balance them in one
             clean workspace with simple blue controls.
           </p>
-
-          <button
-            type="button"
-            onClick={onCreateNewMix}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
-          >
-            Create a new mix
-          </button>
-
-          <div className="flex max-w-xl flex-col gap-3 sm:flex-row sm:items-center">
-            <input
-              type="text"
-              value={mixTitle}
-              onChange={(event) => onSetMixTitle(event.target.value)}
-              placeholder={generatedMixName}
-              className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white"
-            />
-
-            <button
-              type="button"
-              onClick={onSaveMix}
-              className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              {isSavedMix ? "Save changes" : "Save mix"}
-            </button>
-          </div>
         </div>
+
+        <SearchPanel
+          addError={addError}
+          canAddMore={canAddMore}
+          deferredQuery={deferredQuery}
+          existingVideoIds={existingVideoIds}
+          isResolvingInput={isResolvingInput}
+          isSearching={isSearching}
+          onChangeQuery={onChangeQuery}
+          onCloseResults={onCloseResults}
+          onOpenResults={onOpenResults}
+          onSelectResult={onSelectResult}
+          onSelectSuggestion={onSelectSuggestion}
+          onSubmit={onSubmitSearch}
+          searchError={searchError}
+          searchQuery={searchQuery}
+          searchResults={searchResults}
+          searchSuggestions={searchSuggestions}
+          showResults={showResults}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">

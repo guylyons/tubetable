@@ -20,6 +20,7 @@ type VideoTileProps = {
   onToggleLoop: (id: string) => void;
   onToggleMute: (id: string) => void;
   onTogglePause: (id: string) => void;
+  onToggleSolo: (id: string) => void;
   transportPlaying: boolean;
 };
 
@@ -35,6 +36,7 @@ export function VideoTile({
   onToggleLoop,
   onToggleMute,
   onTogglePause,
+  onToggleSolo,
   transportPlaying,
 }: VideoTileProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -218,6 +220,17 @@ export function VideoTile({
             }`}
           >
             {channel.muted ? "Unmute" : "Mute"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleSolo(channel.id)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              channel.solo
+                ? "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+            }`}
+          >
+            {channel.solo ? "Solo on" : "Solo"}
           </button>
           <button
             type="button"
