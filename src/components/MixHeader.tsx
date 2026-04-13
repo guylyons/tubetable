@@ -63,7 +63,10 @@ export function MixHeader({
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
-            Tubetable [channels:{audibleChannels}]
+            Tubetable
+          </div>
+          <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            {audibleChannels} active channels
           </div>
           <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
             {isSavedMix ? "Saved mix" : "Draft mix"}
@@ -72,11 +75,11 @@ export function MixHeader({
 
         <div className="space-y-4">
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-            Build your own layered mix.
+            Build and control a layered mix.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
             Search YouTube, add up to five channels, and balance them in one
-            clean workspace with simple blue controls.
+            workspace.
           </p>
         </div>
 

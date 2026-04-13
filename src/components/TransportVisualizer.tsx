@@ -128,10 +128,10 @@ export function TransportVisualizer({
           </p>
           <p className="mt-2 text-sm font-medium text-slate-600">
             {live
-              ? `${profile.activeCount} active channels in motion`
+              ? `${profile.activeCount} active channels playing`
               : transportPlaying
-                ? "Waiting for audible output"
-                : "Paused and holding"}
+                ? "Waiting for a channel to become audible"
+                : "Playback paused"}
           </p>
         </div>
         <span

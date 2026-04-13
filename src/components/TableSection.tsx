@@ -87,7 +87,7 @@ export function TableSection({
           onTogglePause={onTogglePause}
           onToggleSolo={onToggleSolo}
           presentation={presentation}
-          trackLabel={`Track ${index + 1}`}
+          trackLabel={`Channel ${index + 1}`}
           transportPlaying={transportPlaying}
         />
       </div>
@@ -95,33 +95,34 @@ export function TableSection({
   }
 
   return (
-    <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="relative overflow-hidden rounded-[32px] border border-blue-200/80 bg-[linear-gradient(180deg,_rgba(239,246,255,0.9),_#ffffff_18%)] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ring-1 ring-blue-100/70 sm:p-6">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-transparent" />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
-            Table
+            Video table
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-            Arrange, build and shape your track
+            Arrange and feature channels
           </h2>
         </div>
         <p className="text-sm text-slate-500">
-          Build the stack, drag tracks into order, then shape the blend below.
+          Drag channels to reorder them, then focus one to make it the featured view.
         </p>
       </div>
 
       {channelStates.length > 0 ? (
         <div className="space-y-5">
           {focusedChannel ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-blue-100 bg-blue-50/70 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-blue-100 bg-white/80 px-4 py-3 shadow-sm">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Focus mode</p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Theatre view keeps one channel large while the rest stay parked below.
+                  The focused channel stays large while the rest remain below.
                 </p>
               </div>
               <p className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600">
-                Drag any card here or tap focus on another track to swap it in.
+                Drag a channel here or tap Focus on another one to switch it.
               </p>
             </div>
           ) : null}
@@ -137,14 +138,14 @@ export function TableSection({
           </div>
         </div>
       ) : (
-        <div className="grid min-h-[420px] place-items-center rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+        <div className="grid min-h-[420px] place-items-center rounded-[28px] border border-dashed border-blue-200 bg-white/70 px-6 text-center shadow-inner">
           <div className="max-w-lg space-y-4">
             <h3 className="text-3xl font-semibold text-slate-950">
-              Start the first layer
+              Add your first channel
             </h3>
             <p className="text-base leading-7 text-slate-600">
-              Add a rain bed, a piano loop, or a low-noise texture. Once
-              channels are on the table, the mixer opens up underneath.
+              Search for a video, add it to the mix, and use focus mode or the
+              mixer to shape the result.
             </p>
           </div>
         </div>

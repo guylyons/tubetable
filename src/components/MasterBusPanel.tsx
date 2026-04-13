@@ -24,6 +24,12 @@ export function MasterBusPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
             Master bus
           </p>
+          <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+            Overall volume
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Set the volume for the full mix.
+          </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
           {masterVolume}%
@@ -53,7 +59,7 @@ export function MasterBusPanel({
             onClick={onResetChannelBalances}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
           >
-            Reset channel balances
+            Reset channel settings
           </button>
         </div>
       </div>

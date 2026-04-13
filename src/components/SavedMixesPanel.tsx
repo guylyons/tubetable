@@ -20,11 +20,11 @@ export function SavedMixesPanel({
     <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
-          Your mixes
+          Saved mixes
         </p>
         <h2 className="text-2xl font-semibold text-slate-950">Library</h2>
         <p className="text-sm leading-6 text-slate-600">
-          Save a setup, then come back to it instantly.
+          Select a saved mix to load it instantly.
         </p>
       </div>
 
@@ -48,7 +48,7 @@ export function SavedMixesPanel({
                   {savedMix.name || deriveMixName(savedMix.channels)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {savedMix.channels.length} tracks ·{" "}
+                  {savedMix.channels.length} channels ·{" "}
                   {new Date(savedMix.updatedAt).toLocaleDateString()}
                 </p>
               </button>
@@ -72,7 +72,7 @@ export function SavedMixesPanel({
           ))
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-            No saved mixes yet.
+            No saved mixes yet. Save the current mix to add one.
           </div>
         )}
       </div>

@@ -25,7 +25,7 @@ export function MixControlPanel({
             Mix controls
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-            Your Mix
+            Current mix
           </h2>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
@@ -34,8 +34,8 @@ export function MixControlPanel({
       </div>
 
       <p className="mt-3 text-sm leading-6 text-slate-600">
-        Name the current setup, save revisions, or start a clean draft without
-        losing the mixes already in your library.
+        Name the current setup, save changes, or start a new draft without
+        losing anything already in your library.
       </p>
 
       <div className="mt-5 space-y-3">
@@ -56,7 +56,7 @@ export function MixControlPanel({
             onClick={onCreateNewMix}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
           >
-            Create a new mix
+            Start a new mix
           </button>
           <button
             type="button"

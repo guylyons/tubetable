@@ -14,20 +14,20 @@ export function MixerSection({
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
-            Mixer panel
+            Mixer
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-950">Volume</h2>
+          <h2 className="mt-2 text-2xl font-semibold text-slate-950">Per-channel volume</h2>
         </div>
         <p className="text-sm text-slate-500">
-          Control the volume of each track to shape the blend. The mixer panel
-          fills itself as soon as you add the first channel.
+          Adjust each channel against the master volume. The mixer appears as
+          soon as you add a channel.
         </p>
       </div>
 
       {channelStates.length > 0 ? (
         <div className="flex gap-2 overflow-x-auto pb-2">
           {channelStates.map((channel, index) => {
-            const trackLabel = `Track ${index + 1}`;
+            const trackLabel = `Channel ${index + 1}`;
 
             return (
               <article
@@ -81,7 +81,7 @@ export function MixerSection({
         </div>
       ) : (
         <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-slate-500">
-          The mixer panel fills itself as soon as you add the first channel.
+          Add a channel to open the mixer.
         </div>
       )}
     </section>
