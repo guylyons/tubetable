@@ -1,5 +1,6 @@
 export type YouTubePlayer = {
   destroy: () => void;
+  getCurrentTime?: () => number;
   getPlayerState?: () => number;
   mute: () => void;
   pauseVideo: () => void;
@@ -33,8 +34,8 @@ declare global {
 
 const YT_PLAYER_STATE_UNSTARTED = -1;
 export const YT_PLAYER_STATE_ENDED = 0;
+export const YT_PLAYER_STATE_PAUSED = 2;
 const YT_PLAYER_STATE_PLAYING = 1;
-const YT_PLAYER_STATE_PAUSED = 2;
 const YT_PLAYER_STATE_BUFFERING = 3;
 const YT_PLAYER_STATE_CUED = 5;
 

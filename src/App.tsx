@@ -51,6 +51,7 @@ export function App() {
   const [currentMixKey, setCurrentMixKey] = useState<string>(() => storedMixState.currentMixKey);
   const [draftCache, setDraftCache] = useState<Record<string, PersistedMix>>(() => storedMixState.draftCache);
   const [savedMixes, setSavedMixes] = useState<SavedMix[]>(() => storedMixState.savedMixes);
+  const [restartToken, setRestartToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery.trim());
   const [searchResults, setSearchResults] = useState<YouTubeSearchResult[]>([]);
@@ -78,6 +79,12 @@ export function App() {
       }) satisfies PersistedMix,
     [channels, focusedChannelId, masterVolume, mixTitle, transportPlaying],
   );
+  useEffect(() => {
+    setDraftCache(currentCache => ({
+      ...currentCache,
+      [currentMixKey]: activeDraft,
+    }));
+  }, [activeDraft, currentMixKey]);
   const effectiveDraftCache = useMemo(
     () => ({ ...draftCache, [currentMixKey]: activeDraft }),
     [activeDraft, currentMixKey, draftCache],
@@ -179,6 +186,48 @@ export function App() {
     setChannels(currentChannels => currentChannels.map(channel => (channel.id === channelId ? updater(channel) : channel)));
   }
 
+  function updateChannelProgress(mixKey: string, channelId: string, progressSeconds: number) {
+    const nextProgressSeconds = Math.max(0, progressSeconds);
+
+    if (mixKey === currentMixKey) {
+      setChannels(currentChannels =>
+        currentChannels.map(channel =>
+          channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
+        ),
+      );
+    }
+
+    setDraftCache(currentCache => {
+      const targetMix = currentCache[mixKey];
+      if (!targetMix) {
+        return currentCache;
+      }
+
+      return {
+        ...currentCache,
+        [mixKey]: {
+          ...targetMix,
+          channels: targetMix.channels.map(channel =>
+            channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
+          ),
+        },
+      };
+    });
+
+    setSavedMixes(currentMixes =>
+      currentMixes.map(savedMix =>
+        savedMix.id === mixKey
+          ? {
+              ...savedMix,
+              channels: savedMix.channels.map(channel =>
+                channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
+              ),
+            }
+          : savedMix,
+      ),
+    );
+  }
+
   function resetSearchUi(clearQuery = false) {
     if (clearQuery) {
       setSearchQuery("");
@@ -191,6 +240,10 @@ export function App() {
   }
 
   function loadMix(mix: PersistedMix, mixKey: string) {
+    setDraftCache(currentCache => ({
+      ...currentCache,
+      [currentMixKey]: activeDraft,
+    }));
     setChannels(mix.channels);
     setMasterVolume(mix.masterVolume);
     setTransportPlaying(mix.transportPlaying);
@@ -240,6 +293,47 @@ export function App() {
     }));
     loadMix(createEmptyMix(""), DRAFT_MIX_KEY);
     setSaveMessage("New mix ready");
+  }
+
+  function startCurrentMixFromBeginning() {
+    setChannels(currentChannels =>
+      currentChannels.map(channel => ({
+        ...channel,
+        progressSeconds: 0,
+      })),
+    );
+    setDraftCache(currentCache => {
+      const currentMix = currentCache[currentMixKey];
+      if (!currentMix) {
+        return currentCache;
+      }
+
+      return {
+        ...currentCache,
+        [currentMixKey]: {
+          ...currentMix,
+          channels: currentMix.channels.map(channel => ({
+            ...channel,
+            progressSeconds: 0,
+          })),
+        },
+      };
+    });
+    setSavedMixes(currentMixes =>
+      currentMixes.map(savedMix =>
+        savedMix.id === currentMixKey
+          ? {
+              ...savedMix,
+              channels: savedMix.channels.map(channel => ({
+                ...channel,
+                progressSeconds: 0,
+              })),
+            }
+          : savedMix,
+      ),
+    );
+    setRestartToken(currentValue => currentValue + 1);
+    setSaveMessage("Mix restarted from the beginning");
   }
 
   function selectMix(targetMixKey: string) {
@@ -392,6 +486,7 @@ export function App() {
               isSavedMix={isSavedMix}
               mixTitle={mixTitle}
               onCreateNewMix={createNewMix}
+              onStartFromBeginning={startCurrentMixFromBeginning}
               onSaveMix={saveCurrentMix}
               onSetMixTitle={setMixTitle}
               saveMessage={saveMessage}
@@ -405,7 +500,6 @@ export function App() {
               savedMixes={savedMixes}
               transportPlaying={transportPlaying}
             />
-
 
             <MasterBusPanel
               isDarkMode={isDarkMode}
@@ -437,6 +531,7 @@ export function App() {
               isDarkMode={isDarkMode}
               channelStates={channelStates}
               focusedChannelId={focusedChannelId}
+              mixKey={currentMixKey}
               onFocusChannel={channelId =>
                 setFocusedChannelId(currentFocusedChannelId =>
                   currentFocusedChannelId === channelId ? null : channelId,
@@ -460,6 +555,8 @@ export function App() {
               onToggleSolo={channelId =>
                 updateChannel(channelId, currentChannel => ({ ...currentChannel, solo: !currentChannel.solo }))
               }
+              onProgress={updateChannelProgress}
+              restartToken={restartToken}
               transportPlaying={transportPlaying}
             />
 

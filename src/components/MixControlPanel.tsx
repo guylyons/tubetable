@@ -4,6 +4,7 @@ type MixControlPanelProps = {
   isSavedMix: boolean;
   mixTitle: string;
   onCreateNewMix: () => void;
+  onStartFromBeginning: () => void;
   onSaveMix: () => void;
   onSetMixTitle: (value: string) => void;
   saveMessage: string | null;
@@ -15,6 +16,7 @@ export function MixControlPanel({
   isSavedMix,
   mixTitle,
   onCreateNewMix,
+  onStartFromBeginning,
   onSaveMix,
   onSetMixTitle,
   saveMessage,
@@ -56,7 +58,7 @@ export function MixControlPanel({
           />
         </label>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <button
             type="button"
             onClick={onCreateNewMix}
@@ -67,6 +69,17 @@ export function MixControlPanel({
             }`}
           >
             Start a new mix
+          </button>
+          <button
+            type="button"
+            onClick={onStartFromBeginning}
+            className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+              isDarkMode
+                ? "border-slate-700 bg-slate-800 text-slate-200 hover:border-sky-400 hover:text-sky-200"
+                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+            }`}
+          >
+            Start from beginning
           </button>
           <button
             type="button"

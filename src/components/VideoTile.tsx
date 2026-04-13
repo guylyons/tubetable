@@ -5,6 +5,7 @@ import {
   loadIframeApi,
   syncPlayerPlayback,
   YT_PLAYER_STATE_ENDED,
+  YT_PLAYER_STATE_PAUSED,
   type YouTubePlayer,
 } from "../lib/youtube";
 
@@ -24,7 +25,10 @@ type VideoTileProps = {
   onToggleMute: (id: string) => void;
   onTogglePause: (id: string) => void;
   onToggleSolo: (id: string) => void;
+  onProgress: (mixKey: string, id: string, progressSeconds: number) => void;
+  mixKey: string;
   presentation?: "default" | "focus";
+  restartToken: number;
   transportPlaying: boolean;
 };
 
@@ -44,11 +48,15 @@ export function VideoTile({
   onToggleMute,
   onTogglePause,
   onToggleSolo,
+  onProgress,
+  mixKey,
   presentation = "default",
+  restartToken,
   transportPlaying,
 }: VideoTileProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const onProgressRef = useRef(onProgress);
   const playbackStateRef = useRef({
     looped: channel.looped,
     paused: channel.paused,
@@ -56,6 +64,10 @@ export function VideoTile({
   });
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+  }, [onProgress]);
 
   useEffect(() => {
     playbackStateRef.current = {
@@ -76,6 +88,13 @@ export function VideoTile({
           return;
         }
 
+        const captureProgress = () => {
+          const currentTime = playerRef.current?.getCurrentTime?.();
+          if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+            onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+          }
+        };
+
         playerRef.current = new YT.Player(playerContainerRef.current, {
           width: "100%",
           height: "100%",
@@ -89,6 +108,7 @@ export function VideoTile({
             modestbranding: 1,
             playsinline: 1,
             rel: 0,
+            start: Math.floor(Math.max(0, channel.progressSeconds)),
           },
           events: {
             onReady: event => {
@@ -98,8 +118,16 @@ export function VideoTile({
 
               setReady(true);
               setLoadError(null);
+              if (channel.progressSeconds > 0) {
+                try {
+                  event.target.seekTo(channel.progressSeconds, true);
+                } catch {
+                  // The YouTube iframe can briefly reject seek commands during initialization.
+                }
+              }
               applyPlayerVolume(event.target, effectiveVolume);
               syncPlayerPlayback(event.target, transportPlaying && !channel.paused);
+              captureProgress();
             },
             onStateChange: event => {
               const playbackState = playbackStateRef.current;
@@ -117,6 +145,10 @@ export function VideoTile({
                   // The YouTube iframe can briefly reject restart commands during state transitions.
                 }
               }
+
+              if (event.data === YT_PLAYER_STATE_PAUSED || event.data === YT_PLAYER_STATE_ENDED) {
+                captureProgress();
+              }
             },
           },
         });
@@ -129,10 +161,14 @@ export function VideoTile({
 
     return () => {
       disposed = true;
+      const currentTime = playerRef.current?.getCurrentTime?.();
+      if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+        onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+      }
       playerRef.current?.destroy();
       playerRef.current = null;
     };
-  }, [channel.id, channel.video.videoId]);
+  }, [channel.id, channel.video.videoId, mixKey]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -149,6 +185,45 @@ export function VideoTile({
 
     syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
   }, [channel.paused, ready, transportPlaying]);
+
+  useEffect(() => {
+    if (!ready || !playerRef.current) {
+      return;
+    }
+
+    try {
+      playerRef.current.seekTo(channel.progressSeconds, true);
+      syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
+    } catch {
+      // A restart can land while the iframe is still buffering.
+    }
+  }, [channel.paused, ready, restartToken, transportPlaying]);
+
+  useEffect(() => {
+    if (!ready || !playerRef.current) {
+      return undefined;
+    }
+
+    const shouldTrackProgress = transportPlaying && !channel.paused;
+    if (!shouldTrackProgress) {
+      return undefined;
+    }
+
+    const captureProgress = () => {
+      const currentTime = playerRef.current?.getCurrentTime?.();
+      if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+        onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+      }
+    };
+
+    captureProgress();
+    const intervalId = window.setInterval(captureProgress, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      captureProgress();
+    };
+  }, [channel.id, channel.paused, mixKey, ready, transportPlaying]);
 
   const isFocusPresentation = presentation === "focus";
 

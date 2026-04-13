@@ -12,6 +12,7 @@ export function createChannel(video: YouTubeSearchResult): MixChannel {
     solo: false,
     paused: false,
     looped: true,
+    progressSeconds: 0,
   };
 }
 

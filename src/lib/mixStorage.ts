@@ -25,6 +25,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     solo: false,
     paused: false,
     looped: true,
+    progressSeconds: 0,
   },
   {
     id: "example-channel-2",
@@ -39,6 +40,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     solo: false,
     paused: false,
     looped: true,
+    progressSeconds: 0,
   },
   {
     id: "example-channel-3",
@@ -53,6 +55,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     solo: false,
     paused: false,
     looped: true,
+    progressSeconds: 0,
   },
 ];
 
@@ -177,6 +180,7 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
     solo: record.solo,
     paused: record.paused,
     looped: typeof record.looped === "boolean" ? record.looped : true,
+    progressSeconds: typeof record.progressSeconds === "number" ? Math.max(0, record.progressSeconds) : 0,
   };
 }
 

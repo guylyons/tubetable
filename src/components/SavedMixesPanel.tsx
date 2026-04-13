@@ -26,7 +26,8 @@ export function SavedMixesPanel({
         </p>
         <h2 className={`text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Library</h2>
         <p className={`text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Select a saved mix to load it instantly.
+          Select a saved mix to load it instantly. Playback position is
+          remembered for each mix.
         </p>
       </div>
 

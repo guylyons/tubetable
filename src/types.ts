@@ -20,6 +20,7 @@ export type MixChannel = {
   solo: boolean;
   paused: boolean;
   looped: boolean;
+  progressSeconds: number;
 };
 
 export type MixChannelState = MixChannel & {
