@@ -19,7 +19,8 @@ export function MixerSection({
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">Volume</h2>
         </div>
         <p className="text-sm text-slate-500">
-          Each strip controls only channel volume.
+          Control the volume of each track to shape the blend. The mixer panel
+          fills itself as soon as you add the first channel.
         </p>
       </div>
 

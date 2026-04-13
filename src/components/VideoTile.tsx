@@ -13,14 +13,17 @@ type VideoTileProps = {
   effectiveVolume: number;
   isDragging: boolean;
   isDragTarget: boolean;
+  isFocused: boolean;
   onDragEnd: () => void;
   onDragStart: () => void;
+  onFocus: (id: string) => void;
   trackLabel: string;
   onRemove: (id: string) => void;
   onToggleLoop: (id: string) => void;
   onToggleMute: (id: string) => void;
   onTogglePause: (id: string) => void;
   onToggleSolo: (id: string) => void;
+  presentation?: "default" | "focus";
   transportPlaying: boolean;
 };
 
@@ -29,14 +32,17 @@ export function VideoTile({
   effectiveVolume,
   isDragging,
   isDragTarget,
+  isFocused,
   onDragEnd,
   onDragStart,
+  onFocus,
   trackLabel,
   onRemove,
   onToggleLoop,
   onToggleMute,
   onTogglePause,
   onToggleSolo,
+  presentation = "default",
   transportPlaying,
 }: VideoTileProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -142,13 +148,19 @@ export function VideoTile({
     syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
   }, [channel.paused, ready, transportPlaying]);
 
+  const isFocusPresentation = presentation === "focus";
+
   return (
     <article
       className={`group relative overflow-hidden rounded-3xl border bg-white shadow-sm transition ${
-        isDragTarget ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200"
+        isDragTarget ? "border-blue-300 ring-2 ring-blue-100" : isFocused ? "border-blue-200" : "border-slate-200"
       } ${isDragging ? "scale-[0.98] opacity-70" : ""}`}
     >
-      <div className="relative aspect-video overflow-hidden bg-slate-100">
+      <div
+        className={`relative overflow-hidden bg-slate-100 ${
+          isFocusPresentation ? "aspect-video md:aspect-[21/9]" : "aspect-video"
+        }`}
+      >
         <div ref={playerContainerRef} className="h-full w-full" />
         <button
           type="button"
@@ -175,6 +187,18 @@ export function VideoTile({
         >
           ×
         </button>
+        <button
+          type="button"
+          onClick={() => onFocus(channel.id)}
+          className={`absolute bottom-3 right-3 z-20 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm transition ${
+            isFocused
+              ? "border-blue-200 bg-blue-600 text-white hover:bg-blue-700"
+              : "border-slate-200 bg-white/95 text-slate-700 hover:border-blue-200 hover:text-blue-700"
+          }`}
+          aria-pressed={isFocused}
+        >
+          {isFocused ? "Exit focus" : "Focus"}
+        </button>
         {!ready && !loadError ? (
           <div className="absolute inset-0 grid place-items-center bg-white/90 text-sm text-slate-500">
             Buffering channel...
@@ -187,14 +211,21 @@ export function VideoTile({
         ) : null}
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className={`space-y-4 ${isFocusPresentation ? "p-6" : "p-5"}`}>
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">{trackLabel}</p>
-          <p className="line-clamp-2 text-base font-semibold text-slate-900">{channel.video.title}</p>
+          <p className={`line-clamp-2 font-semibold text-slate-900 ${isFocusPresentation ? "text-xl" : "text-base"}`}>
+            {channel.video.title}
+          </p>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span>{channel.video.channelTitle}</span>
             {channel.video.durationText ? <span>{channel.video.durationText}</span> : null}
             {channel.video.viewCountText ? <span>{channel.video.viewCountText}</span> : null}
+            {isFocused ? (
+              <span className="rounded-full bg-blue-50 px-2 py-1 font-semibold uppercase tracking-[0.14em] text-blue-700">
+                Theatre
+              </span>
+            ) : null}
           </div>
         </div>
 

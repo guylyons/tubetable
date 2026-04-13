@@ -18,6 +18,7 @@ export function createEmptyMix(name = ""): PersistedMix {
     channels: [],
     masterVolume: 82,
     transportPlaying: false,
+    focusedChannelId: null,
   };
 }
 
@@ -41,6 +42,10 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
     channels,
     masterVolume: typeof record.masterVolume === "number" ? record.masterVolume : 82,
     transportPlaying: Boolean(record.transportPlaying),
+    focusedChannelId:
+      typeof record.focusedChannelId === "string" && channels.some(channel => channel.id === record.focusedChannelId)
+        ? record.focusedChannelId
+        : null,
   };
 }
 

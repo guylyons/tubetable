@@ -25,7 +25,7 @@ export function MixControlPanel({
             Mix controls
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-            Save and organize
+            Your Mix
           </h2>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">

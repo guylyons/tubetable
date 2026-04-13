@@ -31,6 +31,7 @@ export type PersistedMix = {
   channels: MixChannel[];
   masterVolume: number;
   transportPlaying: boolean;
+  focusedChannelId: string | null;
 };
 
 export type SavedMix = PersistedMix & {

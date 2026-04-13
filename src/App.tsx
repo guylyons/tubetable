@@ -27,6 +27,7 @@ export function App() {
   const [channels, setChannels] = useState<MixChannel[]>(() => storedMixState.draft.channels);
   const [masterVolume, setMasterVolume] = useState<number>(() => storedMixState.draft.masterVolume);
   const [transportPlaying, setTransportPlaying] = useState<boolean>(() => storedMixState.draft.transportPlaying);
+  const [focusedChannelId, setFocusedChannelId] = useState<string | null>(() => storedMixState.draft.focusedChannelId);
   const [mixTitle, setMixTitle] = useState<string>(() => storedMixState.draft.name);
   const [currentMixKey, setCurrentMixKey] = useState<string>(() => storedMixState.currentMixKey);
   const [draftCache, setDraftCache] = useState<Record<string, PersistedMix>>(() => storedMixState.draftCache);
@@ -54,8 +55,9 @@ export function App() {
         channels,
         masterVolume,
         transportPlaying,
+        focusedChannelId,
       }) satisfies PersistedMix,
-    [channels, masterVolume, mixTitle, transportPlaying],
+    [channels, focusedChannelId, masterVolume, mixTitle, transportPlaying],
   );
   const effectiveDraftCache = useMemo(
     () => ({ ...draftCache, [currentMixKey]: activeDraft }),
@@ -134,6 +136,18 @@ export function App() {
     return () => window.clearTimeout(timeoutId);
   }, [saveMessage]);
 
+  useEffect(() => {
+    if (!focusedChannelId) {
+      return;
+    }
+
+    if (channels.some(channel => channel.id === focusedChannelId)) {
+      return;
+    }
+
+    setFocusedChannelId(channels[0]?.id ?? null);
+  }, [channels, focusedChannelId]);
+
   function updateChannel(channelId: string, updater: (channel: MixChannel) => MixChannel) {
     setChannels(currentChannels => currentChannels.map(channel => (channel.id === channelId ? updater(channel) : channel)));
   }
@@ -153,6 +167,7 @@ export function App() {
     setChannels(mix.channels);
     setMasterVolume(mix.masterVolume);
     setTransportPlaying(mix.transportPlaying);
+    setFocusedChannelId(mix.focusedChannelId);
     setMixTitle(mix.name);
     setCurrentMixKey(mixKey);
     resetSearchUi(true);
@@ -167,6 +182,7 @@ export function App() {
       channels,
       masterVolume,
       transportPlaying,
+      focusedChannelId,
       updatedAt: timestamp,
     };
 
@@ -182,6 +198,7 @@ export function App() {
         channels: mixToSave.channels,
         masterVolume: mixToSave.masterVolume,
         transportPlaying: mixToSave.transportPlaying,
+        focusedChannelId: mixToSave.focusedChannelId,
       },
     }));
     setCurrentMixKey(mixToSave.id);
@@ -249,7 +266,9 @@ export function App() {
       return;
     }
 
-    setChannels(currentChannels => [...currentChannels, createChannel(video)]);
+    const nextChannel = createChannel(video);
+    setChannels(currentChannels => [...currentChannels, nextChannel]);
+    setFocusedChannelId(currentFocusedChannelId => (channels.length === 0 ? nextChannel.id : currentFocusedChannelId));
     setTransportPlaying(true);
     resetSearchUi(true);
   }
@@ -356,6 +375,7 @@ export function App() {
               onChangeMasterVolume={setMasterVolume}
               onClearMix={() => {
                 setChannels([]);
+                setFocusedChannelId(null);
                 setTransportPlaying(false);
               }}
               onResetChannelBalances={() =>
@@ -377,10 +397,18 @@ export function App() {
           <div className="space-y-6">
             <TableSection
               channelStates={channelStates}
+              focusedChannelId={focusedChannelId}
+              onFocusChannel={channelId =>
+                setFocusedChannelId(currentFocusedChannelId =>
+                  currentFocusedChannelId === channelId ? null : channelId,
+                )
+              }
               onReorderChannel={(draggedChannelId, targetChannelId) =>
                 setChannels(currentChannels => reorderChannels(currentChannels, draggedChannelId, targetChannelId))
               }
-              onRemoveChannel={channelId => setChannels(currentChannels => currentChannels.filter(item => item.id !== channelId))}
+              onRemoveChannel={channelId =>
+                setChannels(currentChannels => currentChannels.filter(item => item.id !== channelId))
+              }
               onToggleLoop={channelId =>
                 updateChannel(channelId, currentChannel => ({ ...currentChannel, looped: !currentChannel.looped }))
               }
