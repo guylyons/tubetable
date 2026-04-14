@@ -8,6 +8,7 @@ export function createChannel(video: YouTubeSearchResult): MixChannel {
     id,
     video,
     volume: 76,
+    playbackRate: 1,
     muted: false,
     solo: false,
     paused: false,

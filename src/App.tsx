@@ -518,6 +518,7 @@ export function App() {
                     paused: false,
                     solo: false,
                     volume: 76,
+                    playbackRate: 1,
                   })),
                 )
               }
@@ -554,6 +555,12 @@ export function App() {
               }
               onToggleSolo={channelId =>
                 updateChannel(channelId, currentChannel => ({ ...currentChannel, solo: !currentChannel.solo }))
+              }
+              onChangePlaybackRate={(channelId, playbackRate) =>
+                updateChannel(channelId, currentChannel => ({
+                  ...currentChannel,
+                  playbackRate,
+                }))
               }
               onProgress={updateChannelProgress}
               restartToken={restartToken}

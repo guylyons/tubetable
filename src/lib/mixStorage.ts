@@ -21,6 +21,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
       thumbnail: "https://i.ytimg.com/vi/CxHa5KaMBcM/hqdefault.jpg",
     },
     volume: 76,
+    playbackRate: 1,
     muted: false,
     solo: false,
     paused: false,
@@ -36,6 +37,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
       thumbnail: "https://i.ytimg.com/vi/vNwYtllyt3Q/hqdefault.jpg",
     },
     volume: 76,
+    playbackRate: 1,
     muted: false,
     solo: false,
     paused: false,
@@ -51,6 +53,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
       thumbnail: "https://i.ytimg.com/vi/mPZkdNFkNps/hqdefault.jpg",
     },
     volume: 76,
+    playbackRate: 1,
     muted: false,
     solo: false,
     paused: false,
@@ -176,12 +179,17 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
       viewCountText: typeof videoRecord.viewCountText === "string" ? videoRecord.viewCountText : undefined,
     },
     volume: record.volume,
+    playbackRate: clampPlaybackRate(typeof record.playbackRate === "number" ? record.playbackRate : 1),
     muted: record.muted,
     solo: record.solo,
     paused: record.paused,
     looped: typeof record.looped === "boolean" ? record.looped : true,
     progressSeconds: typeof record.progressSeconds === "number" ? Math.max(0, record.progressSeconds) : 0,
   };
+}
+
+function clampPlaybackRate(value: number) {
+  return Math.min(2, Math.max(0.5, value));
 }
 
 export function readStoredMixState(): MixStorage {

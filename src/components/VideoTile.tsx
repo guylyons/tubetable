@@ -25,6 +25,7 @@ type VideoTileProps = {
   onToggleMute: (id: string) => void;
   onTogglePause: (id: string) => void;
   onToggleSolo: (id: string) => void;
+  onChangePlaybackRate: (id: string, playbackRate: number) => void;
   onProgress: (mixKey: string, id: string, progressSeconds: number) => void;
   mixKey: string;
   presentation?: "default" | "focus";
@@ -48,6 +49,7 @@ export function VideoTile({
   onToggleMute,
   onTogglePause,
   onToggleSolo,
+  onChangePlaybackRate,
   onProgress,
   mixKey,
   presentation = "default",
@@ -126,6 +128,11 @@ export function VideoTile({
                 }
               }
               applyPlayerVolume(event.target, effectiveVolume);
+              try {
+                event.target.setPlaybackRate(channel.playbackRate);
+              } catch {
+                // Some videos briefly reject playback-rate changes during init.
+              }
               syncPlayerPlayback(event.target, transportPlaying && !channel.paused);
               captureProgress();
             },
@@ -177,6 +184,18 @@ export function VideoTile({
 
     applyPlayerVolume(playerRef.current, effectiveVolume);
   }, [effectiveVolume, ready]);
+
+  useEffect(() => {
+    if (!ready || !playerRef.current) {
+      return;
+    }
+
+    try {
+      playerRef.current.setPlaybackRate(channel.playbackRate);
+    } catch {
+      // The iframe may briefly reject playback-rate updates while buffering.
+    }
+  }, [channel.playbackRate, ready]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -390,6 +409,42 @@ export function VideoTile({
             {channel.looped ? "Loop on" : "Loop off"}
           </button>
           <span className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>Output {effectiveVolume}%</span>
+        </div>
+
+        <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                Speed
+              </p>
+              <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                Slow down or speed up this track.
+              </p>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? "bg-slate-800 text-slate-200" : "bg-white text-slate-700"}`}>
+              {channel.playbackRate.toFixed(2)}x
+            </span>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+              0.5x
+            </span>
+            <input
+              type="range"
+              min={0.5}
+              max={2}
+              step={0.25}
+              value={channel.playbackRate}
+              onChange={(event) =>
+                onChangePlaybackRate(channel.id, Number(event.target.value))
+              }
+              className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+              aria-label={`${trackLabel} playback speed`}
+            />
+            <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+              2x
+            </span>
+          </div>
         </div>
       </div>
     </article>

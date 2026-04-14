@@ -16,6 +16,7 @@ export type MixChannel = {
   id: string;
   video: YouTubeSearchResult;
   volume: number;
+  playbackRate: number;
   muted: boolean;
   solo: boolean;
   paused: boolean;
