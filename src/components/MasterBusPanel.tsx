@@ -6,6 +6,8 @@ type MasterBusPanelProps = {
   onChangeMasterVolume: (value: number) => void;
   onClearMix: () => void;
   onResetChannelBalances: () => void;
+  onTapTempo: () => void;
+  tapTempoBpm: number | null;
   onToggleTransport: () => void;
   transportPlaying: boolean;
 };
@@ -16,6 +18,8 @@ export function MasterBusPanel({
   onChangeMasterVolume,
   onClearMix,
   onResetChannelBalances,
+  onTapTempo,
+  tapTempoBpm,
   onToggleTransport,
   transportPlaying,
 }: MasterBusPanelProps) {
@@ -39,6 +43,35 @@ export function MasterBusPanel({
       </div>
 
       <div className="mt-5 space-y-5">
+        <div
+          className={`rounded-2xl border p-4 ${isDarkMode ? "border-slate-700 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                Tap tempo
+              </p>
+              <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                Tap along with the groove to set delay timing.
+              </p>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? "bg-slate-900 text-slate-300" : "bg-white text-slate-600"}`}>
+              {tapTempoBpm ? `${tapTempoBpm} BPM` : "Tap twice"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onTapTempo}
+            className={`mt-3 w-full rounded-2xl border px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] transition ${
+              isDarkMode
+                ? "border-slate-700 bg-slate-900 text-slate-100 hover:border-sky-400 hover:text-sky-200"
+                : "border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:text-blue-700"
+            }`}
+          >
+            Tap tempo
+          </button>
+        </div>
+
         <label className="block">
           <span className={`mb-2 block text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
             Master volume

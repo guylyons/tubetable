@@ -30,6 +30,9 @@ export type MixChannel = {
   lofiCutoffHz: number;
   pitchShiftEnabled: boolean;
   pitchShiftSemitones: number;
+  beatSyncSourceChannelId: string | null;
+  beatSyncOffsetBeats: number | null;
+  tempoBpm: number | null;
   muted: boolean;
   solo: boolean;
   paused: boolean;
@@ -52,6 +55,10 @@ export type PersistedMix = {
 export type SavedMix = PersistedMix & {
   id: string;
   updatedAt: string;
+};
+
+export type BeatSyncRequest = {
+  targetSeconds: number;
 };
 
 export type MixStorage = {

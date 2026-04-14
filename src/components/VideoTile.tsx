@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { MixChannel } from "../types";
+import type { MixChannel, MixChannelState } from "../types";
 import {
   applyPlayerVolume,
   loadIframeApi,
@@ -9,6 +9,11 @@ import {
   type YouTubePlayer,
 } from "../lib/youtube";
 import { TrackAudioController } from "../lib/trackAudio";
+import {
+  getBeatLengthSeconds,
+  getBeatPosition,
+  getSyncedPlaybackRate,
+} from "../lib/mixChannels";
 
 type VideoTileProps = {
   isDarkMode?: boolean;
@@ -29,6 +34,9 @@ type VideoTileProps = {
   onPatchChannel: (id: string, patch: Partial<MixChannel>) => void;
   onProgress: (mixKey: string, id: string, progressSeconds: number) => void;
   mixKey: string;
+  beatSyncTargetSeconds: number | null;
+  channelStates: MixChannelState[];
+  tapTempoBpm: number | null;
   presentation?: "default" | "focus";
   restartToken: number;
   transportPlaying: boolean;
@@ -53,6 +61,9 @@ export function VideoTile({
   onPatchChannel,
   onProgress,
   mixKey,
+  beatSyncTargetSeconds,
+  channelStates,
+  tapTempoBpm,
   presentation = "default",
   restartToken,
   transportPlaying,
@@ -60,13 +71,17 @@ export function VideoTile({
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const audioControllerRef = useRef<TrackAudioController | null>(null);
+  const lastBeatSyncTargetRef = useRef<number | null>(null);
   const onProgressRef = useRef(onProgress);
   const [expandedEffects, setExpandedEffects] = useState({
-    reverb: false,
-    delay: false,
-    lofi: false,
-    pitch: false,
+    reverb: true,
+    delay: true,
+    lofi: true,
+    pitch: true,
+    sync: true,
   });
+  const [trackOptionsOpen, setTrackOptionsOpen] = useState(false);
+  const [tempoTapHistory, setTempoTapHistory] = useState<number[]>([]);
   const playbackStateRef = useRef({
     delayEnabled: channel.delayEnabled,
     looped: channel.looped,
@@ -346,6 +361,176 @@ export function VideoTile({
     }
   }, [channel.pitchShiftEnabled, channel.pitchShiftSemitones, ready]);
 
+  const trackTempoBpm = channel.tempoBpm;
+  const selectedBeatSyncSourceChannel =
+    channelStates.find(other => other.id === channel.beatSyncSourceChannelId) ??
+    null;
+  const beatSyncSourceChannel =
+    selectedBeatSyncSourceChannel ?? channelStates.find(other => other.id !== channel.id) ?? null;
+  const syncReferenceTempoBpm = beatSyncSourceChannel?.tempoBpm ?? tapTempoBpm ?? 120;
+  const beatSyncSourceTempoBpm = beatSyncSourceChannel?.tempoBpm ?? syncReferenceTempoBpm;
+  const trackTempoLabel = trackTempoBpm
+    ? `${trackTempoBpm} BPM`
+    : "Tap twice to learn BPM";
+  const syncLockLabel = channel.beatSyncSourceChannelId
+    ? selectedBeatSyncSourceChannel
+      ? `Locked to ${selectedBeatSyncSourceChannel.video.title}`
+      : "Reference missing"
+    : tapTempoBpm
+      ? `Grid ${tapTempoBpm} BPM`
+      : "Grid 120 BPM";
+
+  function handleTrackTapTempo() {
+    const now = performance.now();
+    const maxGapMs = 2500;
+    setTempoTapHistory(previousHistory => {
+      const filteredHistory =
+        previousHistory.length === 0 || now - previousHistory[previousHistory.length - 1]! > maxGapMs
+          ? [now]
+          : [...previousHistory.slice(-5), now];
+
+      if (filteredHistory.length < 2) {
+        onPatchChannel(channel.id, {
+          tempoBpm: null,
+        });
+        return filteredHistory;
+      }
+
+      const intervals = filteredHistory.slice(1).map((tap, index) => tap - filteredHistory[index]!);
+      const sortedIntervals = [...intervals].sort((left, right) => left - right);
+      const trimmedIntervals =
+        sortedIntervals.length > 3
+          ? sortedIntervals.slice(1, -1)
+          : sortedIntervals;
+      const averageInterval =
+        trimmedIntervals.reduce((total, interval) => total + interval, 0) / trimmedIntervals.length;
+      const rawTempoBpm = 60000 / averageInterval;
+      const nextTempoBpm = Math.min(240, Math.max(40, Math.round(rawTempoBpm)));
+      const nextPlaybackRate = getSyncedPlaybackRate(syncReferenceTempoBpm, nextTempoBpm);
+
+      onPatchChannel(channel.id, {
+        tempoBpm: nextTempoBpm,
+        playbackRate: nextPlaybackRate,
+      });
+
+      return filteredHistory;
+    });
+  }
+
+  function adjustTrackTempo(multiplier: number) {
+    if (!trackTempoBpm) {
+      return;
+    }
+
+    const nextTempoBpm = Math.min(240, Math.max(40, Math.round(trackTempoBpm * multiplier)));
+    const nextPlaybackRate = getSyncedPlaybackRate(syncReferenceTempoBpm, nextTempoBpm);
+
+    onPatchChannel(channel.id, {
+      tempoBpm: nextTempoBpm,
+      playbackRate: nextPlaybackRate,
+    });
+  }
+
+  function handleSyncNow() {
+    const sourceProgressSeconds = beatSyncSourceChannel?.progressSeconds ?? channel.progressSeconds;
+    const sourceTempoBpm = beatSyncSourceTempoBpm;
+    const targetTempoBpm = trackTempoBpm ?? sourceTempoBpm;
+    const sourceBeatPosition = getBeatPosition(sourceProgressSeconds, sourceTempoBpm);
+
+    if (sourceBeatPosition === null) {
+      return;
+    }
+
+    const nextBeatPosition = Math.max(0, Math.round(sourceBeatPosition));
+    const beatLengthSeconds = getBeatLengthSeconds(targetTempoBpm);
+    if (beatLengthSeconds === null) {
+      return;
+    }
+
+    const nextProgressSeconds = nextBeatPosition * beatLengthSeconds;
+    const nextBeatOffset = nextBeatPosition - sourceBeatPosition;
+
+    onPatchChannel(channel.id, {
+      beatSyncOffsetBeats: nextBeatOffset,
+      beatSyncSourceChannelId: beatSyncSourceChannel?.id ?? channel.beatSyncSourceChannelId,
+      playbackRate: getSyncedPlaybackRate(sourceTempoBpm, targetTempoBpm),
+      tempoBpm: trackTempoBpm,
+    });
+
+    audioControllerRef.current?.seek(nextProgressSeconds);
+    if (playerRef.current) {
+      try {
+        playerRef.current.seekTo(nextProgressSeconds, true);
+      } catch {
+        // The iframe can briefly reject seeks while buffering.
+      }
+    }
+    onProgressRef.current(mixKey, channel.id, Math.max(0, nextProgressSeconds));
+    lastBeatSyncTargetRef.current = nextProgressSeconds;
+  }
+
+  useEffect(() => {
+    if (!trackOptionsOpen) {
+      return undefined;
+    }
+
+    setExpandedEffects({
+      reverb: true,
+      delay: true,
+      lofi: true,
+      pitch: true,
+      sync: true,
+    });
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setTrackOptionsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [trackOptionsOpen]);
+
+  useEffect(() => {
+    if (!ready || !playerRef.current || beatSyncTargetSeconds === null) {
+      return;
+    }
+
+    if (
+      lastBeatSyncTargetRef.current !== null &&
+      Math.abs(lastBeatSyncTargetRef.current - beatSyncTargetSeconds) < 0.05
+    ) {
+      return;
+    }
+
+    const currentTime =
+      audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current.getCurrentTime?.() ?? 0;
+    if (Math.abs(currentTime - beatSyncTargetSeconds) < 0.1) {
+      lastBeatSyncTargetRef.current = beatSyncTargetSeconds;
+      return;
+    }
+
+    try {
+      audioControllerRef.current?.seek(beatSyncTargetSeconds);
+      playerRef.current.seekTo(beatSyncTargetSeconds, true);
+      if (transportPlaying && !channel.paused) {
+        syncPlayerPlayback(playerRef.current, true);
+        void audioControllerRef.current?.play();
+      }
+      onProgressRef.current(mixKey, channel.id, Math.max(0, beatSyncTargetSeconds));
+      lastBeatSyncTargetRef.current = beatSyncTargetSeconds;
+    } catch {
+      // Beat corrections can briefly race with buffering or player state.
+    }
+  }, [beatSyncTargetSeconds, channel.id, channel.paused, mixKey, ready, transportPlaying]);
+
   useEffect(() => {
     if (!ready || !playerRef.current) {
       return;
@@ -570,7 +755,60 @@ export function VideoTile({
             {channel.looped ? "Loop on" : "Loop off"}
           </button>
           <span className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>Output {effectiveVolume}%</span>
+          <button
+            type="button"
+            onClick={() => setTrackOptionsOpen(true)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+              isDarkMode
+                ? "border-sky-400/30 bg-sky-500/10 text-sky-200 hover:border-sky-400 hover:bg-sky-500/15"
+                : "border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100"
+            }`}
+          >
+            Track options
+          </button>
         </div>
+
+        {trackOptionsOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setTrackOptionsOpen(false)} />
+            <div
+              className={`relative flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border shadow-[0_30px_120px_rgba(15,23,42,0.45)] ${
+                isDarkMode
+                  ? "border-slate-700 bg-slate-950 text-slate-100"
+                  : "border-white bg-white text-slate-900"
+              }`}
+            >
+              <div
+                className={`flex items-start justify-between gap-4 border-b px-5 py-5 sm:px-7 ${
+                  isDarkMode ? "border-slate-800 bg-slate-950/85" : "border-slate-200 bg-white/95"
+                }`}
+              >
+                <div className="space-y-2">
+                  <p className={`text-xs font-semibold uppercase tracking-[0.2em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                    Track options
+                  </p>
+                  <h3 className={`text-2xl font-semibold sm:text-3xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
+                    {channel.video.title}
+                  </h3>
+                  <p className={`max-w-2xl text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                    Everything for timing, tone, and sync lives here. Leave the tile clean and use this panel when you need to dial the track in.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTrackOptionsOpen(false)}
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-full border text-xl transition ${
+                    isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+                  }`}
+                  aria-label="Close track options"
+                >
+                  ×
+                </button>
+              </div>
+              <div className={`flex-1 overflow-y-auto p-5 sm:p-7 ${isDarkMode ? "bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_40%)]" : "bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.12),_transparent_40%)]"}`}>
+                <div className="grid gap-4 lg:grid-cols-2">
 
         <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
           <div className="flex items-center justify-between gap-3">
@@ -734,6 +972,161 @@ export function VideoTile({
                 aria-label={`${trackLabel} reverb pre-delay`}
               />
             </label>
+            </div>
+          ) : null}
+        </div>
+
+        <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                Beat sync
+              </p>
+              <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                {syncLockLabel}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setExpandedEffects(current => ({
+                  ...current,
+                  sync: !current.sync,
+                }))
+              }
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-lg leading-none transition ${
+                isDarkMode
+                  ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+              }`}
+              aria-expanded={expandedEffects.sync}
+              aria-label={`${expandedEffects.sync ? "Collapse" : "Expand"} beat sync controls`}
+            >
+              <span className={`transition-transform ${expandedEffects.sync ? "rotate-180" : ""}`} aria-hidden="true">
+                ⌄
+              </span>
+            </button>
+          </div>
+          {expandedEffects.sync ? (
+            <div className="mt-3 space-y-3">
+              <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-700 bg-slate-900/60" : "border-slate-200 bg-white"}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                      Track tempo
+                    </p>
+                    <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                      Tap this track twice to capture its BPM.
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
+                    {trackTempoLabel}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTrackTapTempo}
+                  className={`mt-3 w-full rounded-2xl border px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] transition ${
+                    isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-100 hover:border-sky-400 hover:text-sky-200"
+                      : "border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:text-blue-700"
+                  }`}
+                >
+                  Tap tempo
+                </button>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => adjustTrackTempo(0.5)}
+                    className={`flex-1 rounded-2xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                      isDarkMode
+                        ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-400 hover:text-sky-200"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                    }`}
+                  >
+                    Half
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => adjustTrackTempo(2)}
+                    className={`flex-1 rounded-2xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                      isDarkMode
+                        ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-sky-400 hover:text-sky-200"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                    }`}
+                  >
+                    Double
+                  </button>
+                </div>
+              </div>
+
+              <label className="block">
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                    Reference
+                  </span>
+                </div>
+                <select
+                  value={channel.beatSyncSourceChannelId ?? ""}
+                  onChange={event =>
+                    onPatchChannel(channel.id, {
+                      beatSyncSourceChannelId: event.target.value || null,
+                    })
+                  }
+                  className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${
+                    isDarkMode
+                      ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400"
+                      : "border-slate-200 bg-white text-slate-900 focus:border-blue-300"
+                  }`}
+                >
+                  <option value="">Tap tempo grid</option>
+                  {channelStates
+                    .filter(other => other.id !== channel.id)
+                    .map(other => (
+                      <option key={other.id} value={other.id}>
+                        {other.video.title}
+                        {other.tempoBpm ? ` (${other.tempoBpm} BPM)` : ""}
+                      </option>
+                    ))}
+                </select>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const sourceTime = beatSyncSourceChannel?.progressSeconds ?? channel.progressSeconds;
+                  const beatLengthSeconds = beatSyncSourceTempoBpm ? 60 / beatSyncSourceTempoBpm : null;
+                  const nextProgressSeconds = beatLengthSeconds
+                    ? Math.max(0, Math.round(sourceTime / beatLengthSeconds) * beatLengthSeconds)
+                    : Math.max(0, sourceTime);
+
+                  onPatchChannel(channel.id, {
+                    progressSeconds: nextProgressSeconds,
+                  });
+
+                  audioControllerRef.current?.seek(nextProgressSeconds);
+                  if (playerRef.current) {
+                    try {
+                      playerRef.current.seekTo(nextProgressSeconds, true);
+                    } catch {
+                      // The iframe can briefly reject seeks while buffering.
+                    }
+                  }
+                }}
+                className={`w-full rounded-2xl border px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] transition ${
+                  isDarkMode
+                    ? "border-slate-700 bg-slate-900 text-slate-100 hover:border-sky-400 hover:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:text-blue-700"
+                }`}
+              >
+                Sync now
+              </button>
+
+              <p className={`text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                {beatSyncSourceTempoBpm
+                  ? `Using ${beatSyncSourceTempoBpm} BPM as the beat grid.`
+                  : "Tap tempo first for the tightest sync."}
+              </p>
             </div>
           ) : null}
         </div>
@@ -1061,6 +1454,11 @@ export function VideoTile({
             </div>
           ) : null}
         </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </article>
   );

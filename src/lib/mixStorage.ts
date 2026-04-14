@@ -133,14 +133,24 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
     .map(channel => sanitizeMixChannel(channel))
     .filter((channel): channel is MixChannel => channel !== null)
     .slice(0, MAX_CHANNELS);
+  const channelIds = new Set(channels.map(channel => channel.id));
+  const normalizedChannels = channels.map(channel => ({
+    ...channel,
+    beatSyncSourceChannelId:
+      channel.beatSyncSourceChannelId &&
+      channel.beatSyncSourceChannelId !== channel.id &&
+      channelIds.has(channel.beatSyncSourceChannelId)
+        ? channel.beatSyncSourceChannelId
+        : null,
+  }));
 
   return {
     name: typeof record.name === "string" ? record.name : "",
-    channels,
+    channels: normalizedChannels,
     masterVolume: typeof record.masterVolume === "number" ? record.masterVolume : 82,
     transportPlaying: Boolean(record.transportPlaying),
     focusedChannelId:
-      typeof record.focusedChannelId === "string" && channels.some(channel => channel.id === record.focusedChannelId)
+      typeof record.focusedChannelId === "string" && normalizedChannels.some(channel => channel.id === record.focusedChannelId)
         ? record.focusedChannelId
         : null,
   };
@@ -197,6 +207,16 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
     lofiCutoffHz: clampNumber(record.lofiCutoffHz, DEFAULT_TRACK_EFFECTS.lofiCutoffHz, 300, 12000),
     pitchShiftEnabled: Boolean(record.pitchShiftEnabled),
     pitchShiftSemitones: clampNumber(record.pitchShiftSemitones, DEFAULT_TRACK_EFFECTS.pitchShiftSemitones, -12, 12),
+    beatSyncSourceChannelId:
+      typeof record.beatSyncSourceChannelId === "string" ? record.beatSyncSourceChannelId : null,
+    beatSyncOffsetBeats:
+      typeof record.beatSyncOffsetBeats === "number" && Number.isFinite(record.beatSyncOffsetBeats)
+        ? record.beatSyncOffsetBeats
+        : null,
+    tempoBpm:
+      typeof record.tempoBpm === "number" && Number.isFinite(record.tempoBpm)
+        ? clampNumber(record.tempoBpm, 120, 40, 240)
+        : null,
     muted: record.muted,
     solo: record.solo,
     paused: record.paused,
@@ -268,15 +288,26 @@ export function readStoredMixState(): MixStorage {
     );
 
     if (draft) {
+      const channelIds = new Set(draft.channels.map(channel => channel.id));
+      const normalizedDraft = {
+        ...draft,
+        channels: draft.channels.map(channel => ({
+          ...channel,
+          beatSyncSourceChannelId:
+            channel.beatSyncSourceChannelId && channel.beatSyncSourceChannelId !== channel.id && channelIds.has(channel.beatSyncSourceChannelId)
+              ? channel.beatSyncSourceChannelId
+              : null,
+        })),
+      };
       const currentMixKey = typeof record.currentMixKey === "string" ? record.currentMixKey : DRAFT_MIX_KEY;
 
       return {
         currentMixKey,
-        draft,
+        draft: normalizedDraft,
         draftCache: {
           [DRAFT_MIX_KEY]: createEmptyMix(),
           ...draftCache,
-          [currentMixKey]: draft,
+          [currentMixKey]: normalizedDraft,
         },
         savedMixes: normalizedSavedMixes,
       };

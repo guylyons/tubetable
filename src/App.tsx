@@ -8,7 +8,13 @@ import { SavedMixesPanel } from "./components/SavedMixesPanel";
 import { TableSection } from "./components/TableSection";
 import { deriveMixName } from "./lib/mixNaming";
 import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
-import { DEFAULT_TRACK_EFFECTS, buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
+import {
+  DEFAULT_TRACK_EFFECTS,
+  buildChannelStates,
+  createChannel,
+  getSyncedProgressSeconds,
+  reorderChannels,
+} from "./lib/mixChannels";
 import { parseYouTubeVideoId } from "./lib/youtube";
 import { primeSharedAudioContext } from "./lib/trackAudio";
 import {
@@ -63,6 +69,8 @@ export function App() {
   const [showResults, setShowResults] = useState(false);
   const [isResolvingInput, setIsResolvingInput] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [tapTempoBpm, setTapTempoBpm] = useState<number | null>(null);
+  const [tapTempoHistory, setTapTempoHistory] = useState<number[]>([]);
 
   const existingVideoIds = useMemo(() => new Set(channels.map(channel => channel.video.videoId)), [channels]);
   const canAddMore = channels.length < MAX_CHANNELS;
@@ -91,6 +99,44 @@ export function App() {
     [activeDraft, currentMixKey, draftCache],
   );
   const channelStates = useMemo(() => buildChannelStates(channels, masterVolume), [channels, masterVolume]);
+  const beatSyncTargets = useMemo(() => {
+    const targets: Record<string, number | null> = {};
+    const referenceTempoBpm = tapTempoBpm ?? 120;
+
+    for (const channel of channelStates) {
+      if (!transportPlaying || channel.paused || !channel.beatSyncSourceChannelId) {
+        targets[channel.id] = null;
+        continue;
+      }
+
+      const sourceChannel = channelStates.find(other => other.id === channel.beatSyncSourceChannelId) ?? null;
+      if (!sourceChannel || sourceChannel.id === channel.id || sourceChannel.paused) {
+        targets[channel.id] = null;
+        continue;
+      }
+
+      const sourceTempoBpm = sourceChannel.tempoBpm ?? referenceTempoBpm;
+      const targetTempoBpm = channel.tempoBpm ?? sourceTempoBpm;
+      const targetSeconds = getSyncedProgressSeconds({
+        beatOffsetBeats: channel.beatSyncOffsetBeats ?? 0,
+        sourceProgressSeconds: sourceChannel.progressSeconds,
+        sourceTempoBpm,
+        targetTempoBpm,
+      });
+
+      if (targetSeconds === null || !Number.isFinite(targetSeconds)) {
+        targets[channel.id] = null;
+        continue;
+      }
+
+      targets[channel.id] =
+        Math.abs(channel.progressSeconds - targetSeconds) > 0.18
+          ? Math.max(0, targetSeconds)
+          : null;
+    }
+
+    return targets;
+  }, [channelStates, tapTempoBpm, transportPlaying]);
   const audibleChannels = channelStates.filter(channel => channel.effectiveVolume > 0).length;
   const isDarkMode = themeMode === "dark";
 
@@ -192,6 +238,40 @@ export function App() {
       ...currentChannel,
       ...patch,
     }));
+  }
+
+  function applyTapTempo() {
+    const now = performance.now();
+    const maxGapMs = 2500;
+    const minBpm = 40;
+    const maxBpm = 240;
+
+    setTapTempoHistory(previousHistory => {
+      const filteredHistory =
+        previousHistory.length === 0 || now - previousHistory[previousHistory.length - 1]! > maxGapMs
+          ? [now]
+          : [...previousHistory.slice(-5), now];
+
+      if (filteredHistory.length < 2) {
+        setTapTempoBpm(null);
+        return filteredHistory;
+      }
+
+      const intervals = filteredHistory.slice(1).map((tap, index) => tap - filteredHistory[index]!);
+      const averageInterval = intervals.reduce((total, interval) => total + interval, 0) / intervals.length;
+      const bpm = Math.min(maxBpm, Math.max(minBpm, Math.round(60000 / averageInterval)));
+      setTapTempoBpm(bpm);
+
+      const delayTimeMs = Math.max(20, Math.min(900, Math.round(60000 / bpm)));
+      setChannels(currentChannels =>
+        currentChannels.map(channel => ({
+          ...channel,
+          delayTimeMs,
+        })),
+      );
+
+      return filteredHistory;
+    });
   }
 
   function updateChannelProgress(mixKey: string, channelId: string, progressSeconds: number) {
@@ -527,6 +607,9 @@ export function App() {
                   currentChannels.map(channel => ({
                     ...channel,
                     ...DEFAULT_TRACK_EFFECTS,
+                    beatSyncSourceChannelId: null,
+                    beatSyncOffsetBeats: null,
+                    tempoBpm: null,
                     muted: false,
                     paused: false,
                     solo: false,
@@ -539,6 +622,8 @@ export function App() {
                 void primeSharedAudioContext();
                 setTransportPlaying(currentValue => !currentValue);
               }}
+              onTapTempo={applyTapTempo}
+              tapTempoBpm={tapTempoBpm}
               transportPlaying={transportPlaying}
             />
           </aside>
@@ -574,6 +659,8 @@ export function App() {
               }
               onPatchChannel={patchChannel}
               onProgress={updateChannelProgress}
+              beatSyncTargets={beatSyncTargets}
+              tapTempoBpm={tapTempoBpm}
               restartToken={restartToken}
               transportPlaying={transportPlaying}
             />

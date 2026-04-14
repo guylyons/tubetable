@@ -16,6 +16,8 @@ type TableSectionProps = {
   onPatchChannel: (channelId: string, patch: Partial<MixChannel>) => void;
   onProgress: (mixKey: string, channelId: string, progressSeconds: number) => void;
   mixKey: string;
+  beatSyncTargets: Record<string, number | null>;
+  tapTempoBpm: number | null;
   restartToken: number;
   transportPlaying: boolean;
 };
@@ -34,6 +36,8 @@ export function TableSection({
   onPatchChannel,
   onProgress,
   mixKey,
+  beatSyncTargets,
+  tapTempoBpm,
   restartToken,
   transportPlaying,
 }: TableSectionProps) {
@@ -108,6 +112,9 @@ export function TableSection({
           onPatchChannel={onPatchChannel}
           onProgress={onProgress}
           mixKey={mixKey}
+          beatSyncTargetSeconds={beatSyncTargets[channel.id] ?? null}
+          channelStates={channelStates}
+          tapTempoBpm={tapTempoBpm}
           presentation={presentation}
           restartToken={restartToken}
           trackLabel={`Channel ${index + 1}`}
