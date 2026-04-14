@@ -14,6 +14,9 @@ type TableSectionProps = {
   onTogglePause: (channelId: string) => void;
   onToggleSolo: (channelId: string) => void;
   onChangePlaybackRate: (channelId: string, playbackRate: number) => void;
+  onToggleReverb: (channelId: string) => void;
+  onToggleDelay: (channelId: string) => void;
+  onToggleLofi: (channelId: string) => void;
   onProgress: (mixKey: string, channelId: string, progressSeconds: number) => void;
   mixKey: string;
   restartToken: number;
@@ -32,6 +35,9 @@ export function TableSection({
   onTogglePause,
   onToggleSolo,
   onChangePlaybackRate,
+  onToggleReverb,
+  onToggleDelay,
+  onToggleLofi,
   onProgress,
   mixKey,
   restartToken,
@@ -106,6 +112,9 @@ export function TableSection({
           onTogglePause={onTogglePause}
           onToggleSolo={onToggleSolo}
           onChangePlaybackRate={onChangePlaybackRate}
+          onToggleReverb={onToggleReverb}
+          onToggleDelay={onToggleDelay}
+          onToggleLofi={onToggleLofi}
           onProgress={onProgress}
           mixKey={mixKey}
           presentation={presentation}

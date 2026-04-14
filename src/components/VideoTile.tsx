@@ -8,6 +8,7 @@ import {
   YT_PLAYER_STATE_PAUSED,
   type YouTubePlayer,
 } from "../lib/youtube";
+import { TrackAudioController } from "../lib/trackAudio";
 
 type VideoTileProps = {
   isDarkMode?: boolean;
@@ -26,6 +27,9 @@ type VideoTileProps = {
   onTogglePause: (id: string) => void;
   onToggleSolo: (id: string) => void;
   onChangePlaybackRate: (id: string, playbackRate: number) => void;
+  onToggleReverb: (id: string) => void;
+  onToggleDelay: (id: string) => void;
+  onToggleLofi: (id: string) => void;
   onProgress: (mixKey: string, id: string, progressSeconds: number) => void;
   mixKey: string;
   presentation?: "default" | "focus";
@@ -50,6 +54,9 @@ export function VideoTile({
   onTogglePause,
   onToggleSolo,
   onChangePlaybackRate,
+  onToggleReverb,
+  onToggleDelay,
+  onToggleLofi,
   onProgress,
   mixKey,
   presentation = "default",
@@ -58,10 +65,14 @@ export function VideoTile({
 }: VideoTileProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const audioControllerRef = useRef<TrackAudioController | null>(null);
   const onProgressRef = useRef(onProgress);
   const playbackStateRef = useRef({
+    delayEnabled: channel.delayEnabled,
     looped: channel.looped,
+    lofiEnabled: channel.lofiEnabled,
     paused: channel.paused,
+    reverbEnabled: channel.reverbEnabled,
     transportPlaying,
   });
   const [ready, setReady] = useState(false);
@@ -73,11 +84,74 @@ export function VideoTile({
 
   useEffect(() => {
     playbackStateRef.current = {
+      delayEnabled: channel.delayEnabled,
       looped: channel.looped,
+      lofiEnabled: channel.lofiEnabled,
       paused: channel.paused,
+      reverbEnabled: channel.reverbEnabled,
       transportPlaying,
     };
-  }, [channel.looped, channel.paused, transportPlaying]);
+  }, [channel.delayEnabled, channel.looped, channel.lofiEnabled, channel.paused, channel.reverbEnabled, transportPlaying]);
+
+  useEffect(() => {
+    let disposed = false;
+    const audioUrl = `/api/youtube/audio?videoId=${encodeURIComponent(channel.video.videoId)}`;
+    const controller = new TrackAudioController({
+      debugLabel: `${trackLabel} ${channel.video.title}`,
+      audioUrl,
+      onEnded: () => {
+        const playbackState = playbackStateRef.current;
+
+        if (playbackState.looped && playbackState.transportPlaying && !playbackState.paused) {
+          try {
+            controller.seek(0);
+            void controller.play();
+            playerRef.current?.seekTo(0, true);
+            playerRef.current?.playVideo();
+          } catch {
+            // Loop restarts can briefly collide with browser playback state.
+          }
+          return;
+        }
+
+        const currentTime = controller.getCurrentTime();
+        if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+          onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+        }
+      },
+      onError: error => {
+        if (!disposed) {
+          setLoadError(error);
+        }
+      },
+    });
+
+    audioControllerRef.current = controller;
+    controller.setVolume(effectiveVolume);
+    controller.setPlaybackRate(channel.playbackRate);
+    controller.setEffects({
+      delayEnabled: channel.delayEnabled,
+      lofiEnabled: channel.lofiEnabled,
+      reverbEnabled: channel.reverbEnabled,
+    });
+    controller.seek(channel.progressSeconds);
+
+    return () => {
+      disposed = true;
+      const currentTime = controller.getCurrentTime();
+      if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+        onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+      }
+      controller.destroy();
+      if (audioControllerRef.current === controller) {
+        audioControllerRef.current = null;
+      }
+    };
+  }, [
+    channel.id,
+    channel.video.videoId,
+    mixKey,
+  ]);
 
   useEffect(() => {
     let disposed = false;
@@ -91,7 +165,8 @@ export function VideoTile({
         }
 
         const captureProgress = () => {
-          const currentTime = playerRef.current?.getCurrentTime?.();
+          const currentTime =
+            audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.();
           if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
             onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
           }
@@ -122,18 +197,29 @@ export function VideoTile({
               setLoadError(null);
               if (channel.progressSeconds > 0) {
                 try {
+                  audioControllerRef.current?.seek(channel.progressSeconds);
                   event.target.seekTo(channel.progressSeconds, true);
                 } catch {
                   // The YouTube iframe can briefly reject seek commands during initialization.
                 }
               }
-              applyPlayerVolume(event.target, effectiveVolume);
+              applyPlayerVolume(event.target, 0);
               try {
                 event.target.setPlaybackRate(channel.playbackRate);
               } catch {
                 // Some videos briefly reject playback-rate changes during init.
               }
               syncPlayerPlayback(event.target, transportPlaying && !channel.paused);
+              if (transportPlaying && !channel.paused) {
+                void audioControllerRef.current?.play();
+              }
+              audioControllerRef.current?.setVolume(effectiveVolume);
+              audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
+              audioControllerRef.current?.setEffects({
+                delayEnabled: channel.delayEnabled,
+                lofiEnabled: channel.lofiEnabled,
+                reverbEnabled: channel.reverbEnabled,
+              });
               captureProgress();
             },
             onStateChange: event => {
@@ -178,14 +264,11 @@ export function VideoTile({
   }, [channel.id, channel.video.videoId, mixKey]);
 
   useEffect(() => {
-    if (!ready || !playerRef.current) {
-      return;
-    }
-
-    applyPlayerVolume(playerRef.current, effectiveVolume);
+    audioControllerRef.current?.setVolume(effectiveVolume);
   }, [effectiveVolume, ready]);
 
   useEffect(() => {
+    audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
     if (!ready || !playerRef.current) {
       return;
     }
@@ -198,11 +281,27 @@ export function VideoTile({
   }, [channel.playbackRate, ready]);
 
   useEffect(() => {
+    audioControllerRef.current?.setEffects({
+      delayEnabled: channel.delayEnabled,
+      lofiEnabled: channel.lofiEnabled,
+      reverbEnabled: channel.reverbEnabled,
+    });
+  }, [channel.delayEnabled, channel.lofiEnabled, channel.reverbEnabled, ready]);
+
+  useEffect(() => {
     if (!ready || !playerRef.current) {
       return;
     }
 
     syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
+    const audioController = audioControllerRef.current;
+    if (audioController) {
+      if (transportPlaying && !channel.paused) {
+        void audioController.play();
+      } else {
+        audioController.pause();
+      }
+    }
   }, [channel.paused, ready, transportPlaying]);
 
   useEffect(() => {
@@ -211,8 +310,12 @@ export function VideoTile({
     }
 
     try {
+      audioControllerRef.current?.seek(channel.progressSeconds);
       playerRef.current.seekTo(channel.progressSeconds, true);
       syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
+      if (transportPlaying && !channel.paused) {
+        void audioControllerRef.current?.play();
+      }
     } catch {
       // A restart can land while the iframe is still buffering.
     }
@@ -444,6 +547,72 @@ export function VideoTile({
             <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
               2x
             </span>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                Effects
+              </p>
+              <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                Add reverb, delay, or lofi treatment to this track.
+              </p>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? "bg-slate-800 text-slate-200" : "bg-white text-slate-700"}`}>
+              FX
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => onToggleReverb(channel.id)}
+              className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                channel.reverbEnabled
+                  ? isDarkMode
+                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                    : "border-blue-200 bg-blue-50 text-blue-700"
+                  : isDarkMode
+                    ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+              }`}
+              aria-pressed={channel.reverbEnabled}
+            >
+              {channel.reverbEnabled ? "Reverb on" : "Reverb"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleDelay(channel.id)}
+              className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                channel.delayEnabled
+                  ? isDarkMode
+                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                    : "border-blue-200 bg-blue-50 text-blue-700"
+                  : isDarkMode
+                    ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+              }`}
+              aria-pressed={channel.delayEnabled}
+            >
+              {channel.delayEnabled ? "Delay on" : "Delay"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleLofi(channel.id)}
+              className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                channel.lofiEnabled
+                  ? isDarkMode
+                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                    : "border-blue-200 bg-blue-50 text-blue-700"
+                  : isDarkMode
+                    ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+              }`}
+              aria-pressed={channel.lofiEnabled}
+            >
+              {channel.lofiEnabled ? "Lofi on" : "Lofi"}
+            </button>
           </div>
         </div>
       </div>

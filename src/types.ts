@@ -17,6 +17,9 @@ export type MixChannel = {
   video: YouTubeSearchResult;
   volume: number;
   playbackRate: number;
+  reverbEnabled: boolean;
+  delayEnabled: boolean;
+  lofiEnabled: boolean;
   muted: boolean;
   solo: boolean;
   paused: boolean;

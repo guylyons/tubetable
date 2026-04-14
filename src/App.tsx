@@ -10,6 +10,7 @@ import { deriveMixName } from "./lib/mixNaming";
 import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
 import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
 import { parseYouTubeVideoId } from "./lib/youtube";
+import { primeSharedAudioContext } from "./lib/trackAudio";
 import {
   DRAFT_MIX_KEY,
   MAX_CHANNELS,
@@ -390,6 +391,7 @@ export function App() {
     const nextChannel = createChannel(video);
     setChannels(currentChannels => [...currentChannels, nextChannel]);
     setFocusedChannelId(currentFocusedChannelId => (channels.length === 0 ? nextChannel.id : currentFocusedChannelId));
+    void primeSharedAudioContext();
     setTransportPlaying(true);
     resetSearchUi(true);
   }
@@ -469,7 +471,10 @@ export function App() {
             void resolveInputToVideo();
           }}
           onToggleTheme={() => setThemeMode(currentMode => (currentMode === "dark" ? "light" : "dark"))}
-          onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
+          onToggleTransport={() => {
+            void primeSharedAudioContext();
+            setTransportPlaying(currentValue => !currentValue);
+          }}
           searchError={searchError}
           searchQuery={searchQuery}
           searchResults={searchResults}
@@ -514,15 +519,21 @@ export function App() {
                 setChannels(currentChannels =>
                   currentChannels.map(channel => ({
                     ...channel,
+                    delayEnabled: false,
+                    lofiEnabled: false,
                     muted: false,
                     paused: false,
+                    reverbEnabled: false,
                     solo: false,
                     volume: 76,
                     playbackRate: 1,
                   })),
                 )
               }
-              onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
+              onToggleTransport={() => {
+                void primeSharedAudioContext();
+                setTransportPlaying(currentValue => !currentValue);
+              }}
               transportPlaying={transportPlaying}
             />
           </aside>
@@ -560,6 +571,24 @@ export function App() {
                 updateChannel(channelId, currentChannel => ({
                   ...currentChannel,
                   playbackRate,
+                }))
+              }
+              onToggleReverb={channelId =>
+                updateChannel(channelId, currentChannel => ({
+                  ...currentChannel,
+                  reverbEnabled: !currentChannel.reverbEnabled,
+                }))
+              }
+              onToggleDelay={channelId =>
+                updateChannel(channelId, currentChannel => ({
+                  ...currentChannel,
+                  delayEnabled: !currentChannel.delayEnabled,
+                }))
+              }
+              onToggleLofi={channelId =>
+                updateChannel(channelId, currentChannel => ({
+                  ...currentChannel,
+                  lofiEnabled: !currentChannel.lofiEnabled,
                 }))
               }
               onProgress={updateChannelProgress}
