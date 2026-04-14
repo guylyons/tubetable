@@ -61,6 +61,12 @@ export function VideoTile({
   const playerRef = useRef<YouTubePlayer | null>(null);
   const audioControllerRef = useRef<TrackAudioController | null>(null);
   const onProgressRef = useRef(onProgress);
+  const [expandedEffects, setExpandedEffects] = useState({
+    reverb: false,
+    delay: false,
+    lofi: false,
+    pitch: false,
+  });
   const playbackStateRef = useRef({
     delayEnabled: channel.delayEnabled,
     looped: channel.looped,
@@ -614,28 +620,51 @@ export function VideoTile({
                 Dial in space, decay, and pre-delay.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() =>
-                onPatchChannel(channel.id, {
-                  reverbEnabled: !channel.reverbEnabled,
-                })
-              }
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                channel.reverbEnabled
-                  ? isDarkMode
-                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
-                    : "border-blue-200 bg-blue-50 text-blue-700"
-                  : isDarkMode
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onPatchChannel(channel.id, {
+                    reverbEnabled: !channel.reverbEnabled,
+                  })
+                }
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                  channel.reverbEnabled
+                    ? isDarkMode
+                      ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                      : "border-blue-200 bg-blue-50 text-blue-700"
+                    : isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+                }`}
+                aria-pressed={channel.reverbEnabled}
+              >
+                {channel.reverbEnabled ? "On" : "Off"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedEffects(current => ({
+                    ...current,
+                    reverb: !current.reverb,
+                  }))
+                }
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-lg leading-none transition ${
+                  isDarkMode
                     ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
                     : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
-              }`}
-              aria-pressed={channel.reverbEnabled}
-            >
-              {channel.reverbEnabled ? "On" : "Off"}
-            </button>
+                }`}
+                aria-expanded={expandedEffects.reverb}
+                aria-label={`${expandedEffects.reverb ? "Collapse" : "Expand"} reverb controls`}
+              >
+                <span className={`transition-transform ${expandedEffects.reverb ? "rotate-180" : ""}`} aria-hidden="true">
+                  ⌄
+                </span>
+              </button>
+            </div>
           </div>
-          <div className="mt-3 space-y-3">
+          {expandedEffects.reverb ? (
+            <div className="mt-3 space-y-3">
             <label className="block">
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
@@ -705,7 +734,8 @@ export function VideoTile({
                 aria-label={`${trackLabel} reverb pre-delay`}
               />
             </label>
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
@@ -718,28 +748,51 @@ export function VideoTile({
                 Tune the repeats and feedback.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() =>
-                onPatchChannel(channel.id, {
-                  delayEnabled: !channel.delayEnabled,
-                })
-              }
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                channel.delayEnabled
-                  ? isDarkMode
-                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
-                    : "border-blue-200 bg-blue-50 text-blue-700"
-                  : isDarkMode
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onPatchChannel(channel.id, {
+                    delayEnabled: !channel.delayEnabled,
+                  })
+                }
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                  channel.delayEnabled
+                    ? isDarkMode
+                      ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                      : "border-blue-200 bg-blue-50 text-blue-700"
+                    : isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+                }`}
+                aria-pressed={channel.delayEnabled}
+              >
+                {channel.delayEnabled ? "On" : "Off"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedEffects(current => ({
+                    ...current,
+                    delay: !current.delay,
+                  }))
+                }
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-lg leading-none transition ${
+                  isDarkMode
                     ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
                     : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
-              }`}
-              aria-pressed={channel.delayEnabled}
-            >
-              {channel.delayEnabled ? "On" : "Off"}
-            </button>
+                }`}
+                aria-expanded={expandedEffects.delay}
+                aria-label={`${expandedEffects.delay ? "Collapse" : "Expand"} delay controls`}
+              >
+                <span className={`transition-transform ${expandedEffects.delay ? "rotate-180" : ""}`} aria-hidden="true">
+                  ⌄
+                </span>
+              </button>
+            </div>
           </div>
-          <div className="mt-3 space-y-3">
+          {expandedEffects.delay ? (
+            <div className="mt-3 space-y-3">
             <label className="block">
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
@@ -810,7 +863,8 @@ export function VideoTile({
                 aria-label={`${trackLabel} delay time`}
               />
             </label>
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
@@ -823,28 +877,51 @@ export function VideoTile({
                 Darken and soften the track.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() =>
-                onPatchChannel(channel.id, {
-                  lofiEnabled: !channel.lofiEnabled,
-                })
-              }
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                channel.lofiEnabled
-                  ? isDarkMode
-                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
-                    : "border-blue-200 bg-blue-50 text-blue-700"
-                  : isDarkMode
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onPatchChannel(channel.id, {
+                    lofiEnabled: !channel.lofiEnabled,
+                  })
+                }
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                  channel.lofiEnabled
+                    ? isDarkMode
+                      ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                      : "border-blue-200 bg-blue-50 text-blue-700"
+                    : isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+                }`}
+                aria-pressed={channel.lofiEnabled}
+              >
+                {channel.lofiEnabled ? "On" : "Off"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedEffects(current => ({
+                    ...current,
+                    lofi: !current.lofi,
+                  }))
+                }
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-lg leading-none transition ${
+                  isDarkMode
                     ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
                     : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
-              }`}
-              aria-pressed={channel.lofiEnabled}
-            >
-              {channel.lofiEnabled ? "On" : "Off"}
-            </button>
+                }`}
+                aria-expanded={expandedEffects.lofi}
+                aria-label={`${expandedEffects.lofi ? "Collapse" : "Expand"} lofi controls`}
+              >
+                <span className={`transition-transform ${expandedEffects.lofi ? "rotate-180" : ""}`} aria-hidden="true">
+                  ⌄
+                </span>
+              </button>
+            </div>
           </div>
-          <div className="mt-3 space-y-3">
+          {expandedEffects.lofi ? (
+            <div className="mt-3 space-y-3">
             <label className="block">
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
@@ -892,7 +969,8 @@ export function VideoTile({
                 aria-label={`${trackLabel} lofi cutoff`}
               />
             </label>
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
@@ -905,57 +983,83 @@ export function VideoTile({
                 Shift pitch without touching the transport speed.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                const nextEnabled = !channel.pitchShiftEnabled;
-                const nextSemitones = nextEnabled ? channel.pitchShiftSemitones || 0 : 0;
-                onPatchChannel(channel.id, {
-                  pitchShiftEnabled: nextEnabled,
-                  pitchShiftSemitones: nextSemitones,
-                });
-              }}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                channel.pitchShiftEnabled
-                  ? isDarkMode
-                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
-                    : "border-blue-200 bg-blue-50 text-blue-700"
-                  : isDarkMode
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const nextEnabled = !channel.pitchShiftEnabled;
+                  const nextSemitones = nextEnabled ? channel.pitchShiftSemitones || 0 : 0;
+                  onPatchChannel(channel.id, {
+                    pitchShiftEnabled: nextEnabled,
+                    pitchShiftSemitones: nextSemitones,
+                  });
+                }}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                  channel.pitchShiftEnabled
+                    ? isDarkMode
+                      ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                      : "border-blue-200 bg-blue-50 text-blue-700"
+                    : isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+                }`}
+                aria-pressed={channel.pitchShiftEnabled}
+              >
+                {channel.pitchShiftEnabled ? "On" : "Off"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedEffects(current => ({
+                    ...current,
+                    pitch: !current.pitch,
+                  }))
+                }
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-lg leading-none transition ${
+                  isDarkMode
                     ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
                     : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
-              }`}
-              aria-pressed={channel.pitchShiftEnabled}
-            >
-              {channel.pitchShiftEnabled ? "On" : "Off"}
-            </button>
+                }`}
+                aria-expanded={expandedEffects.pitch}
+                aria-label={`${expandedEffects.pitch ? "Collapse" : "Expand"} pitch controls`}
+              >
+                <span className={`transition-transform ${expandedEffects.pitch ? "rotate-180" : ""}`} aria-hidden="true">
+                  ⌄
+                </span>
+              </button>
+            </div>
           </div>
-          <div className="mt-3 flex items-center gap-3">
-            <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
-              -12
-            </span>
-            <input
-              type="range"
-              min={-12}
-              max={12}
-              step={1}
-              value={channel.pitchShiftSemitones}
-              onChange={event =>
-                onPatchChannel(channel.id, {
-                  pitchShiftEnabled: true,
-                  pitchShiftSemitones: Number(event.target.value),
-                })
-              }
-              className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
-              aria-label={`${trackLabel} pitch shift`}
-            />
-            <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
-              +12
-            </span>
-          </div>
-          <p className={`mt-2 text-right text-xs font-medium ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            {channel.pitchShiftSemitones > 0 ? "+" : ""}
-            {channel.pitchShiftSemitones} semitones
-          </p>
+          {expandedEffects.pitch ? (
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+                  -12
+                </span>
+                <input
+                  type="range"
+                  min={-12}
+                  max={12}
+                  step={1}
+                  value={channel.pitchShiftSemitones}
+                  onChange={event =>
+                    onPatchChannel(channel.id, {
+                      pitchShiftEnabled: true,
+                      pitchShiftSemitones: Number(event.target.value),
+                    })
+                  }
+                  className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                  aria-label={`${trackLabel} pitch shift`}
+                />
+                <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+                  +12
+                </span>
+              </div>
+              <p className={`text-right text-xs font-medium ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                {channel.pitchShiftSemitones > 0 ? "+" : ""}
+                {channel.pitchShiftSemitones} semitones
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
     </article>
