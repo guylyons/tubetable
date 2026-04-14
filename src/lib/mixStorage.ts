@@ -7,6 +7,7 @@ import {
   type PersistedMix,
   type SavedMix,
 } from "../types";
+import { DEFAULT_TRACK_EFFECTS } from "./mixChannels";
 
 const EXAMPLE_MIX_NAME = "Example Mix";
 const EXAMPLE_MIX_ID = "example-mix";
@@ -22,9 +23,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     },
     volume: 76,
     playbackRate: 1,
-    reverbEnabled: false,
-    delayEnabled: false,
-    lofiEnabled: false,
+    ...DEFAULT_TRACK_EFFECTS,
     muted: false,
     solo: false,
     paused: false,
@@ -41,9 +40,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     },
     volume: 76,
     playbackRate: 1,
-    reverbEnabled: false,
-    delayEnabled: false,
-    lofiEnabled: false,
+    ...DEFAULT_TRACK_EFFECTS,
     muted: false,
     solo: false,
     paused: false,
@@ -60,9 +57,7 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     },
     volume: 76,
     playbackRate: 1,
-    reverbEnabled: false,
-    delayEnabled: false,
-    lofiEnabled: false,
+    ...DEFAULT_TRACK_EFFECTS,
     muted: false,
     solo: false,
     paused: false,
@@ -190,8 +185,18 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
     volume: record.volume,
     playbackRate: clampPlaybackRate(typeof record.playbackRate === "number" ? record.playbackRate : 1),
     reverbEnabled: Boolean(record.reverbEnabled),
+    reverbMix: clampPercent(record.reverbMix, DEFAULT_TRACK_EFFECTS.reverbMix),
+    reverbDecay: clampPercent(record.reverbDecay, DEFAULT_TRACK_EFFECTS.reverbDecay),
+    reverbPreDelayMs: clampNumber(record.reverbPreDelayMs, DEFAULT_TRACK_EFFECTS.reverbPreDelayMs, 0, 200),
     delayEnabled: Boolean(record.delayEnabled),
+    delayMix: clampPercent(record.delayMix, DEFAULT_TRACK_EFFECTS.delayMix),
+    delayFeedback: clampPercent(record.delayFeedback, DEFAULT_TRACK_EFFECTS.delayFeedback),
+    delayTimeMs: clampNumber(record.delayTimeMs, DEFAULT_TRACK_EFFECTS.delayTimeMs, 20, 900),
     lofiEnabled: Boolean(record.lofiEnabled),
+    lofiMix: clampPercent(record.lofiMix, DEFAULT_TRACK_EFFECTS.lofiMix),
+    lofiCutoffHz: clampNumber(record.lofiCutoffHz, DEFAULT_TRACK_EFFECTS.lofiCutoffHz, 300, 12000),
+    pitchShiftEnabled: Boolean(record.pitchShiftEnabled),
+    pitchShiftSemitones: clampNumber(record.pitchShiftSemitones, DEFAULT_TRACK_EFFECTS.pitchShiftSemitones, -12, 12),
     muted: record.muted,
     solo: record.solo,
     paused: record.paused,
@@ -202,6 +207,18 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
 
 function clampPlaybackRate(value: number) {
   return Math.min(2, Math.max(0.5, value));
+}
+
+function clampPercent(value: unknown, fallback: number) {
+  return clampNumber(value, fallback, 0, 100);
+}
+
+function clampNumber(value: unknown, fallback: number, min: number, max: number) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, value));
 }
 
 export function readStoredMixState(): MixStorage {

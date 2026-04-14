@@ -18,8 +18,18 @@ export type MixChannel = {
   volume: number;
   playbackRate: number;
   reverbEnabled: boolean;
+  reverbMix: number;
+  reverbDecay: number;
+  reverbPreDelayMs: number;
   delayEnabled: boolean;
+  delayMix: number;
+  delayFeedback: number;
+  delayTimeMs: number;
   lofiEnabled: boolean;
+  lofiMix: number;
+  lofiCutoffHz: number;
+  pitchShiftEnabled: boolean;
+  pitchShiftSemitones: number;
   muted: boolean;
   solo: boolean;
   paused: boolean;

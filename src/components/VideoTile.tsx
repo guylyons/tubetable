@@ -26,10 +26,7 @@ type VideoTileProps = {
   onToggleMute: (id: string) => void;
   onTogglePause: (id: string) => void;
   onToggleSolo: (id: string) => void;
-  onChangePlaybackRate: (id: string, playbackRate: number) => void;
-  onToggleReverb: (id: string) => void;
-  onToggleDelay: (id: string) => void;
-  onToggleLofi: (id: string) => void;
+  onPatchChannel: (id: string, patch: Partial<MixChannel>) => void;
   onProgress: (mixKey: string, id: string, progressSeconds: number) => void;
   mixKey: string;
   presentation?: "default" | "focus";
@@ -53,10 +50,7 @@ export function VideoTile({
   onToggleMute,
   onTogglePause,
   onToggleSolo,
-  onChangePlaybackRate,
-  onToggleReverb,
-  onToggleDelay,
-  onToggleLofi,
+  onPatchChannel,
   onProgress,
   mixKey,
   presentation = "default",
@@ -131,9 +125,18 @@ export function VideoTile({
     controller.setPlaybackRate(channel.playbackRate);
     controller.setEffects({
       delayEnabled: channel.delayEnabled,
+      delayFeedback: channel.delayFeedback,
+      delayMix: channel.delayMix,
+      delayTimeMs: channel.delayTimeMs,
+      lofiCutoffHz: channel.lofiCutoffHz,
       lofiEnabled: channel.lofiEnabled,
+      lofiMix: channel.lofiMix,
+      reverbDecay: channel.reverbDecay,
       reverbEnabled: channel.reverbEnabled,
+      reverbMix: channel.reverbMix,
+      reverbPreDelayMs: channel.reverbPreDelayMs,
     });
+    controller.setPitchShift(channel.pitchShiftEnabled, channel.pitchShiftSemitones);
     controller.seek(channel.progressSeconds);
 
     return () => {
@@ -217,9 +220,21 @@ export function VideoTile({
               audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
               audioControllerRef.current?.setEffects({
                 delayEnabled: channel.delayEnabled,
+                delayFeedback: channel.delayFeedback,
+                delayMix: channel.delayMix,
+                delayTimeMs: channel.delayTimeMs,
+                lofiCutoffHz: channel.lofiCutoffHz,
                 lofiEnabled: channel.lofiEnabled,
+                lofiMix: channel.lofiMix,
+                reverbDecay: channel.reverbDecay,
                 reverbEnabled: channel.reverbEnabled,
+                reverbMix: channel.reverbMix,
+                reverbPreDelayMs: channel.reverbPreDelayMs,
               });
+              audioControllerRef.current?.setPitchShift(
+                channel.pitchShiftEnabled,
+                channel.pitchShiftSemitones,
+              );
               captureProgress();
             },
             onStateChange: event => {
@@ -283,10 +298,47 @@ export function VideoTile({
   useEffect(() => {
     audioControllerRef.current?.setEffects({
       delayEnabled: channel.delayEnabled,
+      delayFeedback: channel.delayFeedback,
+      delayMix: channel.delayMix,
+      delayTimeMs: channel.delayTimeMs,
+      lofiCutoffHz: channel.lofiCutoffHz,
       lofiEnabled: channel.lofiEnabled,
+      lofiMix: channel.lofiMix,
+      reverbDecay: channel.reverbDecay,
       reverbEnabled: channel.reverbEnabled,
+      reverbMix: channel.reverbMix,
+      reverbPreDelayMs: channel.reverbPreDelayMs,
     });
-  }, [channel.delayEnabled, channel.lofiEnabled, channel.reverbEnabled, ready]);
+  }, [
+    channel.delayEnabled,
+    channel.delayFeedback,
+    channel.delayMix,
+    channel.delayTimeMs,
+    channel.lofiCutoffHz,
+    channel.lofiEnabled,
+    channel.lofiMix,
+    channel.reverbDecay,
+    channel.reverbEnabled,
+    channel.reverbMix,
+    channel.reverbPreDelayMs,
+    ready,
+  ]);
+
+  useEffect(() => {
+    audioControllerRef.current?.setPitchShift(
+      channel.pitchShiftEnabled,
+      channel.pitchShiftSemitones,
+    );
+    if (!ready || !playerRef.current) {
+      return;
+    }
+
+    try {
+      playerRef.current.seekTo(channel.progressSeconds, true);
+    } catch {
+      // Pitch reloads can briefly race with the player state.
+    }
+  }, [channel.pitchShiftEnabled, channel.pitchShiftSemitones, ready]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -538,8 +590,10 @@ export function VideoTile({
               max={2}
               step={0.25}
               value={channel.playbackRate}
-              onChange={(event) =>
-                onChangePlaybackRate(channel.id, Number(event.target.value))
+              onChange={event =>
+                onPatchChannel(channel.id, {
+                  playbackRate: Number(event.target.value),
+                })
               }
               className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
               aria-label={`${trackLabel} playback speed`}
@@ -554,21 +608,20 @@ export function VideoTile({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
-                Effects
+                Reverb
               </p>
               <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-                Add reverb, delay, or lofi treatment to this track.
+                Dial in space, decay, and pre-delay.
               </p>
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? "bg-slate-800 text-slate-200" : "bg-white text-slate-700"}`}>
-              FX
-            </span>
-          </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
             <button
               type="button"
-              onClick={() => onToggleReverb(channel.id)}
-              className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+              onClick={() =>
+                onPatchChannel(channel.id, {
+                  reverbEnabled: !channel.reverbEnabled,
+                })
+              }
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
                 channel.reverbEnabled
                   ? isDarkMode
                     ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
@@ -579,12 +632,100 @@ export function VideoTile({
               }`}
               aria-pressed={channel.reverbEnabled}
             >
-              {channel.reverbEnabled ? "Reverb on" : "Reverb"}
+              {channel.reverbEnabled ? "On" : "Off"}
             </button>
+          </div>
+          <div className="mt-3 space-y-3">
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Mix
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.reverbMix}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={channel.reverbMix}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    reverbMix: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} reverb mix`}
+              />
+            </label>
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Decay
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.reverbDecay}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={channel.reverbDecay}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    reverbDecay: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} reverb decay`}
+              />
+            </label>
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Pre-delay
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.reverbPreDelayMs} ms
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={200}
+                value={channel.reverbPreDelayMs}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    reverbPreDelayMs: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} reverb pre-delay`}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                Delay
+              </p>
+              <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                Tune the repeats and feedback.
+              </p>
+            </div>
             <button
               type="button"
-              onClick={() => onToggleDelay(channel.id)}
-              className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+              onClick={() =>
+                onPatchChannel(channel.id, {
+                  delayEnabled: !channel.delayEnabled,
+                })
+              }
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
                 channel.delayEnabled
                   ? isDarkMode
                     ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
@@ -595,12 +736,101 @@ export function VideoTile({
               }`}
               aria-pressed={channel.delayEnabled}
             >
-              {channel.delayEnabled ? "Delay on" : "Delay"}
+              {channel.delayEnabled ? "On" : "Off"}
             </button>
+          </div>
+          <div className="mt-3 space-y-3">
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Mix
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.delayMix}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={channel.delayMix}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    delayMix: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} delay mix`}
+              />
+            </label>
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Feedback
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.delayFeedback}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={channel.delayFeedback}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    delayFeedback: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} delay feedback`}
+              />
+            </label>
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Time
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.delayTimeMs} ms
+                </span>
+              </div>
+              <input
+                type="range"
+                min={20}
+                max={900}
+                step={10}
+                value={channel.delayTimeMs}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    delayTimeMs: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} delay time`}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                Lofi
+              </p>
+              <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                Darken and soften the track.
+              </p>
+            </div>
             <button
               type="button"
-              onClick={() => onToggleLofi(channel.id)}
-              className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+              onClick={() =>
+                onPatchChannel(channel.id, {
+                  lofiEnabled: !channel.lofiEnabled,
+                })
+              }
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
                 channel.lofiEnabled
                   ? isDarkMode
                     ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
@@ -611,9 +841,121 @@ export function VideoTile({
               }`}
               aria-pressed={channel.lofiEnabled}
             >
-              {channel.lofiEnabled ? "Lofi on" : "Lofi"}
+              {channel.lofiEnabled ? "On" : "Off"}
             </button>
           </div>
+          <div className="mt-3 space-y-3">
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Mix
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.lofiMix}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={channel.lofiMix}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    lofiMix: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} lofi mix`}
+              />
+            </label>
+            <label className="block">
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className={`font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  Cutoff
+                </span>
+                <span className={isDarkMode ? "text-slate-200" : "text-slate-700"}>
+                  {channel.lofiCutoffHz} Hz
+                </span>
+              </div>
+              <input
+                type="range"
+                min={300}
+                max={12000}
+                step={50}
+                value={channel.lofiCutoffHz}
+                onChange={event =>
+                  onPatchChannel(channel.id, {
+                    lofiCutoffHz: Number(event.target.value),
+                  })
+                }
+                className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+                aria-label={`${trackLabel} lofi cutoff`}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                Pitch
+              </p>
+              <p className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                Shift pitch without touching the transport speed.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const nextEnabled = !channel.pitchShiftEnabled;
+                const nextSemitones = nextEnabled ? channel.pitchShiftSemitones || 0 : 0;
+                onPatchChannel(channel.id, {
+                  pitchShiftEnabled: nextEnabled,
+                  pitchShiftSemitones: nextSemitones,
+                });
+              }}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                channel.pitchShiftEnabled
+                  ? isDarkMode
+                    ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                    : "border-blue-200 bg-blue-50 text-blue-700"
+                  : isDarkMode
+                    ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+              }`}
+              aria-pressed={channel.pitchShiftEnabled}
+            >
+              {channel.pitchShiftEnabled ? "On" : "Off"}
+            </button>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+              -12
+            </span>
+            <input
+              type="range"
+              min={-12}
+              max={12}
+              step={1}
+              value={channel.pitchShiftSemitones}
+              onChange={event =>
+                onPatchChannel(channel.id, {
+                  pitchShiftEnabled: true,
+                  pitchShiftSemitones: Number(event.target.value),
+                })
+              }
+              className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+              aria-label={`${trackLabel} pitch shift`}
+            />
+            <span className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+              +12
+            </span>
+          </div>
+          <p className={`mt-2 text-right text-xs font-medium ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+            {channel.pitchShiftSemitones > 0 ? "+" : ""}
+            {channel.pitchShiftSemitones} semitones
+          </p>
         </div>
       </div>
     </article>

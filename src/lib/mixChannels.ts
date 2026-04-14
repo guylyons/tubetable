@@ -1,5 +1,24 @@
 import type { MixChannel, MixChannelState, YouTubeSearchResult } from "../types";
 
+export const DEFAULT_TRACK_EFFECTS = {
+  delayEnabled: false,
+  delayFeedback: 36,
+  delayMix: 28,
+  delayTimeMs: 290,
+  lofiCutoffHz: 2400,
+  lofiEnabled: false,
+  lofiMix: 40,
+  pitchShiftEnabled: false,
+  pitchShiftSemitones: 0,
+  reverbDecay: 55,
+  reverbEnabled: false,
+  reverbMix: 22,
+  reverbPreDelayMs: 12,
+} satisfies Omit<
+  MixChannel,
+  "id" | "video" | "volume" | "playbackRate" | "muted" | "solo" | "paused" | "looped" | "progressSeconds"
+>;
+
 export function createChannel(video: YouTubeSearchResult): MixChannel {
   const fallbackId = `${video.videoId}-${Date.now()}`;
   const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : fallbackId;
@@ -9,9 +28,7 @@ export function createChannel(video: YouTubeSearchResult): MixChannel {
     video,
     volume: 76,
     playbackRate: 1,
-    reverbEnabled: false,
-    delayEnabled: false,
-    lofiEnabled: false,
+    ...DEFAULT_TRACK_EFFECTS,
     muted: false,
     solo: false,
     paused: false,

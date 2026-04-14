@@ -1,7 +1,15 @@
 export type TrackEffectState = {
   reverbEnabled: boolean;
+  reverbMix: number;
+  reverbDecay: number;
+  reverbPreDelayMs: number;
   delayEnabled: boolean;
+  delayMix: number;
+  delayFeedback: number;
+  delayTimeMs: number;
   lofiEnabled: boolean;
+  lofiMix: number;
+  lofiCutoffHz: number;
 };
 
 type TrackAudioOptions = {
@@ -14,6 +22,10 @@ type TrackAudioOptions = {
 type AudioContextLike = AudioContext;
 
 let sharedAudioContext: AudioContextLike | null = null;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function getAudioContext() {
   if (typeof window === "undefined") {
@@ -50,14 +62,15 @@ export async function primeSharedAudioContext() {
   }
 }
 
-function createImpulseResponse(context: AudioContextLike, seconds = 2.4) {
-  const length = Math.max(1, Math.floor(context.sampleRate * seconds));
+function createImpulseResponse(context: AudioContextLike, decaySeconds: number) {
+  const length = Math.max(1, Math.floor(context.sampleRate * decaySeconds));
   const buffer = context.createBuffer(2, length, context.sampleRate);
 
   for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
     const data = buffer.getChannelData(channel);
     for (let index = 0; index < length; index += 1) {
-      const decay = Math.pow(1 - index / length, 2.2);
+      const normalized = index / length;
+      const decay = Math.pow(1 - normalized, 2.3);
       data[index] = (Math.random() * 2 - 1) * decay;
     }
   }
@@ -65,30 +78,48 @@ function createImpulseResponse(context: AudioContextLike, seconds = 2.4) {
   return buffer;
 }
 
+function buildAudioUrl(audioUrl: string, pitchShiftSemitones: number) {
+  const url = new URL(audioUrl, window.location.origin);
+  const normalized = Math.round(pitchShiftSemitones * 100) / 100;
+
+  if (normalized === 0) {
+    url.searchParams.delete("pitchShiftSemitones");
+  } else {
+    url.searchParams.set("pitchShiftSemitones", String(normalized));
+  }
+
+  return url.toString();
+}
+
 export class TrackAudioController {
   private readonly audio: HTMLAudioElement;
   private readonly context: AudioContextLike;
   private readonly source: MediaElementAudioSourceNode;
-  private readonly toneDryGain: GainNode;
-  private readonly toneWetGain: GainNode;
-  private readonly toneLowpass: BiquadFilterNode;
-  private readonly volumeGain: GainNode;
+  private readonly dryGain: GainNode;
+  private readonly lofiFilter: BiquadFilterNode;
+  private readonly lofiWetGain: GainNode;
+  private readonly mixGain: GainNode;
+  private readonly masterGain: GainNode;
   private readonly delayNode: DelayNode;
   private readonly delayFeedbackGain: GainNode;
   private readonly delayWetGain: GainNode;
+  private readonly reverbPreDelay: DelayNode;
   private readonly reverbConvolver: ConvolverNode;
   private readonly reverbWetGain: GainNode;
-  private readonly effectMixGain: GainNode;
   private readonly listeners: Array<{
     target: HTMLAudioElement;
     type: keyof HTMLAudioElementEventMap;
     listener: EventListener;
   }> = [];
+  private readonly audioUrl: string;
   private pendingSeekSeconds: number | null = null;
   private destroyed = false;
+  private currentEffects: TrackEffectState | null = null;
+  private currentPitchShiftSemitones = 0;
 
   constructor({ audioUrl, debugLabel, onEnded, onError }: TrackAudioOptions) {
     this.context = getAudioContext();
+    this.audioUrl = audioUrl;
     this.audio = document.createElement("audio");
     this.audio.preload = "auto";
     this.audio.crossOrigin = "anonymous";
@@ -96,7 +127,7 @@ export class TrackAudioController {
     this.audio.loop = false;
     this.audio.muted = false;
     this.audio.volume = 1;
-    this.audio.src = audioUrl;
+    this.audio.src = buildAudioUrl(audioUrl, 0);
 
     console.info("[tubetable audio] create controller", {
       debugLabel,
@@ -105,48 +136,52 @@ export class TrackAudioController {
     });
 
     this.source = this.context.createMediaElementSource(this.audio);
-    this.toneDryGain = this.context.createGain();
-    this.toneWetGain = this.context.createGain();
-    this.toneLowpass = this.context.createBiquadFilter();
-    this.volumeGain = this.context.createGain();
+    this.dryGain = this.context.createGain();
+    this.lofiFilter = this.context.createBiquadFilter();
+    this.lofiWetGain = this.context.createGain();
+    this.mixGain = this.context.createGain();
+    this.masterGain = this.context.createGain();
     this.delayNode = this.context.createDelay(8);
     this.delayFeedbackGain = this.context.createGain();
     this.delayWetGain = this.context.createGain();
+    this.reverbPreDelay = this.context.createDelay(2.5);
     this.reverbConvolver = this.context.createConvolver();
     this.reverbWetGain = this.context.createGain();
-    this.effectMixGain = this.context.createGain();
 
-    this.toneLowpass.type = "lowpass";
-    this.toneLowpass.frequency.value = 2200;
-    this.toneLowpass.Q.value = 0.7;
+    this.lofiFilter.type = "lowpass";
+    this.lofiFilter.frequency.value = 2400;
+    this.lofiFilter.Q.value = 0.8;
 
-    this.reverbConvolver.buffer = createImpulseResponse(this.context);
-
-    this.toneDryGain.gain.value = 1;
-    this.toneWetGain.gain.value = 0;
-    this.volumeGain.gain.value = 0.76;
-    this.delayNode.delayTime.value = 0.28;
-    this.delayFeedbackGain.gain.value = 0.34;
+    this.dryGain.gain.value = 1;
+    this.lofiWetGain.gain.value = 0;
+    this.mixGain.gain.value = 1;
+    this.masterGain.gain.value = 0.76;
+    this.delayNode.delayTime.value = 0.29;
+    this.delayFeedbackGain.gain.value = 0.36;
     this.delayWetGain.gain.value = 0;
+    this.reverbPreDelay.delayTime.value = 0.012;
+    this.reverbConvolver.buffer = createImpulseResponse(this.context, 2.8);
     this.reverbWetGain.gain.value = 0;
 
-    this.source.connect(this.toneDryGain);
-    this.source.connect(this.toneLowpass);
-    this.toneLowpass.connect(this.toneWetGain);
-    this.toneDryGain.connect(this.effectMixGain);
-    this.toneWetGain.connect(this.effectMixGain);
-    this.effectMixGain.connect(this.volumeGain);
-    this.volumeGain.connect(this.context.destination);
+    this.source.connect(this.dryGain);
+    this.source.connect(this.lofiFilter);
+    this.lofiFilter.connect(this.lofiWetGain);
+    this.dryGain.connect(this.mixGain);
+    this.lofiWetGain.connect(this.mixGain);
 
-    this.volumeGain.connect(this.delayNode);
+    this.source.connect(this.delayNode);
     this.delayNode.connect(this.delayFeedbackGain);
     this.delayFeedbackGain.connect(this.delayNode);
     this.delayNode.connect(this.delayWetGain);
-    this.delayWetGain.connect(this.context.destination);
+    this.delayWetGain.connect(this.mixGain);
 
-    this.volumeGain.connect(this.reverbConvolver);
+    this.source.connect(this.reverbPreDelay);
+    this.reverbPreDelay.connect(this.reverbConvolver);
     this.reverbConvolver.connect(this.reverbWetGain);
-    this.reverbWetGain.connect(this.context.destination);
+    this.reverbWetGain.connect(this.mixGain);
+
+    this.mixGain.connect(this.masterGain);
+    this.masterGain.connect(this.context.destination);
 
     const handleLoadedMetadata = () => {
       console.info("[tubetable audio] loaded metadata", {
@@ -154,6 +189,7 @@ export class TrackAudioController {
         duration: this.audio.duration,
         readyState: this.audio.readyState,
       });
+
       if (this.pendingSeekSeconds !== null) {
         const nextSeek = this.pendingSeekSeconds;
         this.pendingSeekSeconds = null;
@@ -247,7 +283,6 @@ export class TrackAudioController {
           contextState: this.context.state,
         });
       } catch {
-        // The browser can temporarily deny audio resumes before a user gesture settles.
         console.warn("[tubetable audio] context resume rejected");
       }
     }
@@ -256,7 +291,6 @@ export class TrackAudioController {
       await this.audio.play();
       console.info("[tubetable audio] audio play resolved");
     } catch {
-      // Autoplay can be denied until the next user interaction.
       console.warn("[tubetable audio] audio play rejected");
     }
   }
@@ -313,7 +347,7 @@ export class TrackAudioController {
       return;
     }
 
-    this.volumeGain.gain.value = Math.min(1, Math.max(0, volume / 100));
+    this.masterGain.gain.value = clamp(volume / 100, 0, 1);
     console.info("[tubetable audio] volume", volume);
   }
 
@@ -322,18 +356,60 @@ export class TrackAudioController {
       return;
     }
 
-    const lofiWet = effects.lofiEnabled ? 0.62 : 0;
-    this.toneDryGain.gain.value = effects.lofiEnabled ? 0.34 : 1;
-    this.toneWetGain.gain.value = lofiWet;
-    this.toneLowpass.frequency.value = effects.lofiEnabled ? 2100 : 22050;
-    this.toneLowpass.Q.value = effects.lofiEnabled ? 0.9 : 0.1;
+    const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix / 100, 0, 1) : 0;
+    this.dryGain.gain.value = 1 - lofiMix;
+    this.lofiWetGain.gain.value = lofiMix;
+    this.lofiFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiCutoffHz, 300, 12000) : 22050;
+    this.lofiFilter.Q.value = effects.lofiEnabled ? 0.95 : 0.1;
 
-    this.delayWetGain.gain.value = effects.delayEnabled ? 0.28 : 0;
-    this.delayNode.delayTime.value = effects.delayEnabled ? 0.26 : 0.01;
-    this.delayFeedbackGain.gain.value = effects.delayEnabled ? 0.36 : 0;
+    this.delayWetGain.gain.value = effects.delayEnabled ? clamp(effects.delayMix / 100, 0, 1) : 0;
+    this.delayNode.delayTime.value = clamp(effects.delayTimeMs / 1000, 0.02, 0.9);
+    this.delayFeedbackGain.gain.value = effects.delayEnabled ? clamp(effects.delayFeedback / 100, 0, 0.92) : 0;
 
-    this.reverbWetGain.gain.value = effects.reverbEnabled ? 0.24 : 0;
+    this.reverbPreDelay.delayTime.value = clamp(effects.reverbPreDelayMs / 1000, 0, 0.2);
+    this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix / 100, 0, 1) : 0;
+
+    const decaySeconds = 0.9 + clamp(effects.reverbDecay / 100, 0, 1) * 6.2;
+    if (
+      !this.currentEffects ||
+      Math.abs(this.currentEffects.reverbDecay - effects.reverbDecay) > 2 ||
+      !this.reverbConvolver.buffer
+    ) {
+      this.reverbConvolver.buffer = createImpulseResponse(this.context, decaySeconds);
+    }
+
+    this.currentEffects = { ...effects };
     console.info("[tubetable audio] effects", effects);
+  }
+
+  setPitchShift(pitchShiftEnabled: boolean, pitchShiftSemitones: number) {
+    if (this.destroyed) {
+      return;
+    }
+
+    const normalized = pitchShiftEnabled ? clamp(pitchShiftSemitones, -12, 12) : 0;
+    if (normalized === this.currentPitchShiftSemitones) {
+      return;
+    }
+
+    const wasPlaying = !this.audio.paused;
+    const currentTime = this.audio.currentTime;
+    this.currentPitchShiftSemitones = normalized;
+
+    const nextUrl = buildAudioUrl(this.audioUrl, normalized);
+    console.info("[tubetable audio] pitch shift", {
+      pitchShiftEnabled,
+      pitchShiftSemitones: normalized,
+      nextUrl,
+    });
+
+    this.pendingSeekSeconds = currentTime;
+    this.audio.src = nextUrl;
+    this.audio.load();
+
+    if (wasPlaying) {
+      void this.play();
+    }
   }
 
   getCurrentTime() {
@@ -358,14 +434,15 @@ export class TrackAudioController {
 
     try {
       this.source.disconnect();
-      this.toneDryGain.disconnect();
-      this.toneWetGain.disconnect();
-      this.toneLowpass.disconnect();
-      this.effectMixGain.disconnect();
-      this.volumeGain.disconnect();
+      this.dryGain.disconnect();
+      this.lofiFilter.disconnect();
+      this.lofiWetGain.disconnect();
+      this.mixGain.disconnect();
+      this.masterGain.disconnect();
       this.delayNode.disconnect();
       this.delayFeedbackGain.disconnect();
       this.delayWetGain.disconnect();
+      this.reverbPreDelay.disconnect();
       this.reverbConvolver.disconnect();
       this.reverbWetGain.disconnect();
     } catch {

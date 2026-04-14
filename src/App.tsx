@@ -7,8 +7,8 @@ import { MixHeader } from "./components/MixHeader";
 import { SavedMixesPanel } from "./components/SavedMixesPanel";
 import { TableSection } from "./components/TableSection";
 import { deriveMixName } from "./lib/mixNaming";
-import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
 import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
+import { DEFAULT_TRACK_EFFECTS, buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
 import { parseYouTubeVideoId } from "./lib/youtube";
 import { primeSharedAudioContext } from "./lib/trackAudio";
 import {
@@ -185,6 +185,13 @@ export function App() {
 
   function updateChannel(channelId: string, updater: (channel: MixChannel) => MixChannel) {
     setChannels(currentChannels => currentChannels.map(channel => (channel.id === channelId ? updater(channel) : channel)));
+  }
+
+  function patchChannel(channelId: string, patch: Partial<MixChannel>) {
+    updateChannel(channelId, currentChannel => ({
+      ...currentChannel,
+      ...patch,
+    }));
   }
 
   function updateChannelProgress(mixKey: string, channelId: string, progressSeconds: number) {
@@ -519,11 +526,9 @@ export function App() {
                 setChannels(currentChannels =>
                   currentChannels.map(channel => ({
                     ...channel,
-                    delayEnabled: false,
-                    lofiEnabled: false,
+                    ...DEFAULT_TRACK_EFFECTS,
                     muted: false,
                     paused: false,
-                    reverbEnabled: false,
                     solo: false,
                     volume: 76,
                     playbackRate: 1,
@@ -567,30 +572,7 @@ export function App() {
               onToggleSolo={channelId =>
                 updateChannel(channelId, currentChannel => ({ ...currentChannel, solo: !currentChannel.solo }))
               }
-              onChangePlaybackRate={(channelId, playbackRate) =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  playbackRate,
-                }))
-              }
-              onToggleReverb={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  reverbEnabled: !currentChannel.reverbEnabled,
-                }))
-              }
-              onToggleDelay={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  delayEnabled: !currentChannel.delayEnabled,
-                }))
-              }
-              onToggleLofi={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  lofiEnabled: !currentChannel.lofiEnabled,
-                }))
-              }
+              onPatchChannel={patchChannel}
               onProgress={updateChannelProgress}
               restartToken={restartToken}
               transportPlaying={transportPlaying}

@@ -69,8 +69,25 @@ function getCachedAudioUrl(videoId: string) {
   return url;
 }
 
+function parsePitchShiftSemitones(request: Request) {
+  const url = new URL(request.url);
+  const rawValue = url.searchParams.get("pitchShiftSemitones");
+  if (rawValue === null) {
+    return 0;
+  }
+
+  const value = Number(rawValue);
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.min(12, Math.max(-12, value));
+}
+
 async function proxyAudioStream(request: Request, videoId: string) {
   console.info("[tubetable audio] request", { videoId });
+  const pitchShiftSemitones = parsePitchShiftSemitones(request);
+  const pitchShiftRatio = pitchShiftSemitones === 0 ? 1 : Math.pow(2, pitchShiftSemitones / 12);
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const audioUrl = getCachedAudioUrl(videoId);
     console.info("[tubetable audio] transcode start", { videoId, attempt });
@@ -85,6 +102,12 @@ async function proxyAudioStream(request: Request, videoId: string) {
         USER_AGENT,
         "-i",
         audioUrl,
+        ...(pitchShiftSemitones === 0
+          ? []
+          : [
+              "-af",
+              `asetrate=44100*${pitchShiftRatio.toFixed(6)},atempo=${(1 / pitchShiftRatio).toFixed(6)}`,
+            ]),
         "-vn",
         "-ac",
         "2",
