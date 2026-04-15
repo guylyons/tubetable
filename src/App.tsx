@@ -240,6 +240,23 @@ export function App() {
     }));
   }
 
+  function applyGridTempoBpm(nextBpm: number | null) {
+    setTapTempoHistory([]);
+    setTapTempoBpm(nextBpm);
+
+    if (nextBpm === null) {
+      return;
+    }
+
+    const delayTimeMs = Math.max(20, Math.min(900, Math.round(60000 / nextBpm)));
+    setChannels(currentChannels =>
+      currentChannels.map(channel => ({
+        ...channel,
+        delayTimeMs,
+      })),
+    );
+  }
+
   function applyTapTempo() {
     const now = performance.now();
     const maxGapMs = 2500;
@@ -253,22 +270,14 @@ export function App() {
           : [...previousHistory.slice(-5), now];
 
       if (filteredHistory.length < 2) {
-        setTapTempoBpm(null);
+        applyGridTempoBpm(null);
         return filteredHistory;
       }
 
       const intervals = filteredHistory.slice(1).map((tap, index) => tap - filteredHistory[index]!);
       const averageInterval = intervals.reduce((total, interval) => total + interval, 0) / intervals.length;
       const bpm = Math.min(maxBpm, Math.max(minBpm, Math.round(60000 / averageInterval)));
-      setTapTempoBpm(bpm);
-
-      const delayTimeMs = Math.max(20, Math.min(900, Math.round(60000 / bpm)));
-      setChannels(currentChannels =>
-        currentChannels.map(channel => ({
-          ...channel,
-          delayTimeMs,
-        })),
-      );
+      applyGridTempoBpm(bpm);
 
       return filteredHistory;
     });
@@ -623,6 +632,7 @@ export function App() {
                 setTransportPlaying(currentValue => !currentValue);
               }}
               onTapTempo={applyTapTempo}
+              onSetTapTempoBpm={applyGridTempoBpm}
               tapTempoBpm={tapTempoBpm}
               transportPlaying={transportPlaying}
             />

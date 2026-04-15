@@ -33,6 +33,10 @@ export type MixChannel = {
   beatSyncSourceChannelId: string | null;
   beatSyncOffsetBeats: number | null;
   tempoBpm: number | null;
+  loopStartSeconds: number | null;
+  loopEndSeconds: number | null;
+  stepSequencerEnabled: boolean;
+  stepPattern: boolean[];
   muted: boolean;
   solo: boolean;
   paused: boolean;

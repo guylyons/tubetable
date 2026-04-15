@@ -7,7 +7,11 @@ import {
   type PersistedMix,
   type SavedMix,
 } from "../types";
-import { DEFAULT_TRACK_EFFECTS } from "./mixChannels";
+import {
+  DEFAULT_TRACK_EFFECTS,
+  createDefaultStepPattern,
+  normalizeStepPattern,
+} from "./mixChannels";
 
 const EXAMPLE_MIX_NAME = "Example Mix";
 const EXAMPLE_MIX_ID = "example-mix";
@@ -28,6 +32,10 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     solo: false,
     paused: false,
     looped: true,
+    loopStartSeconds: null,
+    loopEndSeconds: null,
+    stepSequencerEnabled: true,
+    stepPattern: createDefaultStepPattern(),
     progressSeconds: 0,
   },
   {
@@ -45,13 +53,18 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     solo: false,
     paused: false,
     looped: true,
+    loopStartSeconds: null,
+    loopEndSeconds: null,
+    stepSequencerEnabled: true,
+    stepPattern: createDefaultStepPattern(),
     progressSeconds: 0,
   },
   {
     id: "example-channel-3",
     video: {
       videoId: "mPZkdNFkNps",
-      title: "Rain Sound On Window with Thunder Sounds | Heavy Rain for Sleep, Study and Relaxation, Meditation",
+      title:
+        "Rain Sound On Window with Thunder Sounds | Heavy Rain for Sleep, Study and Relaxation, Meditation",
       channelTitle: "BIRDZ",
       thumbnail: "https://i.ytimg.com/vi/mPZkdNFkNps/hqdefault.jpg",
     },
@@ -62,6 +75,10 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
     solo: false,
     paused: false,
     looped: true,
+    loopStartSeconds: null,
+    loopEndSeconds: null,
+    stepSequencerEnabled: true,
+    stepPattern: createDefaultStepPattern(),
     progressSeconds: 0,
   },
 ];
@@ -85,7 +102,7 @@ function createExampleSavedMix(): SavedMix {
 }
 
 function ensureExampleSavedMix(savedMixes: SavedMix[]): SavedMix[] {
-  return savedMixes.some(mix => mix.id === EXAMPLE_MIX_ID)
+  return savedMixes.some((mix) => mix.id === EXAMPLE_MIX_ID)
     ? savedMixes
     : [createExampleSavedMix(), ...savedMixes];
 }
@@ -106,7 +123,9 @@ function createDefaultMixState(): MixStorage {
 }
 
 export function createMixId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `mix-${Date.now()}`;
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `mix-${Date.now()}`;
 }
 
 export function createEmptyMix(name = ""): PersistedMix {
@@ -130,11 +149,11 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
   }
 
   const channels = record.channels
-    .map(channel => sanitizeMixChannel(channel))
+    .map((channel) => sanitizeMixChannel(channel))
     .filter((channel): channel is MixChannel => channel !== null)
     .slice(0, MAX_CHANNELS);
-  const channelIds = new Set(channels.map(channel => channel.id));
-  const normalizedChannels = channels.map(channel => ({
+  const channelIds = new Set(channels.map((channel) => channel.id));
+  const normalizedChannels = channels.map((channel) => ({
     ...channel,
     beatSyncSourceChannelId:
       channel.beatSyncSourceChannelId &&
@@ -147,10 +166,14 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
   return {
     name: typeof record.name === "string" ? record.name : "",
     channels: normalizedChannels,
-    masterVolume: typeof record.masterVolume === "number" ? record.masterVolume : 82,
+    masterVolume:
+      typeof record.masterVolume === "number" ? record.masterVolume : 82,
     transportPlaying: Boolean(record.transportPlaying),
     focusedChannelId:
-      typeof record.focusedChannelId === "string" && normalizedChannels.some(channel => channel.id === record.focusedChannelId)
+      typeof record.focusedChannelId === "string" &&
+      normalizedChannels.some(
+        (channel) => channel.id === record.focusedChannelId,
+      )
         ? record.focusedChannelId
         : null,
   };
@@ -189,51 +212,111 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
       title: videoRecord.title,
       channelTitle: videoRecord.channelTitle,
       thumbnail: videoRecord.thumbnail,
-      durationText: typeof videoRecord.durationText === "string" ? videoRecord.durationText : undefined,
-      viewCountText: typeof videoRecord.viewCountText === "string" ? videoRecord.viewCountText : undefined,
+      durationText:
+        typeof videoRecord.durationText === "string"
+          ? videoRecord.durationText
+          : undefined,
+      viewCountText:
+        typeof videoRecord.viewCountText === "string"
+          ? videoRecord.viewCountText
+          : undefined,
     },
     volume: record.volume,
-    playbackRate: clampPlaybackRate(typeof record.playbackRate === "number" ? record.playbackRate : 1),
+    playbackRate: clampPlaybackRate(
+      typeof record.playbackRate === "number" ? record.playbackRate : 1,
+    ),
     reverbEnabled: Boolean(record.reverbEnabled),
     reverbMix: clampPercent(record.reverbMix, DEFAULT_TRACK_EFFECTS.reverbMix),
-    reverbDecay: clampPercent(record.reverbDecay, DEFAULT_TRACK_EFFECTS.reverbDecay),
-    reverbPreDelayMs: clampNumber(record.reverbPreDelayMs, DEFAULT_TRACK_EFFECTS.reverbPreDelayMs, 0, 200),
+    reverbDecay: clampPercent(
+      record.reverbDecay,
+      DEFAULT_TRACK_EFFECTS.reverbDecay,
+    ),
+    reverbPreDelayMs: clampNumber(
+      record.reverbPreDelayMs,
+      DEFAULT_TRACK_EFFECTS.reverbPreDelayMs,
+      0,
+      200,
+    ),
     delayEnabled: Boolean(record.delayEnabled),
     delayMix: clampPercent(record.delayMix, DEFAULT_TRACK_EFFECTS.delayMix),
-    delayFeedback: clampPercent(record.delayFeedback, DEFAULT_TRACK_EFFECTS.delayFeedback),
-    delayTimeMs: clampNumber(record.delayTimeMs, DEFAULT_TRACK_EFFECTS.delayTimeMs, 20, 900),
+    delayFeedback: clampPercent(
+      record.delayFeedback,
+      DEFAULT_TRACK_EFFECTS.delayFeedback,
+    ),
+    delayTimeMs: clampNumber(
+      record.delayTimeMs,
+      DEFAULT_TRACK_EFFECTS.delayTimeMs,
+      20,
+      900,
+    ),
     lofiEnabled: Boolean(record.lofiEnabled),
     lofiMix: clampPercent(record.lofiMix, DEFAULT_TRACK_EFFECTS.lofiMix),
-    lofiCutoffHz: clampNumber(record.lofiCutoffHz, DEFAULT_TRACK_EFFECTS.lofiCutoffHz, 300, 12000),
+    lofiCutoffHz: clampNumber(
+      record.lofiCutoffHz,
+      DEFAULT_TRACK_EFFECTS.lofiCutoffHz,
+      300,
+      12000,
+    ),
     pitchShiftEnabled: Boolean(record.pitchShiftEnabled),
-    pitchShiftSemitones: clampNumber(record.pitchShiftSemitones, DEFAULT_TRACK_EFFECTS.pitchShiftSemitones, -12, 12),
+    pitchShiftSemitones: clampNumber(
+      record.pitchShiftSemitones,
+      DEFAULT_TRACK_EFFECTS.pitchShiftSemitones,
+      -12,
+      12,
+    ),
     beatSyncSourceChannelId:
-      typeof record.beatSyncSourceChannelId === "string" ? record.beatSyncSourceChannelId : null,
+      typeof record.beatSyncSourceChannelId === "string"
+        ? record.beatSyncSourceChannelId
+        : null,
     beatSyncOffsetBeats:
-      typeof record.beatSyncOffsetBeats === "number" && Number.isFinite(record.beatSyncOffsetBeats)
+      typeof record.beatSyncOffsetBeats === "number" &&
+      Number.isFinite(record.beatSyncOffsetBeats)
         ? record.beatSyncOffsetBeats
         : null,
     tempoBpm:
       typeof record.tempoBpm === "number" && Number.isFinite(record.tempoBpm)
         ? clampNumber(record.tempoBpm, 120, 40, 240)
         : null,
+    loopStartSeconds:
+      typeof record.loopStartSeconds === "number" &&
+      Number.isFinite(record.loopStartSeconds)
+        ? Math.max(0, record.loopStartSeconds)
+        : null,
+    loopEndSeconds:
+      typeof record.loopEndSeconds === "number" &&
+      Number.isFinite(record.loopEndSeconds)
+        ? Math.max(0, record.loopEndSeconds)
+        : null,
+    stepSequencerEnabled:
+      typeof record.stepSequencerEnabled === "boolean"
+        ? record.stepSequencerEnabled
+        : true,
+    stepPattern: normalizeStepPattern(record.stepPattern),
     muted: record.muted,
     solo: record.solo,
     paused: record.paused,
     looped: typeof record.looped === "boolean" ? record.looped : true,
-    progressSeconds: typeof record.progressSeconds === "number" ? Math.max(0, record.progressSeconds) : 0,
+    progressSeconds:
+      typeof record.progressSeconds === "number"
+        ? Math.max(0, record.progressSeconds)
+        : 0,
   };
 }
 
 function clampPlaybackRate(value: number) {
-  return Math.min(2, Math.max(0.5, value));
+  return Math.min(4, Math.max(0.25, value));
 }
 
 function clampPercent(value: unknown, fallback: number) {
   return clampNumber(value, fallback, 0, 100);
 }
 
-function clampNumber(value: unknown, fallback: number, min: number, max: number) {
+function clampNumber(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+) {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return fallback;
   }
@@ -258,7 +341,7 @@ export function readStoredMixState(): MixStorage {
     const draft = sanitizePersistedMix(record?.draft);
     const savedMixes = Array.isArray(record?.savedMixes)
       ? record.savedMixes
-          .map(item => {
+          .map((item) => {
             const mix = sanitizePersistedMix(item);
             if (!mix || !item || typeof item !== "object") {
               return null;
@@ -268,7 +351,10 @@ export function readStoredMixState(): MixStorage {
             return {
               ...mix,
               id: typeof entry.id === "string" ? entry.id : createMixId(),
-              updatedAt: typeof entry.updatedAt === "string" ? entry.updatedAt : new Date().toISOString(),
+              updatedAt:
+                typeof entry.updatedAt === "string"
+                  ? entry.updatedAt
+                  : new Date().toISOString(),
             } satisfies SavedMix;
           })
           .filter((item): item is SavedMix => item !== null)
@@ -277,29 +363,39 @@ export function readStoredMixState(): MixStorage {
     const normalizedSavedMixes = ensureExampleSavedMix(savedMixes);
 
     const rawDraftCache =
-      record?.draftCache && typeof record.draftCache === "object" ? (record.draftCache as Record<string, unknown>) : {};
+      record?.draftCache && typeof record.draftCache === "object"
+        ? (record.draftCache as Record<string, unknown>)
+        : {};
     const draftCache = Object.fromEntries(
       Object.entries(rawDraftCache)
         .map(([key, value]) => {
           const mix = sanitizePersistedMix(value);
           return mix ? ([key, mix] as const) : null;
         })
-        .filter((entry): entry is readonly [string, PersistedMix] => entry !== null),
+        .filter(
+          (entry): entry is readonly [string, PersistedMix] => entry !== null,
+        ),
     );
 
     if (draft) {
-      const channelIds = new Set(draft.channels.map(channel => channel.id));
+      const channelIds = new Set(draft.channels.map((channel) => channel.id));
       const normalizedDraft = {
         ...draft,
-        channels: draft.channels.map(channel => ({
+        channels: draft.channels.map((channel) => ({
           ...channel,
           beatSyncSourceChannelId:
-            channel.beatSyncSourceChannelId && channel.beatSyncSourceChannelId !== channel.id && channelIds.has(channel.beatSyncSourceChannelId)
+            channel.beatSyncSourceChannelId &&
+            channel.beatSyncSourceChannelId !== channel.id &&
+            channelIds.has(channel.beatSyncSourceChannelId)
               ? channel.beatSyncSourceChannelId
               : null,
+          stepPattern: normalizeStepPattern(channel.stepPattern),
         })),
       };
-      const currentMixKey = typeof record.currentMixKey === "string" ? record.currentMixKey : DRAFT_MIX_KEY;
+      const currentMixKey =
+        typeof record.currentMixKey === "string"
+          ? record.currentMixKey
+          : DRAFT_MIX_KEY;
 
       return {
         currentMixKey,

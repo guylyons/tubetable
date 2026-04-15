@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { getTransportLabel } from "../lib/mixChannels";
 
 type MasterBusPanelProps = {
@@ -7,6 +8,7 @@ type MasterBusPanelProps = {
   onClearMix: () => void;
   onResetChannelBalances: () => void;
   onTapTempo: () => void;
+  onSetTapTempoBpm: (value: number | null) => void;
   tapTempoBpm: number | null;
   onToggleTransport: () => void;
   transportPlaying: boolean;
@@ -19,10 +21,35 @@ export function MasterBusPanel({
   onClearMix,
   onResetChannelBalances,
   onTapTempo,
+  onSetTapTempoBpm,
   tapTempoBpm,
   onToggleTransport,
   transportPlaying,
 }: MasterBusPanelProps) {
+  const [gridTempoInput, setGridTempoInput] = useState(
+    tapTempoBpm === null ? "" : String(tapTempoBpm),
+  );
+
+  useEffect(() => {
+    setGridTempoInput(tapTempoBpm === null ? "" : String(tapTempoBpm));
+  }, [tapTempoBpm]);
+
+  function commitGridTempoInput() {
+    const trimmedValue = gridTempoInput.trim();
+    if (trimmedValue === "") {
+      onSetTapTempoBpm(null);
+      return;
+    }
+
+    const nextValue = Number(trimmedValue);
+    if (!Number.isFinite(nextValue)) {
+      setGridTempoInput(tapTempoBpm === null ? "" : String(tapTempoBpm));
+      return;
+    }
+
+    onSetTapTempoBpm(Math.min(240, Math.max(40, Math.round(nextValue))));
+  }
+
   return (
     <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
       <div className="flex items-start justify-between gap-4">
@@ -70,6 +97,47 @@ export function MasterBusPanel({
           >
             Tap tempo
           </button>
+          <label className="mt-3 block">
+            <span
+              className={`mb-2 block text-xs font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+            >
+              Grid BPM
+            </span>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={gridTempoInput}
+                onChange={(event) => setGridTempoInput(event.target.value)}
+                onBlur={commitGridTempoInput}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
+                }}
+                placeholder="Enter BPM"
+                className={`min-w-0 flex-1 rounded-2xl border px-4 py-3 text-sm font-medium outline-none transition placeholder:text-slate-400 ${
+                  isDarkMode
+                    ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
+                    : "border-slate-200 bg-white text-slate-900 focus:border-blue-300 focus:bg-white"
+                }`}
+                aria-label="Manual grid BPM"
+              />
+              {tapTempoBpm !== null ? (
+                <button
+                  type="button"
+                  onClick={() => onSetTapTempoBpm(null)}
+                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold uppercase tracking-[0.12em] transition ${
+                    isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-200 hover:border-red-400 hover:text-red-300"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-red-200 hover:text-red-600"
+                  }`}
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+          </label>
         </div>
 
         <label className="block">

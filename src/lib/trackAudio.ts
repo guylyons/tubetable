@@ -17,6 +17,8 @@ type TrackAudioOptions = {
   audioUrl: string;
   onEnded: () => void;
   onError: (message: string) => void;
+  onMetadata?: (durationSeconds: number) => void;
+  onTimeUpdate?: (currentTimeSeconds: number, durationSeconds: number) => void;
 };
 
 type AudioContextLike = AudioContext;
@@ -35,7 +37,8 @@ function getAudioContext() {
   if (!sharedAudioContext) {
     const AudioContextCtor =
       window.AudioContext ??
-      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
 
     if (!AudioContextCtor) {
       throw new Error("Web Audio API is not available in this browser.");
@@ -62,7 +65,10 @@ export async function primeSharedAudioContext() {
   }
 }
 
-function createImpulseResponse(context: AudioContextLike, decaySeconds: number) {
+function createImpulseResponse(
+  context: AudioContextLike,
+  decaySeconds: number,
+) {
   const length = Math.max(1, Math.floor(context.sampleRate * decaySeconds));
   const buffer = context.createBuffer(2, length, context.sampleRate);
 
@@ -117,7 +123,13 @@ export class TrackAudioController {
   private currentEffects: TrackEffectState | null = null;
   private currentPitchShiftSemitones = 0;
 
-  constructor({ audioUrl, debugLabel, onEnded, onError }: TrackAudioOptions) {
+  constructor(options: TrackAudioOptions) {
+    const { audioUrl, debugLabel } = options;
+    const onEnded = options.onEnded;
+    const onError = options.onError;
+    const onMetadata = options.onMetadata;
+    const onTimeUpdate = options.onTimeUpdate;
+
     this.context = getAudioContext();
     this.audioUrl = audioUrl;
     this.audio = document.createElement("audio");
@@ -190,6 +202,10 @@ export class TrackAudioController {
         readyState: this.audio.readyState,
       });
 
+      if (Number.isFinite(this.audio.duration) && this.audio.duration > 0) {
+        onMetadata?.(this.audio.duration);
+      }
+
       if (this.pendingSeekSeconds !== null) {
         const nextSeek = this.pendingSeekSeconds;
         this.pendingSeekSeconds = null;
@@ -235,7 +251,15 @@ export class TrackAudioController {
     const handlePlaying = () => logMediaState("playing");
     const handleWaiting = () => logMediaState("waiting");
     const handleStalled = () => logMediaState("stalled");
-    const handleTimeUpdate = () => logMediaState("timeupdate");
+    const handleTimeUpdate = () => {
+      logMediaState("timeupdate");
+      if (Number.isFinite(this.audio.currentTime)) {
+        onTimeUpdate?.(
+          this.audio.currentTime,
+          Number.isFinite(this.audio.duration) ? this.audio.duration : 0,
+        );
+      }
+    };
 
     this.audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     this.audio.addEventListener("loadstart", handleLoadStart);
@@ -250,11 +274,19 @@ export class TrackAudioController {
     this.audio.addEventListener("error", handleError);
 
     this.listeners.push(
-      { target: this.audio, type: "loadedmetadata", listener: handleLoadedMetadata },
+      {
+        target: this.audio,
+        type: "loadedmetadata",
+        listener: handleLoadedMetadata,
+      },
       { target: this.audio, type: "loadstart", listener: handleLoadStart },
       { target: this.audio, type: "loadeddata", listener: handleLoadedData },
       { target: this.audio, type: "canplay", listener: handleCanPlay },
-      { target: this.audio, type: "canplaythrough", listener: handleCanPlayThrough },
+      {
+        target: this.audio,
+        type: "canplaythrough",
+        listener: handleCanPlayThrough,
+      },
       { target: this.audio, type: "playing", listener: handlePlaying },
       { target: this.audio, type: "waiting", listener: handleWaiting },
       { target: this.audio, type: "stalled", listener: handleStalled },
@@ -313,7 +345,11 @@ export class TrackAudioController {
       return;
     }
 
-    if (!this.audio.duration || Number.isNaN(this.audio.duration) || this.audio.readyState < 1) {
+    if (
+      !this.audio.duration ||
+      Number.isNaN(this.audio.duration) ||
+      this.audio.readyState < 1
+    ) {
       this.pendingSeekSeconds = nextSeconds;
       return;
     }
@@ -356,18 +392,36 @@ export class TrackAudioController {
       return;
     }
 
-    const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix / 100, 0, 1) : 0;
+    const lofiMix = effects.lofiEnabled
+      ? clamp(effects.lofiMix / 100, 0, 1)
+      : 0;
     this.dryGain.gain.value = 1 - lofiMix;
     this.lofiWetGain.gain.value = lofiMix;
-    this.lofiFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiCutoffHz, 300, 12000) : 22050;
+    this.lofiFilter.frequency.value = effects.lofiEnabled
+      ? clamp(effects.lofiCutoffHz, 300, 12000)
+      : 22050;
     this.lofiFilter.Q.value = effects.lofiEnabled ? 0.95 : 0.1;
 
-    this.delayWetGain.gain.value = effects.delayEnabled ? clamp(effects.delayMix / 100, 0, 1) : 0;
-    this.delayNode.delayTime.value = clamp(effects.delayTimeMs / 1000, 0.02, 0.9);
-    this.delayFeedbackGain.gain.value = effects.delayEnabled ? clamp(effects.delayFeedback / 100, 0, 0.92) : 0;
+    this.delayWetGain.gain.value = effects.delayEnabled
+      ? clamp(effects.delayMix / 100, 0, 1)
+      : 0;
+    this.delayNode.delayTime.value = clamp(
+      effects.delayTimeMs / 1000,
+      0.02,
+      0.9,
+    );
+    this.delayFeedbackGain.gain.value = effects.delayEnabled
+      ? clamp(effects.delayFeedback / 100, 0, 0.92)
+      : 0;
 
-    this.reverbPreDelay.delayTime.value = clamp(effects.reverbPreDelayMs / 1000, 0, 0.2);
-    this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix / 100, 0, 1) : 0;
+    this.reverbPreDelay.delayTime.value = clamp(
+      effects.reverbPreDelayMs / 1000,
+      0,
+      0.2,
+    );
+    this.reverbWetGain.gain.value = effects.reverbEnabled
+      ? clamp(effects.reverbMix / 100, 0, 1)
+      : 0;
 
     const decaySeconds = 0.9 + clamp(effects.reverbDecay / 100, 0, 1) * 6.2;
     if (
@@ -375,7 +429,10 @@ export class TrackAudioController {
       Math.abs(this.currentEffects.reverbDecay - effects.reverbDecay) > 2 ||
       !this.reverbConvolver.buffer
     ) {
-      this.reverbConvolver.buffer = createImpulseResponse(this.context, decaySeconds);
+      this.reverbConvolver.buffer = createImpulseResponse(
+        this.context,
+        decaySeconds,
+      );
     }
 
     this.currentEffects = { ...effects };
@@ -387,7 +444,9 @@ export class TrackAudioController {
       return;
     }
 
-    const normalized = pitchShiftEnabled ? clamp(pitchShiftSemitones, -12, 12) : 0;
+    const normalized = pitchShiftEnabled
+      ? clamp(pitchShiftSemitones, -12, 12)
+      : 0;
     if (normalized === this.currentPitchShiftSemitones) {
       return;
     }

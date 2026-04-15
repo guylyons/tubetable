@@ -19,8 +19,24 @@ type AudioStreamCacheEntry = {
   url: string;
 };
 
+type WaveformCacheEntry = {
+  expiresAt: number;
+  body: Uint8Array;
+};
+
+type WaveformDataCacheEntry = {
+  expiresAt: number;
+  payload: {
+    durationSeconds: number;
+    peaks: number[];
+  };
+};
+
 const AUDIO_STREAM_CACHE_TTL_MS = 10 * 60 * 1000;
 const audioStreamCache = new Map<string, AudioStreamCacheEntry>();
+const waveformCache = new Map<string, WaveformCacheEntry>();
+const waveformDataCache = new Map<string, WaveformDataCacheEntry>();
+const WAVEFORM_CACHE_TTL_MS = 30 * 60 * 1000;
 const YT_WATCH_URL = (videoId: string) => `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
@@ -67,6 +83,41 @@ function getCachedAudioUrl(videoId: string) {
   });
 
   return url;
+}
+
+function getCachedWaveform(videoId: string) {
+  const cached = waveformCache.get(videoId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.body;
+  }
+
+  return null;
+}
+
+function setCachedWaveform(videoId: string, body: Uint8Array) {
+  waveformCache.set(videoId, {
+    expiresAt: Date.now() + WAVEFORM_CACHE_TTL_MS,
+    body,
+  });
+}
+
+function getCachedWaveformData(videoId: string) {
+  const cached = waveformDataCache.get(videoId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.payload;
+  }
+
+  return null;
+}
+
+function setCachedWaveformData(
+  videoId: string,
+  payload: { durationSeconds: number; peaks: number[] },
+) {
+  waveformDataCache.set(videoId, {
+    expiresAt: Date.now() + WAVEFORM_CACHE_TTL_MS,
+    payload,
+  });
 }
 
 function parsePitchShiftSemitones(request: Request) {
@@ -153,6 +204,126 @@ async function proxyAudioStream(request: Request, videoId: string) {
   return new Response("Unable to stream that audio.", { status: 502 });
 }
 
+async function generateWaveformImage(videoId: string) {
+  const cached = getCachedWaveform(videoId);
+  if (cached) {
+    return cached;
+  }
+
+  const audioUrl = getCachedAudioUrl(videoId);
+  const ffmpeg = Bun.spawn({
+    cmd: [
+      "ffmpeg",
+      "-loglevel",
+      "error",
+      "-hide_banner",
+      "-nostdin",
+      "-user_agent",
+      USER_AGENT,
+      "-i",
+      audioUrl,
+      "-filter_complex",
+      "showwavespic=s=1200x240:split_channels=0:colors=0x60a5fa",
+      "-frames:v",
+      "1",
+      "-f",
+      "image2",
+      "pipe:1",
+    ],
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(ffmpeg.stdout).arrayBuffer(),
+    new Response(ffmpeg.stderr).text(),
+    ffmpeg.exited,
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(stderr.trim() || "Could not generate waveform.");
+  }
+
+  const body = new Uint8Array(stdout);
+  setCachedWaveform(videoId, body);
+  return body;
+}
+
+async function generateWaveformData(videoId: string) {
+  const cached = getCachedWaveformData(videoId);
+  if (cached) {
+    return cached;
+  }
+
+  const audioUrl = getCachedAudioUrl(videoId);
+  const sampleRate = 11025;
+  const bins = 1400;
+  const ffmpeg = Bun.spawn({
+    cmd: [
+      "ffmpeg",
+      "-loglevel",
+      "error",
+      "-hide_banner",
+      "-nostdin",
+      "-user_agent",
+      USER_AGENT,
+      "-i",
+      audioUrl,
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      String(sampleRate),
+      "-f",
+      "s16le",
+      "pipe:1",
+    ],
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(ffmpeg.stdout).arrayBuffer(),
+    new Response(ffmpeg.stderr).text(),
+    ffmpeg.exited,
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(stderr.trim() || "Could not generate waveform data.");
+  }
+
+  const samples = new Int16Array(stdout);
+  if (samples.length === 0) {
+    throw new Error("Waveform data was empty.");
+  }
+
+  const peaks = new Array<number>(bins).fill(0);
+  const samplesPerBin = Math.max(1, Math.floor(samples.length / bins));
+
+  for (let binIndex = 0; binIndex < bins; binIndex += 1) {
+    const start = binIndex * samplesPerBin;
+    const end =
+      binIndex === bins - 1
+        ? samples.length
+        : Math.min(samples.length, start + samplesPerBin);
+
+    let peak = 0;
+    for (let sampleIndex = start; sampleIndex < end; sampleIndex += 1) {
+      peak = Math.max(peak, Math.abs(samples[sampleIndex] ?? 0) / 32768);
+    }
+
+    peaks[binIndex] = peak;
+  }
+
+  const payload = {
+    durationSeconds: samples.length / sampleRate,
+    peaks,
+  };
+
+  setCachedWaveformData(videoId, payload);
+  return payload;
+}
+
 const server = serve({
   port: Number(process.env.PORT ?? 3000),
   routes: {
@@ -219,6 +390,62 @@ const server = serve({
           return new Response(error instanceof Error ? error.message : "Could not resolve audio.", {
             status: 502,
           });
+        }
+      },
+    },
+
+    "/api/youtube/waveform": {
+      async GET(request) {
+        const url = new URL(request.url);
+        const videoId = url.searchParams.get("videoId")?.trim() ?? "";
+
+        if (!/^[\w-]{11}$/.test(videoId)) {
+          return new Response("A valid YouTube video ID is required.", { status: 400 });
+        }
+
+        try {
+          const body = await generateWaveformImage(videoId);
+          return new Response(body, {
+            headers: {
+              "Cache-Control": "public, max-age=600, stale-while-revalidate=1800",
+              "Content-Type": "image/png",
+            },
+          });
+        } catch (error) {
+          return new Response(error instanceof Error ? error.message : "Could not generate waveform.", {
+            status: 502,
+          });
+        }
+      },
+    },
+
+    "/api/youtube/waveform-data": {
+      async GET(request) {
+        const url = new URL(request.url);
+        const videoId = url.searchParams.get("videoId")?.trim() ?? "";
+
+        if (!/^[\w-]{11}$/.test(videoId)) {
+          return new Response("A valid YouTube video ID is required.", {
+            status: 400,
+          });
+        }
+
+        try {
+          const payload = await generateWaveformData(videoId);
+          return json(payload, {
+            headers: {
+              "Cache-Control": "public, max-age=600, stale-while-revalidate=1800",
+            },
+          });
+        } catch (error) {
+          return new Response(
+            error instanceof Error
+              ? error.message
+              : "Could not generate waveform data.",
+            {
+              status: 502,
+            },
+          );
         }
       },
     },
