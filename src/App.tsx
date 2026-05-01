@@ -239,14 +239,14 @@ export function App() {
     setShowResults(false);
   }
 
-  function loadMix(mix: PersistedMix, mixKey: string) {
+  function loadMix(mix: PersistedMix, mixKey: string, nextTransportPlaying = mix.transportPlaying) {
     setDraftCache(currentCache => ({
       ...currentCache,
       [currentMixKey]: activeDraft,
     }));
     setChannels(mix.channels);
     setMasterVolume(mix.masterVolume);
-    setTransportPlaying(mix.transportPlaying);
+    setTransportPlaying(nextTransportPlaying);
     setFocusedChannelId(mix.focusedChannelId);
     setMixTitle(mix.name);
     setCurrentMixKey(mixKey);
@@ -339,15 +339,16 @@ export function App() {
   function selectMix(targetMixKey: string) {
     const targetDraft = effectiveDraftCache[targetMixKey];
     const savedMix = savedMixes.find(mix => mix.id === targetMixKey);
+    const shouldKeepPlaying = transportPlaying && Boolean((targetDraft ?? savedMix)?.channels.length);
 
     if (targetDraft) {
-      loadMix(targetDraft, targetMixKey);
+      loadMix(targetDraft, targetMixKey, shouldKeepPlaying || targetDraft.transportPlaying);
       setSaveMessage(targetMixKey === DRAFT_MIX_KEY ? "Draft loaded" : "Mix loaded");
       return;
     }
 
     if (savedMix) {
-      loadMix(savedMix, savedMix.id);
+      loadMix(savedMix, savedMix.id, shouldKeepPlaying || savedMix.transportPlaying);
       setSaveMessage("Mix loaded");
     }
   }

@@ -66,7 +66,7 @@ export function SavedMixesPanel({
 
               {savedMix.id === currentMixKey && transportPlaying ? (
                 <span className="absolute -top-[13px] right-0 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
-                  Playing
+                  Now playing
                 </span>
               ) : null}
 
