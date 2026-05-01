@@ -14,10 +14,7 @@ export function MasterBusPanel({
   isDarkMode,
   masterVolume,
   onChangeMasterVolume,
-  onClearMix,
   onResetChannelBalances,
-  onToggleTransport,
-  transportPlaying,
 }: MasterBusPanelProps) {
   return (
     <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>

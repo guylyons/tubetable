@@ -7,8 +7,16 @@ import { MixHeader } from "./components/MixHeader";
 import { SavedMixesPanel } from "./components/SavedMixesPanel";
 import { TableSection } from "./components/TableSection";
 import { deriveMixName } from "./lib/mixNaming";
-import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
-import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
+import {
+  buildChannelStates,
+  createChannel,
+  reorderChannels,
+} from "./lib/mixChannels";
+import {
+  createEmptyMix,
+  createMixId,
+  readStoredMixState,
+} from "./lib/mixStorage";
 import { parseYouTubeVideoId } from "./lib/youtube";
 import {
   DRAFT_MIX_KEY,
@@ -41,16 +49,34 @@ export function App() {
       // Ignore storage access issues and fall back to system preference.
     }
 
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   });
-  const [channels, setChannels] = useState<MixChannel[]>(() => storedMixState.draft.channels);
-  const [masterVolume, setMasterVolume] = useState<number>(() => storedMixState.draft.masterVolume);
-  const [transportPlaying, setTransportPlaying] = useState<boolean>(() => storedMixState.draft.transportPlaying);
-  const [focusedChannelId, setFocusedChannelId] = useState<string | null>(() => storedMixState.draft.focusedChannelId);
-  const [mixTitle, setMixTitle] = useState<string>(() => storedMixState.draft.name);
-  const [currentMixKey, setCurrentMixKey] = useState<string>(() => storedMixState.currentMixKey);
-  const [draftCache, setDraftCache] = useState<Record<string, PersistedMix>>(() => storedMixState.draftCache);
-  const [savedMixes, setSavedMixes] = useState<SavedMix[]>(() => storedMixState.savedMixes);
+  const [channels, setChannels] = useState<MixChannel[]>(
+    () => storedMixState.draft.channels,
+  );
+  const [masterVolume, setMasterVolume] = useState<number>(
+    () => storedMixState.draft.masterVolume,
+  );
+  const [transportPlaying, setTransportPlaying] = useState<boolean>(
+    () => storedMixState.draft.transportPlaying,
+  );
+  const [focusedChannelId, setFocusedChannelId] = useState<string | null>(
+    () => storedMixState.draft.focusedChannelId,
+  );
+  const [mixTitle, setMixTitle] = useState<string>(
+    () => storedMixState.draft.name,
+  );
+  const [currentMixKey, setCurrentMixKey] = useState<string>(
+    () => storedMixState.currentMixKey,
+  );
+  const [draftCache, setDraftCache] = useState<Record<string, PersistedMix>>(
+    () => storedMixState.draftCache,
+  );
+  const [savedMixes, setSavedMixes] = useState<SavedMix[]>(
+    () => storedMixState.savedMixes,
+  );
   const [restartToken, setRestartToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery.trim());
@@ -63,7 +89,10 @@ export function App() {
   const [isResolvingInput, setIsResolvingInput] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const existingVideoIds = useMemo(() => new Set(channels.map(channel => channel.video.videoId)), [channels]);
+  const existingVideoIds = useMemo(
+    () => new Set(channels.map((channel) => channel.video.videoId)),
+    [channels],
+  );
   const canAddMore = channels.length < MAX_CHANNELS;
   const generatedMixName = useMemo(() => deriveMixName(channels), [channels]);
   const mixName = mixTitle.trim() || generatedMixName;
@@ -80,7 +109,7 @@ export function App() {
     [channels, focusedChannelId, masterVolume, mixTitle, transportPlaying],
   );
   useEffect(() => {
-    setDraftCache(currentCache => ({
+    setDraftCache((currentCache) => ({
       ...currentCache,
       [currentMixKey]: activeDraft,
     }));
@@ -89,8 +118,13 @@ export function App() {
     () => ({ ...draftCache, [currentMixKey]: activeDraft }),
     [activeDraft, currentMixKey, draftCache],
   );
-  const channelStates = useMemo(() => buildChannelStates(channels, masterVolume), [channels, masterVolume]);
-  const audibleChannels = channelStates.filter(channel => channel.effectiveVolume > 0).length;
+  const channelStates = useMemo(
+    () => buildChannelStates(channels, masterVolume),
+    [channels, masterVolume],
+  );
+  const audibleChannels = channelStates.filter(
+    (channel) => channel.effectiveVolume > 0,
+  ).length;
   const isDarkMode = themeMode === "dark";
 
   useEffect(() => {
@@ -128,13 +162,20 @@ export function App() {
         setIsSearching(true);
         setSearchError(null);
 
-        const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `/api/youtube/search?q=${encodeURIComponent(query)}`,
+          {
+            signal: controller.signal,
+          },
+        );
 
-        const data = (await response.json()) as YouTubeSearchPayload & { error?: string };
+        const data = (await response.json()) as YouTubeSearchPayload & {
+          error?: string;
+        };
         if (!response.ok) {
-          throw new Error(data.error ?? "YouTube search is temporarily unavailable.");
+          throw new Error(
+            data.error ?? "YouTube search is temporarily unavailable.",
+          );
         }
 
         setSearchResults(data.results);
@@ -147,7 +188,11 @@ export function App() {
 
         setSearchResults([]);
         setSearchSuggestions([]);
-        setSearchError(error instanceof Error ? error.message : "Unable to search YouTube right now.");
+        setSearchError(
+          error instanceof Error
+            ? error.message
+            : "Unable to search YouTube right now.",
+        );
       } finally {
         if (!controller.signal.aborted) {
           setIsSearching(false);
@@ -175,29 +220,42 @@ export function App() {
       return;
     }
 
-    if (channels.some(channel => channel.id === focusedChannelId)) {
+    if (channels.some((channel) => channel.id === focusedChannelId)) {
       return;
     }
 
     setFocusedChannelId(channels[0]?.id ?? null);
   }, [channels, focusedChannelId]);
 
-  function updateChannel(channelId: string, updater: (channel: MixChannel) => MixChannel) {
-    setChannels(currentChannels => currentChannels.map(channel => (channel.id === channelId ? updater(channel) : channel)));
+  function updateChannel(
+    channelId: string,
+    updater: (channel: MixChannel) => MixChannel,
+  ) {
+    setChannels((currentChannels) =>
+      currentChannels.map((channel) =>
+        channel.id === channelId ? updater(channel) : channel,
+      ),
+    );
   }
 
-  function updateChannelProgress(mixKey: string, channelId: string, progressSeconds: number) {
+  function updateChannelProgress(
+    mixKey: string,
+    channelId: string,
+    progressSeconds: number,
+  ) {
     const nextProgressSeconds = Math.max(0, progressSeconds);
 
     if (mixKey === currentMixKey) {
-      setChannels(currentChannels =>
-        currentChannels.map(channel =>
-          channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
+      setChannels((currentChannels) =>
+        currentChannels.map((channel) =>
+          channel.id === channelId
+            ? { ...channel, progressSeconds: nextProgressSeconds }
+            : channel,
         ),
       );
     }
 
-    setDraftCache(currentCache => {
+    setDraftCache((currentCache) => {
       const targetMix = currentCache[mixKey];
       if (!targetMix) {
         return currentCache;
@@ -207,20 +265,24 @@ export function App() {
         ...currentCache,
         [mixKey]: {
           ...targetMix,
-          channels: targetMix.channels.map(channel =>
-            channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
+          channels: targetMix.channels.map((channel) =>
+            channel.id === channelId
+              ? { ...channel, progressSeconds: nextProgressSeconds }
+              : channel,
           ),
         },
       };
     });
 
-    setSavedMixes(currentMixes =>
-      currentMixes.map(savedMix =>
+    setSavedMixes((currentMixes) =>
+      currentMixes.map((savedMix) =>
         savedMix.id === mixKey
           ? {
               ...savedMix,
-              channels: savedMix.channels.map(channel =>
-                channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
+              channels: savedMix.channels.map((channel) =>
+                channel.id === channelId
+                  ? { ...channel, progressSeconds: nextProgressSeconds }
+                  : channel,
               ),
             }
           : savedMix,
@@ -239,8 +301,12 @@ export function App() {
     setShowResults(false);
   }
 
-  function loadMix(mix: PersistedMix, mixKey: string, nextTransportPlaying = mix.transportPlaying) {
-    setDraftCache(currentCache => ({
+  function loadMix(
+    mix: PersistedMix,
+    mixKey: string,
+    nextTransportPlaying = mix.transportPlaying,
+  ) {
+    setDraftCache((currentCache) => ({
       ...currentCache,
       [currentMixKey]: activeDraft,
     }));
@@ -266,12 +332,15 @@ export function App() {
       updatedAt: timestamp,
     };
 
-    setSavedMixes(currentMixes =>
-      [mixToSave, ...currentMixes.filter(existingMix => existingMix.id !== mixToSave.id)].sort((left, right) =>
-        right.updatedAt.localeCompare(left.updatedAt),
-      ),
+    setSavedMixes((currentMixes) =>
+      [
+        mixToSave,
+        ...currentMixes.filter(
+          (existingMix) => existingMix.id !== mixToSave.id,
+        ),
+      ].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     );
-    setDraftCache(currentCache => ({
+    setDraftCache((currentCache) => ({
       ...currentCache,
       [mixToSave.id]: {
         name: mixToSave.name,
@@ -287,7 +356,7 @@ export function App() {
   }
 
   function createNewMix() {
-    setDraftCache(currentCache => ({
+    setDraftCache((currentCache) => ({
       ...currentCache,
       [DRAFT_MIX_KEY]: createEmptyMix(""),
     }));
@@ -296,13 +365,13 @@ export function App() {
   }
 
   function startCurrentMixFromBeginning() {
-    setChannels(currentChannels =>
-      currentChannels.map(channel => ({
+    setChannels((currentChannels) =>
+      currentChannels.map((channel) => ({
         ...channel,
         progressSeconds: 0,
       })),
     );
-    setDraftCache(currentCache => {
+    setDraftCache((currentCache) => {
       const currentMix = currentCache[currentMixKey];
       if (!currentMix) {
         return currentCache;
@@ -312,19 +381,19 @@ export function App() {
         ...currentCache,
         [currentMixKey]: {
           ...currentMix,
-          channels: currentMix.channels.map(channel => ({
+          channels: currentMix.channels.map((channel) => ({
             ...channel,
             progressSeconds: 0,
           })),
         },
       };
     });
-    setSavedMixes(currentMixes =>
-      currentMixes.map(savedMix =>
+    setSavedMixes((currentMixes) =>
+      currentMixes.map((savedMix) =>
         savedMix.id === currentMixKey
           ? {
               ...savedMix,
-              channels: savedMix.channels.map(channel => ({
+              channels: savedMix.channels.map((channel) => ({
                 ...channel,
                 progressSeconds: 0,
               })),
@@ -332,23 +401,34 @@ export function App() {
           : savedMix,
       ),
     );
-    setRestartToken(currentValue => currentValue + 1);
+    setRestartToken((currentValue) => currentValue + 1);
     setSaveMessage("Mix restarted from the beginning");
   }
 
   function selectMix(targetMixKey: string) {
     const targetDraft = effectiveDraftCache[targetMixKey];
-    const savedMix = savedMixes.find(mix => mix.id === targetMixKey);
-    const shouldKeepPlaying = transportPlaying && Boolean((targetDraft ?? savedMix)?.channels.length);
+    const savedMix = savedMixes.find((mix) => mix.id === targetMixKey);
+    const shouldKeepPlaying =
+      transportPlaying && Boolean((targetDraft ?? savedMix)?.channels.length);
 
     if (targetDraft) {
-      loadMix(targetDraft, targetMixKey, shouldKeepPlaying || targetDraft.transportPlaying);
-      setSaveMessage(targetMixKey === DRAFT_MIX_KEY ? "Draft loaded" : "Mix loaded");
+      loadMix(
+        targetDraft,
+        targetMixKey,
+        shouldKeepPlaying || targetDraft.transportPlaying,
+      );
+      setSaveMessage(
+        targetMixKey === DRAFT_MIX_KEY ? "Draft loaded" : "Mix loaded",
+      );
       return;
     }
 
     if (savedMix) {
-      loadMix(savedMix, savedMix.id, shouldKeepPlaying || savedMix.transportPlaying);
+      loadMix(
+        savedMix,
+        savedMix.id,
+        shouldKeepPlaying || savedMix.transportPlaying,
+      );
       setSaveMessage("Mix loaded");
     }
   }
@@ -356,8 +436,10 @@ export function App() {
   function deleteMix(targetMixKey: string) {
     const deletingCurrentMix = currentMixKey === targetMixKey;
 
-    setSavedMixes(currentMixes => currentMixes.filter(mix => mix.id !== targetMixKey));
-    setDraftCache(currentCache => {
+    setSavedMixes((currentMixes) =>
+      currentMixes.filter((mix) => mix.id !== targetMixKey),
+    );
+    setDraftCache((currentCache) => {
       const nextCache = { ...currentCache };
       delete nextCache[targetMixKey];
 
@@ -389,8 +471,10 @@ export function App() {
     }
 
     const nextChannel = createChannel(video);
-    setChannels(currentChannels => [...currentChannels, nextChannel]);
-    setFocusedChannelId(currentFocusedChannelId => (channels.length === 0 ? nextChannel.id : currentFocusedChannelId));
+    setChannels((currentChannels) => [...currentChannels, nextChannel]);
+    setFocusedChannelId((currentFocusedChannelId) =>
+      channels.length === 0 ? nextChannel.id : currentFocusedChannelId,
+    );
     setTransportPlaying(true);
     resetSearchUi(true);
   }
@@ -408,7 +492,9 @@ export function App() {
         setIsResolvingInput(true);
         setAddError(null);
 
-        const response = await fetch(`/api/youtube/video?videoId=${encodeURIComponent(pastedVideoId)}`);
+        const response = await fetch(
+          `/api/youtube/video?videoId=${encodeURIComponent(pastedVideoId)}`,
+        );
         if (!response.ok) {
           throw new Error("That YouTube link could not be resolved.");
         }
@@ -416,7 +502,11 @@ export function App() {
         const data = (await response.json()) as { result: YouTubeSearchResult };
         addResultToMix(data.result);
       } catch (error) {
-        setAddError(error instanceof Error ? error.message : "Unable to add that YouTube link.");
+        setAddError(
+          error instanceof Error
+            ? error.message
+            : "Unable to add that YouTube link.",
+        );
       } finally {
         setIsResolvingInput(false);
       }
@@ -453,7 +543,7 @@ export function App() {
           isResolvingInput={isResolvingInput}
           isSearching={isSearching}
           isDarkMode={isDarkMode}
-          onChangeQuery={value => {
+          onChangeQuery={(value) => {
             setSearchQuery(value);
             setShowResults(true);
             setAddError(null);
@@ -461,7 +551,7 @@ export function App() {
           onCloseResults={() => setShowResults(false)}
           onOpenResults={() => setShowResults(true)}
           onSelectResult={addResultToMix}
-          onSelectSuggestion={suggestion => {
+          onSelectSuggestion={(suggestion) => {
             setSearchQuery(suggestion);
             setShowResults(true);
             setAddError(null);
@@ -469,8 +559,14 @@ export function App() {
           onSubmitSearch={() => {
             void resolveInputToVideo();
           }}
-          onToggleTheme={() => setThemeMode(currentMode => (currentMode === "dark" ? "light" : "dark"))}
-          onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
+          onToggleTheme={() =>
+            setThemeMode((currentMode) =>
+              currentMode === "dark" ? "light" : "dark",
+            )
+          }
+          onToggleTransport={() =>
+            setTransportPlaying((currentValue) => !currentValue)
+          }
           searchError={searchError}
           searchQuery={searchQuery}
           searchResults={searchResults}
@@ -512,8 +608,8 @@ export function App() {
                 setTransportPlaying(false);
               }}
               onResetChannelBalances={() =>
-                setChannels(currentChannels =>
-                  currentChannels.map(channel => ({
+                setChannels((currentChannels) =>
+                  currentChannels.map((channel) => ({
                     ...channel,
                     muted: false,
                     paused: false,
@@ -522,7 +618,9 @@ export function App() {
                   })),
                 )
               }
-              onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
+              onToggleTransport={() =>
+                setTransportPlaying((currentValue) => !currentValue)
+              }
               transportPlaying={transportPlaying}
             />
           </aside>
@@ -533,28 +631,48 @@ export function App() {
               channelStates={channelStates}
               focusedChannelId={focusedChannelId}
               mixKey={currentMixKey}
-              onFocusChannel={channelId =>
-                setFocusedChannelId(currentFocusedChannelId =>
+              onFocusChannel={(channelId) =>
+                setFocusedChannelId((currentFocusedChannelId) =>
                   currentFocusedChannelId === channelId ? null : channelId,
                 )
               }
               onReorderChannel={(draggedChannelId, targetChannelId) =>
-                setChannels(currentChannels => reorderChannels(currentChannels, draggedChannelId, targetChannelId))
+                setChannels((currentChannels) =>
+                  reorderChannels(
+                    currentChannels,
+                    draggedChannelId,
+                    targetChannelId,
+                  ),
+                )
               }
-              onRemoveChannel={channelId =>
-                setChannels(currentChannels => currentChannels.filter(item => item.id !== channelId))
+              onRemoveChannel={(channelId) =>
+                setChannels((currentChannels) =>
+                  currentChannels.filter((item) => item.id !== channelId),
+                )
               }
-              onToggleLoop={channelId =>
-                updateChannel(channelId, currentChannel => ({ ...currentChannel, looped: !currentChannel.looped }))
+              onToggleLoop={(channelId) =>
+                updateChannel(channelId, (currentChannel) => ({
+                  ...currentChannel,
+                  looped: !currentChannel.looped,
+                }))
               }
-              onToggleMute={channelId =>
-                updateChannel(channelId, currentChannel => ({ ...currentChannel, muted: !currentChannel.muted }))
+              onToggleMute={(channelId) =>
+                updateChannel(channelId, (currentChannel) => ({
+                  ...currentChannel,
+                  muted: !currentChannel.muted,
+                }))
               }
-              onTogglePause={channelId =>
-                updateChannel(channelId, currentChannel => ({ ...currentChannel, paused: !currentChannel.paused }))
+              onTogglePause={(channelId) =>
+                updateChannel(channelId, (currentChannel) => ({
+                  ...currentChannel,
+                  paused: !currentChannel.paused,
+                }))
               }
-              onToggleSolo={channelId =>
-                updateChannel(channelId, currentChannel => ({ ...currentChannel, solo: !currentChannel.solo }))
+              onToggleSolo={(channelId) =>
+                updateChannel(channelId, (currentChannel) => ({
+                  ...currentChannel,
+                  solo: !currentChannel.solo,
+                }))
               }
               onProgress={updateChannelProgress}
               restartToken={restartToken}
@@ -565,7 +683,7 @@ export function App() {
               isDarkMode={isDarkMode}
               channelStates={channelStates}
               onChangeChannelVolume={(channelId, volume) =>
-                updateChannel(channelId, currentChannel => ({
+                updateChannel(channelId, (currentChannel) => ({
                   ...currentChannel,
                   volume,
                 }))

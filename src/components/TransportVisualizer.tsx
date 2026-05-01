@@ -45,8 +45,7 @@ export function TransportVisualizer({
         ? activeLevels.reduce((sum, value) => sum + value, 0) /
           activeLevels.length
         : 0;
-    const peakLevel =
-      activeLevels.length > 0 ? Math.max(...activeLevels) : 0;
+    const peakLevel = activeLevels.length > 0 ? Math.max(...activeLevels) : 0;
 
     return {
       activeCount: activeLevels.length,
@@ -84,16 +83,21 @@ export function TransportVisualizer({
       const nextLevels = seedsRef.current.map((seed, index) => {
         const barPosition = index / (BAR_COUNT - 1);
         const channelLevel =
-          activeLevels.length > 0 ? activeLevels[index % activeLevels.length]! : 0;
+          activeLevels.length > 0
+            ? activeLevels[index % activeLevels.length]!
+            : 0;
         const arch = Math.sin(barPosition * Math.PI);
         const pulseA =
-          (Math.sin(timestamp / 1000.2 * seed.sway + seed.phase) + 1) / 2;
+          (Math.sin((timestamp / 1000.2) * seed.sway + seed.phase) + 1) / 2;
         const pulseB =
-          (Math.sin(timestamp / 640 * (seed.tilt + activeCount * 0.07) - index * 0.42) +
+          (Math.sin(
+            (timestamp / 640) * (seed.tilt + activeCount * 0.07) - index * 0.42,
+          ) +
             1) /
           2;
         const shimmer =
-          (Math.sin(timestamp / 420 - barPosition * 8.6 + seed.phase * 0.8) + 1) /
+          (Math.sin(timestamp / 420 - barPosition * 8.6 + seed.phase * 0.8) +
+            1) /
           2;
         const baseHeight = transportPlaying ? 0.08 : 0.05;
         const contour = 0.1 + arch * 0.22;
@@ -115,7 +119,7 @@ export function TransportVisualizer({
     return () => window.cancelAnimationFrame(animationFrameId);
   }, [transportPlaying]);
 
-  const live = transportPlaying && profile.activeCount > 0;
+  const playing = transportPlaying && profile.activeCount > 0;
 
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.22),_transparent_58%),linear-gradient(180deg,_#ffffff,_#eff6ff)] p-4">
@@ -123,25 +127,16 @@ export function TransportVisualizer({
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Transport
-          </p>
-          <p className="mt-2 text-sm font-medium text-slate-600">
-            {live
-              ? `${profile.activeCount} active channels playing`
-              : transportPlaying
-                ? "Waiting for a channel to become audible"
-                : "Playback paused"}
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Visualizer</p>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-            live
+            playing
               ? "bg-blue-600 text-white"
               : "bg-white/80 text-slate-500 ring-1 ring-slate-200"
           }`}
         >
-          {live ? "Live" : transportPlaying ? "Idle" : "Paused"}
+          {playing ? "Playing" : transportPlaying ? "Idle" : "Paused"}
         </span>
       </div>
 
@@ -155,8 +150,8 @@ export function TransportVisualizer({
               className="block flex-1 rounded-full bg-[linear-gradient(180deg,_#bfdbfe,_#60a5fa_55%,_#2563eb)] shadow-[0_0_18px_rgba(96,165,250,0.3)] transition-[height,opacity,transform] duration-200 ease-out"
               style={{
                 height: `${Math.round(level * 100)}%`,
-                opacity: live ? 0.78 + (index % 4) * 0.05 : 0.3,
-                transform: `scaleY(${live ? 1 : 0.92}) translateY(${live ? "0px" : "2px"})`,
+                opacity: playing ? 0.78 + (index % 4) * 0.05 : 0.3,
+                transform: `scaleY(${playing ? 1 : 0.92}) translateY(${playing ? "0px" : "2px"})`,
               }}
             />
           ))}

@@ -83,7 +83,7 @@ export function VideoTile({
     setLoadError(null);
 
     loadIframeApi()
-      .then(YT => {
+      .then((YT) => {
         if (disposed || !playerContainerRef.current) {
           return;
         }
@@ -111,7 +111,7 @@ export function VideoTile({
             start: Math.floor(Math.max(0, channel.progressSeconds)),
           },
           events: {
-            onReady: event => {
+            onReady: (event) => {
               if (disposed) {
                 return;
               }
@@ -126,10 +126,13 @@ export function VideoTile({
                 }
               }
               applyPlayerVolume(event.target, effectiveVolume);
-              syncPlayerPlayback(event.target, transportPlaying && !channel.paused);
+              syncPlayerPlayback(
+                event.target,
+                transportPlaying && !channel.paused,
+              );
               captureProgress();
             },
-            onStateChange: event => {
+            onStateChange: (event) => {
               const playbackState = playbackStateRef.current;
 
               if (
@@ -146,16 +149,23 @@ export function VideoTile({
                 }
               }
 
-              if (event.data === YT_PLAYER_STATE_PAUSED || event.data === YT_PLAYER_STATE_ENDED) {
+              if (
+                event.data === YT_PLAYER_STATE_PAUSED ||
+                event.data === YT_PLAYER_STATE_ENDED
+              ) {
                 captureProgress();
               }
             },
           },
         });
       })
-      .catch(error => {
+      .catch((error) => {
         if (!disposed) {
-          setLoadError(error instanceof Error ? error.message : "Failed to load the YouTube player.");
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load the YouTube player.",
+          );
         }
       });
 
@@ -193,7 +203,10 @@ export function VideoTile({
 
     try {
       playerRef.current.seekTo(channel.progressSeconds, true);
-      syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
+      syncPlayerPlayback(
+        playerRef.current,
+        transportPlaying && !channel.paused,
+      );
     } catch {
       // A restart can land while the iframe is still buffering.
     }
@@ -253,7 +266,7 @@ export function VideoTile({
           type="button"
           draggable
           onDragEnd={onDragEnd}
-          onDragStart={event => {
+          onDragStart={(event) => {
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setData("text/plain", channel.id);
             onDragStart();
@@ -299,12 +312,16 @@ export function VideoTile({
           {isFocused ? "Exit focus" : "Focus"}
         </button>
         {!ready && !loadError ? (
-          <div className={`absolute inset-0 grid place-items-center text-sm ${isDarkMode ? "bg-slate-950/90 text-slate-300" : "bg-white/90 text-slate-500"}`}>
+          <div
+            className={`absolute inset-0 grid place-items-center text-sm ${isDarkMode ? "bg-slate-950/90 text-slate-300" : "bg-white/90 text-slate-500"}`}
+          >
             Buffering channel...
           </div>
         ) : null}
         {loadError ? (
-          <div className={`absolute inset-0 grid place-items-center px-6 text-center text-sm ${isDarkMode ? "bg-slate-950/95 text-red-300" : "bg-white/95 text-red-600"}`}>
+          <div
+            className={`absolute inset-0 grid place-items-center px-6 text-center text-sm ${isDarkMode ? "bg-slate-950/95 text-red-300" : "bg-white/95 text-red-600"}`}
+          >
             {loadError}
           </div>
         ) : null}
@@ -312,16 +329,30 @@ export function VideoTile({
 
       <div className={`space-y-4 ${isFocusPresentation ? "p-6" : "p-5"}`}>
         <div className="space-y-1">
-          <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>{trackLabel}</p>
-          <p className={`line-clamp-2 font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-900"} ${isFocusPresentation ? "text-xl" : "text-base"}`}>
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+          >
+            {trackLabel}
+          </p>
+          <p
+            className={`line-clamp-2 font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-900"} ${isFocusPresentation ? "text-xl" : "text-base"}`}
+          >
             {channel.video.title}
           </p>
-          <div className={`flex flex-wrap items-center gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+          <div
+            className={`flex flex-wrap items-center gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+          >
             <span>{channel.video.channelTitle}</span>
-            {channel.video.durationText ? <span>{channel.video.durationText}</span> : null}
-            {channel.video.viewCountText ? <span>{channel.video.viewCountText}</span> : null}
+            {channel.video.durationText ? (
+              <span>{channel.video.durationText}</span>
+            ) : null}
+            {channel.video.viewCountText ? (
+              <span>{channel.video.viewCountText}</span>
+            ) : null}
             {isFocused ? (
-              <span className={`rounded-full px-2 py-1 font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "bg-sky-400/15 text-sky-200" : "bg-blue-50 text-blue-700"}`}>
+              <span
+                className={`rounded-full px-2 py-1 font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "bg-sky-400/15 text-sky-200" : "bg-blue-50 text-blue-700"}`}
+              >
                 Theatre
               </span>
             ) : null}
@@ -389,7 +420,11 @@ export function VideoTile({
           >
             {channel.looped ? "Loop on" : "Loop off"}
           </button>
-          <span className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>Output {effectiveVolume}%</span>
+          <span
+            className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}
+          >
+            Output {effectiveVolume}%
+          </span>
         </div>
       </div>
     </article>
