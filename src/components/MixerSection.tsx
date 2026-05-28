@@ -21,8 +21,7 @@ export function MixerSection({
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Per-channel volume</h2>
         </div>
         <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}>
-          Balance each channel before the master volume is applied. The mixer appears as
-          soon as you add a channel.
+          Balance each channel before the master volume kicks in.
         </p>
       </div>
 

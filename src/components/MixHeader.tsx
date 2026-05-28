@@ -4,8 +4,8 @@ import {
   type MixChannelState,
   type YouTubeSearchResult,
 } from "../types";
-import { TransportVisualizer } from "./TransportVisualizer";
 import { SearchPanel } from "./SearchPanel";
+import { TransportVisualizer } from "./TransportVisualizer";
 
 type MixHeaderProps = {
   addError: string | null;
@@ -34,6 +34,32 @@ type MixHeaderProps = {
   showResults: boolean;
   transportPlaying: boolean;
 };
+
+function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
+  return (
+    <div className="flex max-w-3xl items-center gap-4 sm:gap-5" aria-label="Tubetable">
+      <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.75rem] bg-gradient-to-br from-sky-400 to-blue-700 shadow-lg shadow-blue-500/20 sm:h-24 sm:w-24">
+        <div className="absolute inset-x-4 bottom-4 h-2 rounded-full bg-blue-950/30" />
+        <div className="relative h-12 w-12 rounded-full bg-white shadow-inner sm:h-14 sm:w-14">
+          <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-700" />
+          <div className="absolute -right-5 top-3 h-8 w-8 rounded-full bg-white shadow-inner sm:-right-6 sm:h-9 sm:w-9" />
+          <div className="absolute -right-2 top-6 h-3 w-3 rounded-full bg-blue-700" />
+        </div>
+        <div className="absolute left-11 top-4 rotate-[-8deg] rounded-full bg-amber-300 px-2 py-1 text-lg font-black leading-none text-orange-600 shadow-sm sm:left-[3.25rem]">
+          ♪
+        </div>
+      </div>
+      <div>
+        <h1 className={`text-5xl font-black tracking-[-0.045em] sm:text-6xl lg:text-7xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
+          Tubetable
+        </h1>
+        <p className={`mt-2 text-base font-medium leading-7 sm:text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+          Mix YouTube clips like a tiny soundboard.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function MixHeader({
   addError,
@@ -72,15 +98,6 @@ export function MixHeader({
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-3">
-          <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "bg-blue-500/15 text-blue-200" : "bg-blue-50 text-blue-700"}`}>
-            Tubetable
-          </div>
-          <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
-            {audibleChannels} active channels
-          </div>
-          <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
-            {isSavedMix ? "Saved mix" : "Draft mix"}
-          </div>
           <button
             type="button"
             onClick={onToggleTheme}
@@ -96,13 +113,7 @@ export function MixHeader({
         </div>
 
         <div className="space-y-4">
-          <h1 className={`max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
-            Build and control a layered mix.
-          </h1>
-          <p className={`max-w-2xl text-base leading-7 sm:text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            Search YouTube, add up to five channels, and balance them in one
-            workspace.
-          </p>
+          <TubetableLogo isDarkMode={isDarkMode} />
         </div>
 
         <SearchPanel

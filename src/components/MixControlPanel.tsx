@@ -38,8 +38,8 @@ export function MixControlPanel({
       </div>
 
       <p className={`mt-3 text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-        Name the current setup, save changes, or start a new draft without
-        losing anything already in your library.
+        Name this setup, save it, or start fresh. Saved mixes stay in your
+        library.
       </p>
 
       <div className="mt-5 space-y-3">
@@ -68,7 +68,7 @@ export function MixControlPanel({
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            Start a new mix
+            New mix
           </button>
           <button
             type="button"
@@ -79,7 +79,7 @@ export function MixControlPanel({
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            Start from beginning
+            Restart
           </button>
           <button
             type="button"

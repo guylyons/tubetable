@@ -133,14 +133,13 @@ export function TableSection({
           <h2
             className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}
           >
-            Arrange and feature channels
+            Arrange channels
           </h2>
         </div>
         <p
           className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}
         >
-          Drag channels to reorder them, then focus one to make it the featured
-          view.
+          Drag to reorder. Focus one when it needs the big view.
         </p>
       </div>
 
@@ -161,13 +160,13 @@ export function TableSection({
                 <p
                   className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
                 >
-                  The focused channel stays large while the rest remain below.
+                  This channel stays large. The rest stay below.
                 </p>
               </div>
               <p
                 className={`rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? "bg-slate-900 text-slate-300" : "bg-white text-slate-600"}`}
               >
-                Drag a channel here or tap Focus on another one to switch it.
+                Tap Focus on another channel to switch.
               </p>
             </div>
           ) : null}
@@ -199,8 +198,7 @@ export function TableSection({
             <p
               className={`text-base leading-7 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
             >
-              Search for a video, add it to the mix, and use focus mode or the
-              mixer to shape the result.
+              Search or paste a YouTube link. Then arrange, focus, and mix.
             </p>
           </div>
         </div>

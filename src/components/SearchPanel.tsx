@@ -48,8 +48,8 @@ export function SearchPanel({
           Search
         </p>
         <p className={`text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Search by title, channel, or mood. Paste a YouTube URL to add it
-          directly.
+          Search YouTube or paste a link. Pick a result and it lands on the
+          table.
         </p>
       </div>
 
@@ -71,7 +71,7 @@ export function SearchPanel({
                 window.setTimeout(onCloseResults, 120);
               }}
               rows={2}
-              placeholder="Search by title, channel, mood, or paste a YouTube URL"
+              placeholder="Search a song, channel, mood, or paste a YouTube URL"
               className={`min-h-[84px] w-full resize-none rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
                 isDarkMode
                   ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
@@ -89,7 +89,7 @@ export function SearchPanel({
             }`}
           >
             {isResolvingInput
-              ? "Adding channel..."
+              ? "Adding..."
               : "Add video"}
           </button>
         </form>
@@ -98,7 +98,7 @@ export function SearchPanel({
           <div className={`absolute inset-x-0 top-[calc(100%+14px)] z-[120] overflow-hidden rounded-[28px] border shadow-xl ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}>
             {isSearching ? (
               <p className={`px-4 py-5 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-                Searching YouTube...
+                Searching YouTube…
               </p>
             ) : null}
 
@@ -190,7 +190,7 @@ export function SearchPanel({
             searchSuggestions.length === 0 &&
             deferredQuery.length >= 2 ? (
               <p className="px-4 py-5 text-sm text-slate-500">
-                No matches yet. Try a shorter or broader search.
+                No matches yet. Try a shorter search.
               </p>
             ) : null}
           </div>
@@ -202,7 +202,7 @@ export function SearchPanel({
       ) : null}
       {!canAddMore ? (
         <p className={`mt-3 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-          The grid is full. Remove a channel before adding another one.
+          The table is full. Remove a channel before adding another.
         </p>
       ) : null}
     </section>

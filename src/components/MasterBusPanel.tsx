@@ -22,7 +22,7 @@ export function MasterBusPanel({
             Overall volume
           </h2>
           <p className={`mt-2 text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            Set TubeTable's overall mix volume.
+            Set the final output level.
           </p>
         </div>
         <span className={`rounded-full px-3 py-1 text-sm ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
@@ -57,7 +57,7 @@ export function MasterBusPanel({
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            Reset channel balances
+            Reset channels
           </button>
         </div>
       </div>

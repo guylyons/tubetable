@@ -320,7 +320,7 @@ export function VideoTile({
           <div
             className={`absolute inset-0 grid place-items-center text-sm ${isDarkMode ? "bg-slate-950/90 text-slate-300" : "bg-white/90 text-slate-500"}`}
           >
-            Buffering channel...
+            Buffering…
           </div>
         ) : null}
         {loadError ? (
@@ -427,7 +427,7 @@ export function VideoTile({
                   : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            {channel.looped ? "Disable loop" : "Enable loop"}
+            {channel.looped ? "Loop on" : "Loop"}
           </button>
           <span
             className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}
