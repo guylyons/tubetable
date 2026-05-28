@@ -602,11 +602,6 @@ export function App() {
               isDarkMode={isDarkMode}
               masterVolume={masterVolume}
               onChangeMasterVolume={setMasterVolume}
-              onClearMix={() => {
-                setChannels([]);
-                setFocusedChannelId(null);
-                setTransportPlaying(false);
-              }}
               onResetChannelBalances={() =>
                 setChannels((currentChannels) =>
                   currentChannels.map((channel) => ({
@@ -618,10 +613,6 @@ export function App() {
                   })),
                 )
               }
-              onToggleTransport={() =>
-                setTransportPlaying((currentValue) => !currentValue)
-              }
-              transportPlaying={transportPlaying}
             />
           </aside>
 

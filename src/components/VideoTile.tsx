@@ -3,6 +3,7 @@ import type { MixChannel } from "../types";
 import {
   applyPlayerVolume,
   loadIframeApi,
+  lockPlayerInteraction,
   syncPlayerPlayback,
   YT_PLAYER_STATE_ENDED,
   YT_PLAYER_STATE_PAUSED,
@@ -101,8 +102,11 @@ export function VideoTile({
           videoId: channel.video.videoId,
           playerVars: {
             autoplay: 0,
-            controls: 1,
+            controls: 0,
+            disablekb: 1,
             enablejsapi: 1,
+            fs: 0,
+            iv_load_policy: 3,
             origin: window.location.origin,
             loop: 0,
             modestbranding: 1,
@@ -126,6 +130,7 @@ export function VideoTile({
                 }
               }
               applyPlayerVolume(event.target, effectiveVolume);
+              lockPlayerInteraction(event.target);
               syncPlayerPlayback(
                 event.target,
                 transportPlaying && !channel.paused,
@@ -261,7 +266,7 @@ export function VideoTile({
           isFocusPresentation ? "aspect-video md:aspect-[21/9]" : "aspect-video"
         }`}
       >
-        <div ref={playerContainerRef} className="h-full w-full" />
+        <div ref={playerContainerRef} className="h-full w-full [&_iframe]:pointer-events-none" />
         <button
           type="button"
           draggable
@@ -353,7 +358,7 @@ export function VideoTile({
               <span
                 className={`rounded-full px-2 py-1 font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "bg-sky-400/15 text-sky-200" : "bg-blue-50 text-blue-700"}`}
               >
-                Theatre
+                Focus mode
               </span>
             ) : null}
           </div>
@@ -363,6 +368,7 @@ export function VideoTile({
           <button
             type="button"
             onClick={() => onTogglePause(channel.id)}
+            aria-pressed={channel.paused}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.paused
                 ? isDarkMode
@@ -373,11 +379,12 @@ export function VideoTile({
                   : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            {channel.paused ? "Resume channel" : "Pause channel"}
+            {channel.paused ? "Resume" : "Pause"}
           </button>
           <button
             type="button"
             onClick={() => onToggleMute(channel.id)}
+            aria-pressed={channel.muted}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.muted
                 ? isDarkMode
@@ -393,6 +400,7 @@ export function VideoTile({
           <button
             type="button"
             onClick={() => onToggleSolo(channel.id)}
+            aria-pressed={channel.solo}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.solo
                 ? isDarkMode
@@ -403,11 +411,12 @@ export function VideoTile({
                   : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            {channel.solo ? "Solo on" : "Solo"}
+            {channel.solo ? "Unsolo" : "Solo"}
           </button>
           <button
             type="button"
             onClick={() => onToggleLoop(channel.id)}
+            aria-pressed={channel.looped}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               channel.looped
                 ? isDarkMode
@@ -418,12 +427,12 @@ export function VideoTile({
                   : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            {channel.looped ? "Loop on" : "Loop off"}
+            {channel.looped ? "Disable loop" : "Enable loop"}
           </button>
           <span
             className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}
           >
-            Output {effectiveVolume}%
+            Mix output {effectiveVolume}%
           </span>
         </div>
       </div>

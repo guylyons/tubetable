@@ -1,13 +1,8 @@
-import { getTransportLabel } from "../lib/mixChannels";
-
 type MasterBusPanelProps = {
   isDarkMode: boolean;
   masterVolume: number;
   onChangeMasterVolume: (value: number) => void;
-  onClearMix: () => void;
   onResetChannelBalances: () => void;
-  onToggleTransport: () => void;
-  transportPlaying: boolean;
 };
 
 export function MasterBusPanel({
@@ -20,14 +15,14 @@ export function MasterBusPanel({
     <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Master bus
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
             Overall volume
           </h2>
           <p className={`mt-2 text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            Set the volume for the full mix.
+            Set TubeTable's overall mix volume.
           </p>
         </div>
         <span className={`rounded-full px-3 py-1 text-sm ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
@@ -62,7 +57,7 @@ export function MasterBusPanel({
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            Reset channel settings
+            Reset channel balances
           </button>
         </div>
       </div>

@@ -15,13 +15,13 @@ export function MixerSection({
     <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Mixer
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Per-channel volume</h2>
         </div>
         <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}>
-          Adjust each channel against the master volume. The mixer appears as
+          Balance each channel before the master volume is applied. The mixer appears as
           soon as you add a channel.
         </p>
       </div>
@@ -39,7 +39,7 @@ export function MixerSection({
                 }`}
               >
                 <div className={`w-full rounded-2xl border px-3 py-3 text-center ${isDarkMode ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"}`}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+                  <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
                     {trackLabel}
                   </p>
                   <p className={`mt-2 line-clamp-2 text-sm font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
@@ -73,7 +73,7 @@ export function MixerSection({
                   </div>
 
                   <div className={`w-full rounded-2xl border px-3 py-2 text-center text-xs ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-300" : "border-slate-200 bg-white text-slate-600"}`}>
-                    Output{" "}
+                    Mix output{" "}
                     <span className={`font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
                       {channel.effectiveVolume}%
                     </span>
