@@ -19,13 +19,13 @@ export function SavedMixesPanel({
   transportPlaying,
 }: SavedMixesPanelProps) {
   return (
-    <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
       <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+        <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
           Saved mixes
         </p>
         <h2 className={`text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Library</h2>
-        <p className={`text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+        <p className={`max-w-[32rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
           Load a saved mix. Each one keeps its own playback position.
         </p>
       </div>

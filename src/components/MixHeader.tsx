@@ -9,7 +9,6 @@ import { TransportVisualizer } from "./TransportVisualizer";
 
 type MixHeaderProps = {
   addError: string | null;
-  audibleChannels: number;
   canAddMore: boolean;
   channelStates: MixChannelState[];
   channelsCount: number;
@@ -36,8 +35,10 @@ type MixHeaderProps = {
 };
 
 function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
+  const logoText = "Tubetable";
+
   return (
-    <div className="flex max-w-3xl items-center gap-4 sm:gap-5" aria-label="Tubetable">
+    <div className="flex max-w-3xl items-center gap-4 sm:gap-5" aria-label={logoText}>
       <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.75rem] bg-gradient-to-br from-sky-400 to-blue-700 shadow-lg shadow-blue-500/20 sm:h-24 sm:w-24">
         <div className="absolute inset-x-4 bottom-4 h-2 rounded-full bg-blue-950/30" />
         <div className="relative h-12 w-12 rounded-full bg-white shadow-inner sm:h-14 sm:w-14">
@@ -50,8 +51,19 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
         </div>
       </div>
       <div>
-        <h1 className={`text-5xl font-black tracking-[-0.045em] sm:text-6xl lg:text-7xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
-          Tubetable
+        <h1 className={`text-5xl font-black sm:text-6xl lg:text-7xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
+          <span className="sr-only">{logoText}</span>
+          <span aria-hidden="true" className="inline-flex tracking-normal">
+            {[...logoText].map((letter, index) => (
+              <span
+                key={`${letter}-${index}`}
+                className={`tubetable-logo-letter ${index === logoText.length - 1 ? "tubetable-logo-letter-e" : ""}`}
+                style={{ animationDelay: `${index * 90}ms` }}
+              >
+                {letter}
+              </span>
+            ))}
+          </span>
         </h1>
         <p className={`mt-2 text-base font-medium leading-7 sm:text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
           Mix YouTube clips like a tiny soundboard.
@@ -63,7 +75,6 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
 
 export function MixHeader({
   addError,
-  audibleChannels,
   canAddMore,
   channelStates,
   channelsCount,
@@ -90,13 +101,13 @@ export function MixHeader({
 }: MixHeaderProps) {
   return (
     <header
-      className={`grid gap-8 rounded-[32px] border p-6 shadow-sm lg:grid-cols-[minmax(0,1.25fr)_340px] lg:p-8 ${
+      className={`grid gap-6 rounded-[32px] border p-5 shadow-sm sm:p-6 lg:grid-cols-[minmax(0,1.25fr)_340px] lg:p-7 ${
         isDarkMode
           ? "border-slate-800 bg-slate-900/85 text-slate-100 shadow-black/20"
           : "border-slate-200 bg-white text-slate-900"
       }`}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -139,7 +150,7 @@ export function MixHeader({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-        <div className={`rounded-3xl border p-4 ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}>
+        <div className={`rounded-3xl border p-4 text-left ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}>
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
             Channels
           </p>
@@ -154,6 +165,7 @@ export function MixHeader({
         <div className={`space-y-3 rounded-3xl border p-4 sm:col-span-2 lg:col-span-1 ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}>
           <TransportVisualizer
             channelStates={channelStates}
+            isDarkMode={isDarkMode}
             transportPlaying={transportPlaying}
           />
           <button

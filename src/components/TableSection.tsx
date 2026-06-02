@@ -116,7 +116,7 @@ export function TableSection({
 
   return (
     <section
-      className={`relative overflow-hidden rounded-[32px] border p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ring-1 sm:p-6 ${
+      className={`relative overflow-hidden rounded-[32px] border p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ring-1 sm:p-5 ${
         isDarkMode
           ? "border-sky-400/25 bg-[linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(15,23,42,0.88)_18%)] ring-sky-400/10"
           : "border-blue-200/80 bg-[linear-gradient(180deg,_rgba(239,246,255,0.9),_#ffffff_18%)] ring-blue-100/70"
@@ -125,9 +125,9 @@ export function TableSection({
       <div
         className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${isDarkMode ? "from-sky-400 via-blue-500 to-transparent" : "from-blue-500 via-sky-400 to-transparent"}`}
       />
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+      <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="min-w-0">
+          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Table
           </p>
           <h2
@@ -137,7 +137,7 @@ export function TableSection({
           </h2>
         </div>
         <p
-          className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}
+          className={`max-w-[28rem] text-sm leading-6 lg:text-right ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}
         >
           Drag to reorder. Focus one when it needs the big view.
         </p>
@@ -154,7 +154,7 @@ export function TableSection({
               }`}
             >
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+                <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
                   Focus mode
                 </p>
                 <p

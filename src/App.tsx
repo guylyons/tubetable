@@ -122,9 +122,6 @@ export function App() {
     () => buildChannelStates(channels, masterVolume),
     [channels, masterVolume],
   );
-  const audibleChannels = channelStates.filter(
-    (channel) => channel.effectiveVolume > 0,
-  ).length;
   const isDarkMode = themeMode === "dark";
 
   useEffect(() => {
@@ -533,7 +530,6 @@ export function App() {
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col gap-8 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <MixHeader
           addError={addError}
-          audibleChannels={audibleChannels}
           canAddMore={canAddMore}
           channelStates={channelStates}
           channelsCount={channels.length}

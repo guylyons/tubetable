@@ -332,7 +332,7 @@ export function VideoTile({
         ) : null}
       </div>
 
-      <div className={`space-y-4 ${isFocusPresentation ? "p-6" : "p-5"}`}>
+      <div className={`space-y-3 ${isFocusPresentation ? "p-5" : "p-4"}`}>
         <div className="space-y-1">
           <p
             className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
@@ -345,7 +345,7 @@ export function VideoTile({
             {channel.video.title}
           </p>
           <div
-            className={`flex flex-wrap items-center gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+            className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
           >
             <span>{channel.video.channelTitle}</span>
             {channel.video.durationText ? (

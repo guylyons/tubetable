@@ -22,22 +22,19 @@ export function MixControlPanel({
   saveMessage,
 }: MixControlPanelProps) {
   return (
-    <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+      <div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Mix controls
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
             Current mix
           </h2>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
-          {isSavedMix ? "Saved mix" : "Draft mix"}
-        </span>
       </div>
 
-      <p className={`mt-3 text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+      <p className={`mt-3 max-w-[34rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
         Name this setup, save it, or start fresh. Saved mixes stay in your
         library.
       </p>

@@ -42,12 +42,12 @@ export function SearchPanel({
   showResults,
 }: SearchPanelProps) {
   return (
-    <section className={`relative z-40 rounded-[28px] p-4 sm:p-5 ${isDarkMode ? "bg-slate-900 text-slate-100 shadow-black/20" : "bg-white text-slate-900 shadow-sm"}`}>
+    <section className={`relative z-40 rounded-[28px] p-3 sm:p-4 ${isDarkMode ? "bg-slate-900 text-slate-100 shadow-black/20" : "bg-white text-slate-900 shadow-sm"}`}>
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+        <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
           Search
         </p>
-        <p className={`text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+        <p className={`max-w-[46rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
           Search YouTube or paste a link. Pick a result and it lands on the
           table.
         </p>
@@ -72,7 +72,7 @@ export function SearchPanel({
               }}
               rows={2}
               placeholder="Search a song, channel, mood, or paste a YouTube URL"
-              className={`min-h-[84px] w-full resize-none rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
+              className={`min-h-[76px] w-full resize-none rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
                 isDarkMode
                   ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
                   : "border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-300 focus:bg-white"
@@ -103,8 +103,8 @@ export function SearchPanel({
             ) : null}
 
             {!isSearching && searchSuggestions.length > 0 ? (
-              <div className="border-b border-slate-100 px-3 py-3">
-                <p className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700">
+              <div className={`border-b px-3 py-3 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
+                <p className={`px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
                   Search suggestions
                 </p>
                 <div className="flex flex-wrap gap-2">

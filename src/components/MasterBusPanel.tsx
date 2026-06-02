@@ -12,16 +12,16 @@ export function MasterBusPanel({
   onResetChannelBalances,
 }: MasterBusPanelProps) {
   return (
-    <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Master bus
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
             Overall volume
           </h2>
-          <p className={`mt-2 text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+          <p className={`mt-2 max-w-[28rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
             Set the final output level.
           </p>
         </div>

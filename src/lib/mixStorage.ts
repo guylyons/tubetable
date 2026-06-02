@@ -63,7 +63,7 @@ function createExampleMix(): PersistedMix {
   return {
     name: EXAMPLE_MIX_NAME,
     channels: EXAMPLE_CHANNELS,
-    masterVolume: 82,
+    masterVolume: 100,
     transportPlaying: false,
     focusedChannelId: null,
   };
@@ -106,7 +106,7 @@ export function createEmptyMix(name = ""): PersistedMix {
   return {
     name,
     channels: [],
-    masterVolume: 82,
+    masterVolume: 100,
     transportPlaying: false,
     focusedChannelId: null,
   };
@@ -130,10 +130,12 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
   return {
     name: typeof record.name === "string" ? record.name : "",
     channels,
-    masterVolume: typeof record.masterVolume === "number" ? record.masterVolume : 82,
+    masterVolume:
+      typeof record.masterVolume === "number" ? record.masterVolume : 100,
     transportPlaying: Boolean(record.transportPlaying),
     focusedChannelId:
-      typeof record.focusedChannelId === "string" && channels.some(channel => channel.id === record.focusedChannelId)
+      typeof record.focusedChannelId === "string" &&
+      channels.some(channel => channel.id === record.focusedChannelId)
         ? record.focusedChannelId
         : null,
   };

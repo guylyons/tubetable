@@ -12,15 +12,15 @@ export function MixerSection({
   onChangeChannelVolume,
 }: MixerSectionProps) {
   return (
-    <section className={`rounded-[32px] border p-5 sm:p-6 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
+    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+      <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="min-w-0">
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Mixer
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Per-channel volume</h2>
         </div>
-        <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}>
+        <p className={`max-w-[28rem] text-sm leading-6 lg:text-right ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}>
           Balance each channel before the master volume kicks in.
         </p>
       </div>
