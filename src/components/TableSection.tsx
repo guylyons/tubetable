@@ -130,47 +130,11 @@ export function TableSection({
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Table
           </p>
-          <h2
-            className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}
-          >
-            Arrange channels
-          </h2>
         </div>
-        <p
-          className={`max-w-[28rem] text-sm leading-6 lg:text-right ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}
-        >
-          Drag to reorder. Focus one when it needs the big view.
-        </p>
       </div>
 
       {channelStates.length > 0 ? (
         <div className="space-y-5">
-          {focusedChannel ? (
-            <div
-              className={`flex flex-wrap items-center justify-between gap-3 rounded-[28px] border px-4 py-3 shadow-sm ${
-                isDarkMode
-                  ? "border-sky-400/20 bg-slate-950/60"
-                  : "border-blue-100 bg-white/80"
-              }`}
-            >
-              <div>
-                <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
-                  Focus mode
-                </p>
-                <p
-                  className={`mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
-                >
-                  This channel stays large. The rest stay below.
-                </p>
-              </div>
-              <p
-                className={`rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? "bg-slate-900 text-slate-300" : "bg-white text-slate-600"}`}
-              >
-                Tap Focus on another channel to switch.
-              </p>
-            </div>
-          ) : null}
-
           <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {channelStates.map((channel) =>
               renderTile(

@@ -21,9 +21,6 @@ export function MasterBusPanel({
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
             Overall volume
           </h2>
-          <p className={`mt-2 max-w-[28rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            Set the final output level.
-          </p>
         </div>
         <span className={`rounded-full px-3 py-1 text-sm ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
           {masterVolume}%

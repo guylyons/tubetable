@@ -429,11 +429,6 @@ export function VideoTile({
           >
             {channel.looped ? "Loop on" : "Loop"}
           </button>
-          <span
-            className={`rounded-full px-3 py-1 text-xs ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}
-          >
-            Mix output {effectiveVolume}%
-          </span>
         </div>
       </div>
     </article>

@@ -20,9 +20,6 @@ export function MixerSection({
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Per-channel volume</h2>
         </div>
-        <p className={`max-w-[28rem] text-sm leading-6 lg:text-right ${isDarkMode ? "text-slate-300" : "text-slate-500"}`}>
-          Balance each channel before the master volume kicks in.
-        </p>
       </div>
 
       {channelStates.length > 0 ? (
@@ -69,13 +66,6 @@ export function MixerSection({
                       className="tubetable-slider tubetable-slider-vertical cursor-pointer appearance-none"
                       aria-label={`${trackLabel} volume`}
                     />
-                  </div>
-
-                  <div className={`w-full rounded-2xl border px-3 py-2 text-center text-xs ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-300" : "border-slate-200 bg-white text-slate-600"}`}>
-                    Mix output{" "}
-                    <span className={`font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
-                      {channel.effectiveVolume}%
-                    </span>
                   </div>
                 </div>
               </article>
