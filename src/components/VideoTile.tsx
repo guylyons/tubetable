@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { MixChannel } from "../types";
 import {
   applyPlayerVolume,
   createYouTubePlayerVars,
-  getSeekSecondsFromProgressValue,
+  getSeekSecondsFromPointerPosition,
   loadIframeApi,
   lockPlayerInteraction,
   syncPlayerPlayback,
@@ -252,18 +252,27 @@ export function VideoTile({
       ? Math.min(100, (channel.progressSeconds / durationSeconds) * 100)
       : 0;
 
-  function scrubToProgressValue(progressValue: string) {
+  function scrubToPointerPosition(event: PointerEvent<HTMLButtonElement>) {
     if (!playerRef.current) {
       return;
     }
 
-    const nextProgressSeconds = getSeekSecondsFromProgressValue(
-      progressValue,
-      durationSeconds,
+    const currentDuration = playerRef.current.getDuration?.() ?? durationSeconds;
+    if (currentDuration > 0 && currentDuration !== durationSeconds) {
+      setDurationSeconds(currentDuration);
+    }
+
+    const progressBounds = event.currentTarget.getBoundingClientRect();
+    const nextProgressSeconds = getSeekSecondsFromPointerPosition(
+      event.clientX,
+      progressBounds.left,
+      progressBounds.width,
+      currentDuration,
       channel.progressSeconds,
     );
 
     try {
+      event.currentTarget.setPointerCapture(event.pointerId);
       playerRef.current.seekTo(nextProgressSeconds, true);
       onProgressRef.current(mixKey, channel.id, nextProgressSeconds);
     } catch {
@@ -365,15 +374,16 @@ export function VideoTile({
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          step="0.1"
-          value={progressPercent}
-          disabled={!ready || durationSeconds <= 0}
-          onChange={(event) => scrubToProgressValue(event.currentTarget.value)}
-          className="absolute inset-x-0 bottom-0 z-30 h-3 cursor-pointer opacity-0 disabled:pointer-events-none"
+        <button
+          type="button"
+          disabled={!ready}
+          onPointerDown={scrubToPointerPosition}
+          onPointerMove={(event) => {
+            if (event.buttons === 1) {
+              scrubToPointerPosition(event);
+            }
+          }}
+          className="absolute inset-x-0 bottom-0 z-30 h-8 cursor-pointer bg-transparent disabled:pointer-events-none"
           aria-label={`Scrub ${channel.video.title}`}
         />
       </div>

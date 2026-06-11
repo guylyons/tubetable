@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   createYouTubePlayerVars,
+  getSeekSecondsFromPointerPosition,
   getSeekSecondsFromProgressValue,
   syncPlayerPlayback,
   type YouTubePlayer,
@@ -29,6 +30,19 @@ describe("getSeekSecondsFromProgressValue", () => {
   test("falls back to the current timestamp when the scrub value or duration is invalid", () => {
     expect(getSeekSecondsFromProgressValue("nope", 240, 42)).toBe(42);
     expect(getSeekSecondsFromProgressValue("50", 0, 42)).toBe(42);
+  });
+});
+
+describe("getSeekSecondsFromPointerPosition", () => {
+  test("converts a click position inside the progress bar into a clamped timestamp", () => {
+    expect(getSeekSecondsFromPointerPosition(150, 100, 200, 240)).toBe(60);
+    expect(getSeekSecondsFromPointerPosition(50, 100, 200, 240)).toBe(0);
+    expect(getSeekSecondsFromPointerPosition(350, 100, 200, 240)).toBe(240);
+  });
+
+  test("falls back to the current timestamp when geometry or duration is invalid", () => {
+    expect(getSeekSecondsFromPointerPosition(150, 100, 0, 240, 42)).toBe(42);
+    expect(getSeekSecondsFromPointerPosition(150, 100, 200, 0, 42)).toBe(42);
   });
 });
 

@@ -77,6 +77,32 @@ export function getSeekSecondsFromProgressValue(
   return (clampedPercent / 100) * durationSeconds;
 }
 
+export function getSeekSecondsFromPointerPosition(
+  clientX: number,
+  trackLeft: number,
+  trackWidth: number,
+  durationSeconds: number,
+  fallbackSeconds = 0,
+) {
+  if (
+    !Number.isFinite(clientX) ||
+    !Number.isFinite(trackLeft) ||
+    !Number.isFinite(trackWidth) ||
+    trackWidth <= 0 ||
+    !Number.isFinite(durationSeconds) ||
+    durationSeconds <= 0
+  ) {
+    return Math.max(0, fallbackSeconds);
+  }
+
+  const progressPercent = ((clientX - trackLeft) / trackWidth) * 100;
+  return getSeekSecondsFromProgressValue(
+    String(progressPercent),
+    durationSeconds,
+    fallbackSeconds,
+  );
+}
+
 function sanitizeVideoId(value: string | null | undefined) {
   if (!value) {
     return null;
