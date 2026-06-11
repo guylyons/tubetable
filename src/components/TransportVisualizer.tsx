@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MixChannelState } from "../types";
+import {
+  BAR_COUNT,
+  buildVisualizerProfile,
+  calculateVisualizerLevels,
+  type BandActivity,
+} from "../lib/transportVisualizer";
 
 type TransportVisualizerProps = {
   channelStates: MixChannelState[];
@@ -7,26 +13,31 @@ type TransportVisualizerProps = {
   transportPlaying: boolean;
 };
 
-const BAR_COUNT = 24;
 const FRAME_INTERVAL_MS = 1000 / 34;
-const BEAT_BPM = 94;
+const IDLE_BAND_ACTIVITY: BandActivity = { low: 0, mid: 0, high: 0 };
 
-type BarSeed = {
-  phase: number;
-  sway: number;
-  tilt: number;
-};
+function getBarColor(index: number, isDarkMode: boolean) {
+  const position = index / (BAR_COUNT - 1);
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
+  if (position < 0.34) {
+    return isDarkMode
+      ? "bg-[linear-gradient(180deg,_#e0f2fe,_#38bdf8_42%,_#0369a1)] shadow-[0_0_18px_rgba(14,165,233,0.3)]"
+      : "bg-[linear-gradient(180deg,_#bfdbfe,_#60a5fa_55%,_#2563eb)] shadow-[0_0_18px_rgba(96,165,250,0.3)]";
+  }
+
+  if (position < 0.68) {
+    return isDarkMode
+      ? "bg-[linear-gradient(180deg,_#f0fdfa,_#2dd4bf_48%,_#0f766e)] shadow-[0_0_18px_rgba(45,212,191,0.24)]"
+      : "bg-[linear-gradient(180deg,_#ccfbf1,_#2dd4bf_55%,_#0d9488)] shadow-[0_0_18px_rgba(20,184,166,0.24)]";
+  }
+
+  return isDarkMode
+    ? "bg-[linear-gradient(180deg,_#f5f3ff,_#a78bfa_48%,_#6d28d9)] shadow-[0_0_18px_rgba(167,139,250,0.26)]"
+    : "bg-[linear-gradient(180deg,_#ede9fe,_#a78bfa_52%,_#7c3aed)] shadow-[0_0_18px_rgba(124,58,237,0.24)]";
 }
 
-function createBarSeeds() {
-  return Array.from({ length: BAR_COUNT }, (_, index) => ({
-    phase: index * 0.48,
-    sway: 1.35 + (index % 6) * 0.18,
-    tilt: 0.68 + (index % 5) * 0.09,
-  })) satisfies BarSeed[];
+function getBandPercent(activity: BandActivity, band: keyof BandActivity) {
+  return `${Math.round(activity[band] * 100)}%`;
 }
 
 export function TransportVisualizer({
@@ -34,40 +45,20 @@ export function TransportVisualizer({
   isDarkMode,
   transportPlaying,
 }: TransportVisualizerProps) {
-  const [levels, setLevels] = useState<number[]>(() =>
-    Array.from({ length: BAR_COUNT }, () => 0.12),
+  const profile = useMemo(
+    () => buildVisualizerProfile(channelStates, transportPlaying),
+    [channelStates, transportPlaying],
   );
-  const profile = useMemo(() => {
-    const activeLevels = transportPlaying
-      ? channelStates
-          .filter((channel) => !channel.paused && channel.effectiveVolume > 0)
-          .map((channel) => ({
-            level: channel.effectiveVolume / 100,
-            progressSeconds: channel.progressSeconds,
-          }))
-      : [];
-    const averageLevel =
-      activeLevels.length > 0
-        ? activeLevels.reduce((sum, channel) => sum + channel.level, 0) /
-          activeLevels.length
-        : 0;
-    const peakLevel =
-      activeLevels.length > 0
-        ? Math.max(...activeLevels.map((channel) => channel.level))
-        : 0;
-
-    return {
-      activeCount: activeLevels.length,
-      activeLevels,
-      averageLevel,
-      peakLevel,
-    };
-  }, [channelStates, transportPlaying]);
-  const seedsRef = useRef<BarSeed[]>(createBarSeeds());
+  const [visualizerState, setVisualizerState] = useState(() => ({
+    bandActivity: IDLE_BAND_ACTIVITY,
+    energy: 0,
+    levels: Array.from({ length: BAR_COUNT }, () => 0.08),
+  }));
   const profileRef = useRef(profile);
-  const energyRef = useRef(0);
+  const stateRef = useRef(visualizerState);
 
   profileRef.current = profile;
+  stateRef.current = visualizerState;
 
   useEffect(() => {
     let animationFrameId = 0;
@@ -80,74 +71,24 @@ export function TransportVisualizer({
       }
 
       lastFrameAt = timestamp;
-
-      const { activeCount, activeLevels, averageLevel, peakLevel } =
-        profileRef.current;
-      const targetEnergy = transportPlaying
-        ? clamp(averageLevel * 1.05 + peakLevel * 0.2, 0, 1)
-        : 0;
-
-      energyRef.current += (targetEnergy - energyRef.current) * 0.1;
-
-      const nextLevels = seedsRef.current.map((seed, index) => {
-        const barPosition = index / (BAR_COUNT - 1);
-        const activeChannel =
-          activeLevels.length > 0
-            ? activeLevels[index % activeLevels.length]!
-            : null;
-        const channelLevel = activeChannel?.level ?? 0;
-        const beatProgress =
-          activeChannel && transportPlaying
-            ? (((activeChannel.progressSeconds + timestamp / 1000) *
-                BEAT_BPM) /
-                60 +
-                index * 0.018) %
-              1
-            : 0;
-        const kick = Math.pow(1 - beatProgress, 4);
-        const offbeat = Math.pow(
-          1 - Math.abs(beatProgress - 0.5) * 2,
-          3,
-        );
-        const arch = Math.sin(barPosition * Math.PI);
-        const pulseA =
-          (Math.sin((timestamp / 900) * seed.sway + seed.phase) + 1) / 2;
-        const pulseB =
-          (Math.sin(
-            (timestamp / 520) * (seed.tilt + activeCount * 0.08) - index * 0.36,
-          ) +
-            1) /
-          2;
-        const shimmer =
-          (Math.sin(timestamp / 420 - barPosition * 8.6 + seed.phase * 0.8) +
-            1) /
-          2;
-        const baseHeight = transportPlaying ? 0.08 : 0.05;
-        const contour = 0.08 + arch * 0.18;
-        const motion =
-          pulseA * 0.22 +
-          pulseB * 0.18 +
-          shimmer * 0.14 +
-          channelLevel * 0.24;
-        const beatLift = (kick * 0.58 + offbeat * 0.18) * (0.45 + channelLevel);
-        const lift =
-          energyRef.current * (0.14 + motion * 0.42) +
-          beatLift +
-          peakLevel * 0.08 +
-          channelLevel * 0.12;
-
-        return clamp(baseHeight + contour + lift, 0.06, 0.98);
+      const currentState = stateRef.current;
+      const nextState = calculateVisualizerLevels({
+        energy: currentState.energy,
+        previousLevels: currentState.levels,
+        profile: profileRef.current,
+        timestamp,
       });
 
-      setLevels(nextLevels);
+      setVisualizerState(nextState);
       animationFrameId = window.requestAnimationFrame(animate);
     };
 
     animationFrameId = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(animationFrameId);
-  }, [transportPlaying]);
+  }, []);
 
   const playing = transportPlaying && profile.activeCount > 0;
+  const statusLabel = playing ? "Mixer live" : transportPlaying ? "No signal" : "Paused";
 
   return (
     <div
@@ -161,7 +102,12 @@ export function TransportVisualizer({
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-slate-500"}`}>Visualizer</p>
+          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-slate-500"}`}>
+            Visualizer
+          </p>
+          <p className={`mt-1 text-[11px] leading-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+            Mixer-reactive signal
+          </p>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
@@ -174,30 +120,57 @@ export function TransportVisualizer({
                 : "bg-white/80 text-slate-500 ring-1 ring-slate-200"
           }`}
         >
-          {playing ? "Playing" : transportPlaying ? "Idle" : "Paused"}
+          {statusLabel}
         </span>
       </div>
 
-      <div className={`relative mt-3 h-28 overflow-hidden rounded-[22px] border px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${isDarkMode ? "border-slate-700 bg-slate-950" : "border-white/70 bg-slate-950"}`}>
+      <div className={`relative mt-3 h-32 overflow-hidden rounded-[22px] border px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${isDarkMode ? "border-slate-700 bg-slate-950" : "border-white/70 bg-slate-950"}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.3),_transparent_46%),linear-gradient(180deg,_rgba(15,23,42,0.7),_rgba(2,6,23,0.96))]" />
+        <div className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
+        <div className="absolute inset-y-3 left-1/3 w-px bg-white/10" />
+        <div className="absolute inset-y-3 left-2/3 w-px bg-white/10" />
+
         <div className="relative flex h-full items-end gap-[3px]">
-          {levels.map((level, index) => (
+          {visualizerState.levels.map((level, index) => (
             <span
               key={index}
-              className={`block flex-1 rounded-full transition-[height,opacity,transform] duration-100 ease-out ${
-                isDarkMode
-                  ? "bg-[linear-gradient(180deg,_#f0f9ff,_#38bdf8_48%,_#0ea5e9_72%,_#1d4ed8)] shadow-[0_0_18px_rgba(56,189,248,0.28)]"
-                  : "bg-[linear-gradient(180deg,_#bfdbfe,_#60a5fa_55%,_#2563eb)] shadow-[0_0_18px_rgba(96,165,250,0.3)]"
-              }`}
+              className={`block flex-1 rounded-full transition-[height,opacity,transform] duration-100 ease-out ${getBarColor(index, isDarkMode)}`}
               style={{
                 height: `${Math.round(level * 100)}%`,
-                opacity: playing ? 0.72 + (index % 4) * 0.06 : 0.25,
-                transform: `scaleY(${playing ? 1 : 0.92}) translateY(${playing ? "0px" : "2px"})`,
+                opacity: playing ? 0.68 + (index % 5) * 0.05 : 0.28,
+                transform: `scaleY(${playing ? 1 : 0.9}) translateY(${playing ? "0px" : "3px"})`,
               }}
             />
           ))}
         </div>
+      </div>
+
+      <div className="relative mt-3 grid grid-cols-3 gap-2">
+        {(["low", "mid", "high"] as const).map((band) => (
+          <div key={band}>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                {band}
+              </span>
+              <span className={`text-[10px] tabular-nums ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+                {getBandPercent(visualizerState.bandActivity, band)}
+              </span>
+            </div>
+            <div className={`mt-1 h-1.5 overflow-hidden rounded-full ${isDarkMode ? "bg-slate-800" : "bg-slate-200"}`}>
+              <div
+                className={
+                  band === "low"
+                    ? "h-full rounded-full bg-sky-400 transition-[width] duration-100"
+                    : band === "mid"
+                      ? "h-full rounded-full bg-teal-400 transition-[width] duration-100"
+                      : "h-full rounded-full bg-violet-400 transition-[width] duration-100"
+                }
+                style={{ width: getBandPercent(visualizerState.bandActivity, band) }}
+              />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

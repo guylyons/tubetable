@@ -3,6 +3,7 @@ import type { MixChannel } from "../types";
 import {
   applyPlayerVolume,
   createYouTubePlayerVars,
+  getSeekSecondsFromProgressValue,
   loadIframeApi,
   lockPlayerInteraction,
   syncPlayerPlayback,
@@ -250,6 +251,25 @@ export function VideoTile({
     durationSeconds > 0
       ? Math.min(100, (channel.progressSeconds / durationSeconds) * 100)
       : 0;
+
+  function scrubToProgressValue(progressValue: string) {
+    if (!playerRef.current) {
+      return;
+    }
+
+    const nextProgressSeconds = getSeekSecondsFromProgressValue(
+      progressValue,
+      durationSeconds,
+      channel.progressSeconds,
+    );
+
+    try {
+      playerRef.current.seekTo(nextProgressSeconds, true);
+      onProgressRef.current(mixKey, channel.id, nextProgressSeconds);
+    } catch {
+      // The YouTube iframe can briefly reject seek commands during state transitions.
+    }
+  }
 
   return (
     <article
