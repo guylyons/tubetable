@@ -1,6 +1,7 @@
 export type YouTubePlayer = {
   destroy: () => void;
   getCurrentTime?: () => number;
+  getDuration?: () => number;
   getIframe?: () => HTMLIFrameElement;
   getPlayerState?: () => number;
   mute: () => void;
@@ -41,6 +42,22 @@ const YT_PLAYER_STATE_BUFFERING = 3;
 const YT_PLAYER_STATE_CUED = 5;
 
 let iframeApiPromise: Promise<YouTubeNamespace> | null = null;
+
+export function createYouTubePlayerVars(startSeconds: number) {
+  return {
+    autoplay: 0,
+    controls: 1,
+    disablekb: 1,
+    enablejsapi: 1,
+    fs: 0,
+    iv_load_policy: 3,
+    loop: 0,
+    modestbranding: 1,
+    playsinline: 1,
+    rel: 0,
+    start: Math.floor(Math.max(0, startSeconds)),
+  };
+}
 
 function sanitizeVideoId(value: string | null | undefined) {
   if (!value) {

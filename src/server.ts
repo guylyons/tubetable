@@ -1,6 +1,6 @@
 import { serve } from "bun";
 import index from "./index.html";
-import { fetchYouTubeSearchPayload, resolveVideoMetadata } from "../netlify/functions/_shared/youtubeApi";
+import { fetchYouTubeSearchPayload, resolveVideoMetadata } from "./lib/youtubeApi";
 
 type YouTubeSearchPayload = {
   results: Array<{

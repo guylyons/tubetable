@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MixChannel } from "../types";
 import {
   applyPlayerVolume,
+  createYouTubePlayerVars,
   loadIframeApi,
   lockPlayerInteraction,
   syncPlayerPlayback,
@@ -65,6 +66,7 @@ export function VideoTile({
   });
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState(0);
 
   useEffect(() => {
     onProgressRef.current = onProgress;
@@ -94,6 +96,11 @@ export function VideoTile({
           if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
             onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
           }
+
+          const duration = playerRef.current?.getDuration?.();
+          if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+            setDurationSeconds(duration);
+          }
         };
 
         playerRef.current = new YT.Player(playerContainerRef.current, {
@@ -101,18 +108,8 @@ export function VideoTile({
           height: "100%",
           videoId: channel.video.videoId,
           playerVars: {
-            autoplay: 0,
-            controls: 0,
-            disablekb: 1,
-            enablejsapi: 1,
-            fs: 0,
-            iv_load_policy: 3,
+            ...createYouTubePlayerVars(channel.progressSeconds),
             origin: window.location.origin,
-            loop: 0,
-            modestbranding: 1,
-            playsinline: 1,
-            rel: 0,
-            start: Math.floor(Math.max(0, channel.progressSeconds)),
           },
           events: {
             onReady: (event) => {
@@ -215,7 +212,7 @@ export function VideoTile({
     } catch {
       // A restart can land while the iframe is still buffering.
     }
-  }, [channel.paused, ready, restartToken, transportPlaying]);
+  }, [ready, restartToken]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -232,6 +229,11 @@ export function VideoTile({
       if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
         onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
       }
+
+      const duration = playerRef.current?.getDuration?.();
+      if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+        setDurationSeconds(duration);
+      }
     };
 
     captureProgress();
@@ -244,6 +246,10 @@ export function VideoTile({
   }, [channel.id, channel.paused, mixKey, ready, transportPlaying]);
 
   const isFocusPresentation = presentation === "focus";
+  const progressPercent =
+    durationSeconds > 0
+      ? Math.min(100, (channel.progressSeconds / durationSeconds) * 100)
+      : 0;
 
   return (
     <article
@@ -330,6 +336,15 @@ export function VideoTile({
             {loadError}
           </div>
         ) : null}
+        <div
+          className={`absolute inset-x-0 bottom-0 z-10 h-1.5 ${isDarkMode ? "bg-slate-800/80" : "bg-slate-200/80"}`}
+          aria-hidden="true"
+        >
+          <div
+            className={`h-full transition-[width] duration-300 ${isDarkMode ? "bg-sky-400" : "bg-blue-600"}`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
       </div>
 
       <div className={`space-y-3 ${isFocusPresentation ? "p-5" : "p-4"}`}>
