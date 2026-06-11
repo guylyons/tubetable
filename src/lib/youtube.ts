@@ -59,6 +59,24 @@ export function createYouTubePlayerVars(startSeconds: number) {
   };
 }
 
+export function getSeekSecondsFromProgressValue(
+  progressValue: string,
+  durationSeconds: number,
+  fallbackSeconds = 0,
+) {
+  const progressPercent = Number(progressValue);
+  if (
+    !Number.isFinite(progressPercent) ||
+    !Number.isFinite(durationSeconds) ||
+    durationSeconds <= 0
+  ) {
+    return Math.max(0, fallbackSeconds);
+  }
+
+  const clampedPercent = Math.min(100, Math.max(0, progressPercent));
+  return (clampedPercent / 100) * durationSeconds;
+}
+
 function sanitizeVideoId(value: string | null | undefined) {
   if (!value) {
     return null;

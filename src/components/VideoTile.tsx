@@ -365,6 +365,17 @@ export function VideoTile({
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="0.1"
+          value={progressPercent}
+          disabled={!ready || durationSeconds <= 0}
+          onChange={(event) => scrubToProgressValue(event.currentTarget.value)}
+          className="absolute inset-x-0 bottom-0 z-30 h-3 cursor-pointer opacity-0 disabled:pointer-events-none"
+          aria-label={`Scrub ${channel.video.title}`}
+        />
       </div>
 
       <div className={`space-y-3 ${isFocusPresentation ? "p-5" : "p-4"}`}>
