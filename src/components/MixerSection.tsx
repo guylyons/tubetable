@@ -18,7 +18,7 @@ export function MixerSection({
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
             Mixer
           </p>
-          <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Per-channel volume</h2>
+          <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Track volumes</h2>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export function MixerSection({
         </div>
       ) : (
         <div className={`rounded-[28px] border border-dashed px-6 py-12 text-center ${isDarkMode ? "border-slate-700 bg-slate-950/40 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
-          Add a channel to open the mixer.
+          Add a video to open the mixer.
         </div>
       )}
     </section>

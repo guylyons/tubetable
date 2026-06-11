@@ -17,7 +17,7 @@ export function createChannel(video: YouTubeSearchResult): MixChannel {
 }
 
 export function getTransportLabel(playing: boolean) {
-  return playing ? "Pause mix" : "Play mix";
+  return playing ? "Pause all" : "Play all";
 }
 
 export function buildChannelStates(channels: MixChannel[], masterVolume: number): MixChannelState[] {

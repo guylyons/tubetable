@@ -16,10 +16,10 @@ export function MasterBusPanel({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
-            Master bus
+            Master volume
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
-            Overall volume
+            Whole mix
           </h2>
         </div>
         <span className={`rounded-full px-3 py-1 text-sm ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
@@ -30,7 +30,7 @@ export function MasterBusPanel({
       <div className="mt-5 space-y-5">
         <label className="block">
           <span className={`mb-2 block text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            Master volume
+            Overall volume
           </span>
           <input
             type="range"
@@ -54,7 +54,7 @@ export function MasterBusPanel({
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            Reset channels
+            Reset track levels
           </button>
         </div>
       </div>

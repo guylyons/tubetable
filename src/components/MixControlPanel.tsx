@@ -26,7 +26,7 @@ export function MixControlPanel({
       <div>
         <div>
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
-            Mix controls
+            Mix settings
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
             Current mix
@@ -35,8 +35,8 @@ export function MixControlPanel({
       </div>
 
       <p className={`mt-3 max-w-[34rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-        Name this setup, save it, or start fresh. Saved mixes stay in your
-        library.
+        Name this table, save it for later, or start a fresh mix. Your saved
+        mixes stay on this device.
       </p>
 
       <div className="mt-5 space-y-3">
@@ -76,7 +76,7 @@ export function MixControlPanel({
                 : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
             }`}
           >
-            Restart
+            Restart from start
           </button>
           <button
             type="button"

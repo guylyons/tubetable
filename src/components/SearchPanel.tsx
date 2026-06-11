@@ -45,11 +45,11 @@ export function SearchPanel({
     <section className={`relative z-40 rounded-[28px] p-3 sm:p-4 ${isDarkMode ? "bg-slate-900 text-slate-100 shadow-black/20" : "bg-white text-slate-900 shadow-sm"}`}>
       <div className="space-y-2">
         <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
-          Search
+          Add videos
         </p>
         <p className={`max-w-[46rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Search YouTube or paste a link. Pick a result and it lands on the
-          table.
+          Search YouTube or paste a link. Add a few videos, then balance them
+          on the table.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export function SearchPanel({
           className="space-y-3"
         >
           <label className="block">
-            <span className="sr-only">Search YouTube</span>
+            <span className="sr-only">Search YouTube or paste a video link</span>
             <textarea
               value={searchQuery}
               onChange={(event) => onChangeQuery(event.target.value)}
@@ -71,7 +71,7 @@ export function SearchPanel({
                 window.setTimeout(onCloseResults, 120);
               }}
               rows={2}
-              placeholder="Search a song, channel, mood, or paste a YouTube URL"
+              placeholder="Search a song, channel, or mood — or paste a YouTube link"
               className={`min-h-[76px] w-full resize-none rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
                 isDarkMode
                   ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
@@ -105,7 +105,7 @@ export function SearchPanel({
             {!isSearching && searchSuggestions.length > 0 ? (
               <div className={`border-b px-3 py-3 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
                 <p className={`px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
-                  Search suggestions
+                  Suggested searches
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {searchSuggestions.map((suggestion) => (
@@ -169,7 +169,7 @@ export function SearchPanel({
                           ) : null}
                           {isAlreadyAdded ? (
                             <span className="text-blue-700">
-                              Already in mix
+                              Already added
                             </span>
                           ) : null}
                         </div>
@@ -190,7 +190,7 @@ export function SearchPanel({
             searchSuggestions.length === 0 &&
             deferredQuery.length >= 2 ? (
               <p className="px-4 py-5 text-sm text-slate-500">
-                No matches yet. Try a shorter search.
+                No results yet. Try a shorter search or paste a YouTube link.
               </p>
             ) : null}
           </div>
@@ -202,7 +202,7 @@ export function SearchPanel({
       ) : null}
       {!canAddMore ? (
         <p className={`mt-3 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-          The table is full. Remove a channel before adding another.
+          The table is full. Remove a video before adding another.
         </p>
       ) : null}
     </section>

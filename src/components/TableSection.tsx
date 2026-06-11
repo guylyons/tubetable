@@ -128,7 +128,7 @@ export function TableSection({
       <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="min-w-0">
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
-            Table
+            Your table
           </p>
         </div>
       </div>
@@ -157,12 +157,13 @@ export function TableSection({
             <h3
               className={`text-3xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}
             >
-              Add your first channel
+              Add your first video
             </h3>
             <p
               className={`text-base leading-7 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
             >
-              Search or paste a YouTube link. Then arrange, focus, and mix.
+              Search above or paste a YouTube link. Each video becomes a track
+              you can reorder, focus, mute, solo, or loop.
             </p>
           </div>
         </div>

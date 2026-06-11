@@ -349,7 +349,7 @@ export function App() {
     }));
     setCurrentMixKey(mixToSave.id);
     setMixTitle(mixToSave.name);
-    setSaveMessage(isSavedMix ? "Mix updated" : "Mix saved");
+    setSaveMessage(isSavedMix ? "Saved changes" : "Saved to your library");
   }
 
   function createNewMix() {
@@ -358,7 +358,7 @@ export function App() {
       [DRAFT_MIX_KEY]: createEmptyMix(""),
     }));
     loadMix(createEmptyMix(""), DRAFT_MIX_KEY);
-    setSaveMessage("New mix ready");
+    setSaveMessage("Fresh table ready");
   }
 
   function startCurrentMixFromBeginning() {
@@ -399,7 +399,7 @@ export function App() {
       ),
     );
     setRestartToken((currentValue) => currentValue + 1);
-    setSaveMessage("Mix restarted from the beginning");
+    setSaveMessage("Restarted from the beginning");
   }
 
   function selectMix(targetMixKey: string) {
@@ -415,7 +415,7 @@ export function App() {
         shouldKeepPlaying || targetDraft.transportPlaying,
       );
       setSaveMessage(
-        targetMixKey === DRAFT_MIX_KEY ? "Draft loaded" : "Mix loaded",
+        targetMixKey === DRAFT_MIX_KEY ? "Draft loaded" : "Loaded mix",
       );
       return;
     }
@@ -426,7 +426,7 @@ export function App() {
         savedMix.id,
         shouldKeepPlaying || savedMix.transportPlaying,
       );
-      setSaveMessage("Mix loaded");
+      setSaveMessage("Loaded mix");
     }
   }
 
@@ -449,21 +449,21 @@ export function App() {
 
     if (deletingCurrentMix) {
       setCurrentMixKey(DRAFT_MIX_KEY);
-      setSaveMessage("Mix deleted");
+      setSaveMessage("Deleted mix");
       return;
     }
 
-    setSaveMessage("Mix deleted");
+    setSaveMessage("Deleted mix");
   }
 
   function addResultToMix(video: YouTubeSearchResult) {
     if (!canAddMore) {
-      setAddError(`You can mix up to ${MAX_CHANNELS} channels at once.`);
+      setAddError(`You can add up to ${MAX_CHANNELS} videos at once.`);
       return;
     }
 
     if (existingVideoIds.has(video.videoId)) {
-      setAddError("That channel is already in the mix.");
+      setAddError("That video is already on the table.");
       return;
     }
 
@@ -493,7 +493,7 @@ export function App() {
           `/api/youtube/video?videoId=${encodeURIComponent(pastedVideoId)}`,
         );
         if (!response.ok) {
-          throw new Error("That YouTube link could not be resolved.");
+          throw new Error("That YouTube link did not load. Check the URL and try again.");
         }
 
         const data = (await response.json()) as { result: YouTubeSearchResult };
@@ -502,7 +502,7 @@ export function App() {
         setAddError(
           error instanceof Error
             ? error.message
-            : "Unable to add that YouTube link.",
+            : "Could not add that YouTube link.",
         );
       } finally {
         setIsResolvingInput(false);
@@ -516,7 +516,7 @@ export function App() {
       return;
     }
 
-    setAddError("Search for a video title or paste a YouTube link.");
+    setAddError("Search for a video or paste a YouTube link first.");
   }
 
   return (

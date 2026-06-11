@@ -88,7 +88,7 @@ export function TransportVisualizer({
   }, []);
 
   const playing = transportPlaying && profile.activeCount > 0;
-  const statusLabel = playing ? "Mixer live" : transportPlaying ? "No signal" : "Paused";
+  const statusLabel = playing ? "Playing" : transportPlaying ? "Add a video" : "Paused";
 
   return (
     <div
@@ -106,7 +106,7 @@ export function TransportVisualizer({
             Visualizer
           </p>
           <p className={`mt-1 text-[11px] leading-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-            Mixer-reactive signal
+            Shows activity from the videos currently playing
           </p>
         </div>
         <span

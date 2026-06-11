@@ -66,7 +66,7 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
           </span>
         </h1>
         <p className={`mt-2 text-base font-medium leading-7 sm:text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Mix YouTube clips like a tiny soundboard.
+          Build a table of YouTube videos, then play and mix them together.
         </p>
       </div>
     </div>
@@ -152,7 +152,7 @@ export function MixHeader({
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
         <div className={`rounded-3xl border p-4 text-left ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}>
           <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-            Channels
+            Videos added
           </p>
           <p className={`mt-3 text-3xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
             {channelsCount}
