@@ -84,6 +84,7 @@ describe("UI interaction contracts", () => {
     const videoTileSource = readSource("src/components/VideoTile.tsx");
 
     expect(videoTileSource).toContain("if (!usesWebAudio) {\n      audioControllerRef.current?.destroy();");
+    expect(videoTileSource).toContain("const player = playerRef.current;\n      if (player) {\n        applyPlayerVolume(player, effectiveVolume);");
     expect(videoTileSource).toContain("const controller = new TrackAudioController");
   });
 

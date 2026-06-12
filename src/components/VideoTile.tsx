@@ -100,7 +100,10 @@ export function VideoTile({
     if (!usesWebAudio) {
       audioControllerRef.current?.destroy();
       audioControllerRef.current = null;
-      applyPlayerVolume(playerRef.current, effectiveVolume);
+      const player = playerRef.current;
+      if (player) {
+        applyPlayerVolume(player, effectiveVolume);
+      }
       return () => {
         disposed = true;
       };
