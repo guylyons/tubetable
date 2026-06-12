@@ -58,4 +58,13 @@ describe("UI interaction contracts", () => {
     expect(trackAudioSource).toContain("setEffects(effects: TrackEffectState)");
     expect(serverSource).toContain('"/api/youtube/audio"');
   });
+
+  test("keeps default no-DSP playback on the YouTube iframe so scrubbed playback resumes immediately", () => {
+    const videoTileSource = readSource("src/components/VideoTile.tsx");
+
+    expect(videoTileSource).toContain("const usesWebAudio =");
+    expect(videoTileSource).toContain("if (!usesWebAudio)");
+    expect(videoTileSource).toContain("usesWebAudio ? 0 : effectiveVolume");
+    expect(videoTileSource).toContain("if (usesWebAudio) {\n        audioControllerRef.current?.seek(nextProgressSeconds);");
+  });
 });

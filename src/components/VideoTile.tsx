@@ -73,6 +73,11 @@ export function VideoTile({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [trackOptionsOpen, setTrackOptionsOpen] = useState(false);
+  const usesWebAudio =
+    channel.reverbEnabled ||
+    channel.delayEnabled ||
+    channel.lofiEnabled ||
+    channel.pitchShiftEnabled;
 
   useEffect(() => {
     onProgressRef.current = onProgress;
@@ -87,6 +92,12 @@ export function VideoTile({
   }, [channel.looped, channel.paused, transportPlaying]);
 
   useEffect(() => {
+    if (!usesWebAudio) {
+      audioControllerRef.current?.destroy();
+      audioControllerRef.current = null;
+      return undefined;
+    }
+
     let disposed = false;
     const audioUrl = `/api/youtube/audio?videoId=${encodeURIComponent(channel.video.videoId)}`;
     const controller = new TrackAudioController({
@@ -135,7 +146,7 @@ export function VideoTile({
       reverbPreDelayMs: channel.reverbPreDelayMs,
     });
     controller.setPitchShift(channel.pitchShiftEnabled, channel.pitchShiftSemitones);
-    controller.seek(channel.progressSeconds);
+    controller.seek(playerRef.current?.getCurrentTime?.() ?? channel.progressSeconds);
 
     return () => {
       disposed = true;
@@ -148,7 +159,7 @@ export function VideoTile({
         audioControllerRef.current = null;
       }
     };
-  }, [channel.id, channel.video.videoId, mixKey, trackLabel]);
+  }, [channel.id, channel.video.videoId, mixKey, trackLabel, usesWebAudio]);
 
   useEffect(() => {
     let disposed = false;
@@ -162,8 +173,9 @@ export function VideoTile({
         }
 
         const captureProgress = () => {
-          const currentTime =
-            audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.();
+          const currentTime = usesWebAudio
+            ? audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.()
+            : playerRef.current?.getCurrentTime?.();
           if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
             onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
           }
@@ -197,7 +209,7 @@ export function VideoTile({
                   // The YouTube iframe can briefly reject seek commands during initialization.
                 }
               }
-              applyPlayerVolume(event.target, 0);
+              applyPlayerVolume(event.target, usesWebAudio ? 0 : effectiveVolume);
               try {
                 event.target.setPlaybackRate?.(channel.playbackRate);
               } catch {
@@ -208,7 +220,7 @@ export function VideoTile({
                 event.target,
                 transportPlaying && !channel.paused,
               );
-              if (transportPlaying && !channel.paused) {
+              if (usesWebAudio && transportPlaying && !channel.paused) {
                 void audioControllerRef.current?.play();
               }
               captureProgress();
@@ -252,8 +264,9 @@ export function VideoTile({
 
     return () => {
       disposed = true;
-      const currentTime =
-        audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.();
+      const currentTime = usesWebAudio
+        ? audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.()
+        : playerRef.current?.getCurrentTime?.();
       if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
         onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
       }
@@ -267,9 +280,11 @@ export function VideoTile({
       return;
     }
 
-    audioControllerRef.current?.setVolume(effectiveVolume);
-    applyPlayerVolume(playerRef.current, 0);
-  }, [effectiveVolume, ready]);
+    if (usesWebAudio) {
+      audioControllerRef.current?.setVolume(effectiveVolume);
+    }
+    applyPlayerVolume(playerRef.current, usesWebAudio ? 0 : effectiveVolume);
+  }, [effectiveVolume, ready, usesWebAudio]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -277,12 +292,14 @@ export function VideoTile({
     }
 
     try {
-      audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
+      if (usesWebAudio) {
+        audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
+      }
       playerRef.current.setPlaybackRate?.(channel.playbackRate);
     } catch {
       // The iframe may briefly reject playback-rate updates while buffering.
     }
-  }, [channel.playbackRate, ready]);
+  }, [channel.playbackRate, ready, usesWebAudio]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -290,12 +307,15 @@ export function VideoTile({
     }
 
     syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
+    if (!usesWebAudio) {
+      return;
+    }
     if (transportPlaying && !channel.paused) {
       void audioControllerRef.current?.play();
     } else {
       audioControllerRef.current?.pause();
     }
-  }, [channel.paused, ready, transportPlaying]);
+  }, [channel.paused, ready, transportPlaying, usesWebAudio]);
 
   useEffect(() => {
     audioControllerRef.current?.setEffects({
@@ -335,19 +355,21 @@ export function VideoTile({
     }
 
     try {
-      audioControllerRef.current?.seek(channel.progressSeconds);
+      if (usesWebAudio) {
+        audioControllerRef.current?.seek(channel.progressSeconds);
+      }
       playerRef.current.seekTo(channel.progressSeconds, true);
       syncPlayerPlayback(
         playerRef.current,
         transportPlaying && !channel.paused,
       );
-      if (transportPlaying && !channel.paused) {
+      if (usesWebAudio && transportPlaying && !channel.paused) {
         void audioControllerRef.current?.play();
       }
     } catch {
       // A restart can land while the iframe is still buffering.
     }
-  }, [ready, restartToken]);
+  }, [ready, restartToken, usesWebAudio]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -360,8 +382,9 @@ export function VideoTile({
     }
 
     const captureProgress = () => {
-      const currentTime =
-        audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.();
+      const currentTime = usesWebAudio
+        ? audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.()
+        : playerRef.current?.getCurrentTime?.();
       if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
         onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
       }
@@ -379,7 +402,7 @@ export function VideoTile({
       window.clearInterval(intervalId);
       captureProgress();
     };
-  }, [channel.id, channel.paused, mixKey, ready, transportPlaying]);
+  }, [channel.id, channel.paused, mixKey, ready, transportPlaying, usesWebAudio]);
 
   const isFocusPresentation = presentation === "focus";
   const progressPercent =
@@ -480,7 +503,9 @@ export function VideoTile({
 
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
-      audioControllerRef.current?.seek(nextProgressSeconds);
+      if (usesWebAudio) {
+        audioControllerRef.current?.seek(nextProgressSeconds);
+      }
       playerRef.current.seekTo(nextProgressSeconds, true);
       onProgressRef.current(mixKey, channel.id, nextProgressSeconds);
     } catch {
