@@ -17,6 +17,7 @@ type TrackAudioOptions = {
   audioUrl: string;
   onEnded: () => void;
   onError: (message: string) => void;
+  onReady: () => void;
 };
 
 type AudioContextLike = AudioContext;
@@ -117,7 +118,7 @@ export class TrackAudioController {
   private currentEffects: TrackEffectState | null = null;
   private currentPitchShiftSemitones = 0;
 
-  constructor({ audioUrl, debugLabel, onEnded, onError }: TrackAudioOptions) {
+  constructor({ audioUrl, debugLabel, onEnded, onError, onReady }: TrackAudioOptions) {
     this.context = getAudioContext();
     this.audioUrl = audioUrl;
     this.audio = document.createElement("audio");
@@ -197,6 +198,12 @@ export class TrackAudioController {
       }
     };
 
+    const notifyReady = () => {
+      if (!this.destroyed) {
+        onReady();
+      }
+    };
+
     const handleEnded = () => {
       onEnded();
     };
@@ -229,10 +236,22 @@ export class TrackAudioController {
     };
 
     const handleLoadStart = () => logMediaState("loadstart");
-    const handleLoadedData = () => logMediaState("loadeddata");
-    const handleCanPlay = () => logMediaState("canplay");
-    const handleCanPlayThrough = () => logMediaState("canplaythrough");
-    const handlePlaying = () => logMediaState("playing");
+    const handleLoadedData = () => {
+      logMediaState("loadeddata");
+      notifyReady();
+    };
+    const handleCanPlay = () => {
+      logMediaState("canplay");
+      notifyReady();
+    };
+    const handleCanPlayThrough = () => {
+      logMediaState("canplaythrough");
+      notifyReady();
+    };
+    const handlePlaying = () => {
+      logMediaState("playing");
+      notifyReady();
+    };
     const handleWaiting = () => logMediaState("waiting");
     const handleStalled = () => logMediaState("stalled");
     const handleTimeUpdate = () => logMediaState("timeupdate");

@@ -63,8 +63,20 @@ describe("UI interaction contracts", () => {
     const videoTileSource = readSource("src/components/VideoTile.tsx");
 
     expect(videoTileSource).toContain("const usesWebAudio =");
-    expect(videoTileSource).toContain("if (!usesWebAudio)");
-    expect(videoTileSource).toContain("usesWebAudio ? 0 : effectiveVolume");
-    expect(videoTileSource).toContain("if (usesWebAudio) {\n        audioControllerRef.current?.seek(nextProgressSeconds);");
+    expect(videoTileSource).toContain("const webAudioActive = usesWebAudio && webAudioReady");
+    expect(videoTileSource).toContain("webAudioActive ? 0 : effectiveVolume");
+    expect(videoTileSource).toContain("if (webAudioActive) {\n        audioControllerRef.current?.seek(nextProgressSeconds);");
+  });
+
+  test("preloads DSP audio and waits until it is ready before muting the YouTube iframe", () => {
+    const videoTileSource = readSource("src/components/VideoTile.tsx");
+    const trackAudioSource = readSource("src/lib/trackAudio.ts");
+
+    expect(trackAudioSource).toContain("onReady: () => void");
+    expect(trackAudioSource).toContain("notifyReady");
+    expect(videoTileSource).toContain("const [webAudioReady, setWebAudioReady] = useState(false)");
+    expect(videoTileSource).toContain("onReady: () => {\n        if (!disposed) {\n          setWebAudioReady(true);");
+    expect(videoTileSource).toContain("setWebAudioReady(false)");
+    expect(videoTileSource).toContain("const webAudioActive = usesWebAudio && webAudioReady");
   });
 });
