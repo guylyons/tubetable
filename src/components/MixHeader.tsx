@@ -112,7 +112,7 @@ export function MixHeader({
           <button
             type="button"
             onClick={onToggleTheme}
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+            className={`inline-flex cursor-pointer items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] transition ${
               isDarkMode
                 ? "bg-sky-400/15 text-sky-200 hover:bg-sky-400/25"
                 : "bg-slate-900 text-white hover:bg-slate-800"

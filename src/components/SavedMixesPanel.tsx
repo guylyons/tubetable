@@ -31,7 +31,7 @@ export function SavedMixesPanel({
         </p>
       </div>
 
-      <div className="mt-5 space-y-3">
+      <div className={`mt-5 space-y-3 ${savedMixes.length > 6 ? "max-h-[36rem] overflow-y-auto pr-2" : ""}`}>
         {savedMixes.length > 0 ? (
           savedMixes.map((savedMix) => (
             <article
