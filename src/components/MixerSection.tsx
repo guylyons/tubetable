@@ -30,7 +30,9 @@ export function MixerSection({
             return (
               <article
                 key={`${channel.id}-strip`}
-                className={`flex w-[156px] shrink-0 flex-col items-center rounded-[28px] border p-2 ${
+                className={`flex w-[156px] shrink-0 flex-col items-center rounded-[28px] border p-2 transition ${
+                  channel.silencedBySolo ? "opacity-45 grayscale" : ""
+                } ${
                   isDarkMode ? "border-slate-800 bg-slate-950/50" : "border-slate-200 bg-slate-50"
                 }`}
               >

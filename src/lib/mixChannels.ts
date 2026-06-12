@@ -7,6 +7,7 @@ export const DEFAULT_TRACK_EFFECTS = {
   delayTimeMs: 290,
   lofiCutoffHz: 2400,
   lofiEnabled: false,
+  lofiHighpassHz: 80,
   lofiMix: 40,
   pitchShiftEnabled: false,
   pitchShiftSemitones: 0,
@@ -52,11 +53,16 @@ export function getTransportLabel(playing: boolean) {
 export function buildChannelStates(channels: MixChannel[], masterVolume: number): MixChannelState[] {
   const hasSoloChannel = channels.some(channel => channel.solo);
 
-  return channels.map(channel => ({
-    ...channel,
-    effectiveVolume:
-      channel.muted || (hasSoloChannel && !channel.solo) ? 0 : Math.round((channel.volume * masterVolume) / 100),
-  }));
+  return channels.map(channel => {
+    const silencedBySolo = hasSoloChannel && !channel.solo;
+
+    return {
+      ...channel,
+      effectiveVolume:
+        channel.muted || silencedBySolo ? 0 : Math.round((channel.volume * masterVolume) / 100),
+      silencedBySolo,
+    };
+  });
 }
 
 export function reorderChannels(channels: MixChannel[], draggedChannelId: string, targetChannelId: string) {

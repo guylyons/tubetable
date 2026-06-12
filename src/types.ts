@@ -28,6 +28,7 @@ export type MixChannel = {
   lofiEnabled: boolean;
   lofiMix: number;
   lofiCutoffHz: number;
+  lofiHighpassHz: number;
   pitchShiftEnabled: boolean;
   pitchShiftSemitones: number;
   muted: boolean;
@@ -39,6 +40,7 @@ export type MixChannel = {
 
 export type MixChannelState = MixChannel & {
   effectiveVolume: number;
+  silencedBySolo: boolean;
 };
 
 export type PersistedMix = {

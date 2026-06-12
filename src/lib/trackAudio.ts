@@ -10,6 +10,7 @@ export type TrackEffectState = {
   lofiEnabled: boolean;
   lofiMix: number;
   lofiCutoffHz: number;
+  lofiHighpassHz: number;
 };
 
 type TrackAudioOptions = {
@@ -69,10 +70,13 @@ function createImpulseResponse(context: AudioContextLike, decaySeconds: number) 
 
   for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
     const data = buffer.getChannelData(channel);
+    let previous = 0;
     for (let index = 0; index < length; index += 1) {
       const normalized = index / length;
-      const decay = Math.pow(1 - normalized, 2.3);
-      data[index] = (Math.random() * 2 - 1) * decay;
+      const decay = Math.exp(-normalized * 5.4);
+      const noise = (Math.random() * 2 - 1) * 0.42;
+      previous = previous * 0.72 + noise * 0.28;
+      data[index] = previous * decay;
     }
   }
 
@@ -104,6 +108,7 @@ export class TrackAudioController {
   private readonly context: AudioContextLike;
   private readonly source: MediaElementAudioSourceNode;
   private readonly dryGain: GainNode;
+  private readonly lofiHighpassFilter: BiquadFilterNode;
   private readonly lofiFilter: BiquadFilterNode;
   private readonly lofiWetGain: GainNode;
   private readonly mixGain: GainNode;
@@ -113,6 +118,7 @@ export class TrackAudioController {
   private readonly delayWetGain: GainNode;
   private readonly reverbPreDelay: DelayNode;
   private readonly reverbConvolver: ConvolverNode;
+  private readonly reverbToneFilter: BiquadFilterNode;
   private readonly reverbWetGain: GainNode;
   private readonly listeners: Array<{
     target: HTMLAudioElement;
@@ -146,6 +152,7 @@ export class TrackAudioController {
 
     this.source = this.context.createMediaElementSource(this.audio);
     this.dryGain = this.context.createGain();
+    this.lofiHighpassFilter = this.context.createBiquadFilter();
     this.lofiFilter = this.context.createBiquadFilter();
     this.lofiWetGain = this.context.createGain();
     this.mixGain = this.context.createGain();
@@ -155,11 +162,18 @@ export class TrackAudioController {
     this.delayWetGain = this.context.createGain();
     this.reverbPreDelay = this.context.createDelay(2.5);
     this.reverbConvolver = this.context.createConvolver();
+    this.reverbToneFilter = this.context.createBiquadFilter();
     this.reverbWetGain = this.context.createGain();
 
+    this.lofiHighpassFilter.type = "highpass";
+    this.lofiHighpassFilter.frequency.value = 80;
+    this.lofiHighpassFilter.Q.value = 0.7;
     this.lofiFilter.type = "lowpass";
     this.lofiFilter.frequency.value = 2400;
     this.lofiFilter.Q.value = 0.8;
+    this.reverbToneFilter.type = "lowpass";
+    this.reverbToneFilter.frequency.value = 5600;
+    this.reverbToneFilter.Q.value = 0.45;
 
     this.dryGain.gain.value = 1;
     this.lofiWetGain.gain.value = 0;
@@ -169,11 +183,12 @@ export class TrackAudioController {
     this.delayFeedbackGain.gain.value = 0.36;
     this.delayWetGain.gain.value = 0;
     this.reverbPreDelay.delayTime.value = 0.012;
-    this.reverbConvolver.buffer = createImpulseResponse(this.context, 2.8);
+    this.reverbConvolver.buffer = createImpulseResponse(this.context, 1.6);
     this.reverbWetGain.gain.value = 0;
 
     this.source.connect(this.dryGain);
-    this.source.connect(this.lofiFilter);
+    this.source.connect(this.lofiHighpassFilter);
+    this.lofiHighpassFilter.connect(this.lofiFilter);
     this.lofiFilter.connect(this.lofiWetGain);
     this.dryGain.connect(this.mixGain);
     this.lofiWetGain.connect(this.mixGain);
@@ -186,7 +201,8 @@ export class TrackAudioController {
 
     this.source.connect(this.reverbPreDelay);
     this.reverbPreDelay.connect(this.reverbConvolver);
-    this.reverbConvolver.connect(this.reverbWetGain);
+    this.reverbConvolver.connect(this.reverbToneFilter);
+    this.reverbToneFilter.connect(this.reverbWetGain);
     this.reverbWetGain.connect(this.mixGain);
 
     this.mixGain.connect(this.masterGain);
@@ -388,6 +404,7 @@ export class TrackAudioController {
     const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix / 100, 0, 1) : 0;
     this.dryGain.gain.value = 1 - lofiMix;
     this.lofiWetGain.gain.value = lofiMix;
+    this.lofiHighpassFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiHighpassHz, 20, 1200) : 20;
     this.lofiFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiCutoffHz, 300, 12000) : 22050;
     this.lofiFilter.Q.value = effects.lofiEnabled ? 0.95 : 0.1;
 
@@ -396,9 +413,9 @@ export class TrackAudioController {
     this.delayFeedbackGain.gain.value = effects.delayEnabled ? clamp(effects.delayFeedback / 100, 0, 0.92) : 0;
 
     this.reverbPreDelay.delayTime.value = clamp(effects.reverbPreDelayMs / 1000, 0, 0.2);
-    this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix / 100, 0, 1) : 0;
+    this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix / 100, 0, 0.35) : 0;
 
-    const decaySeconds = 0.9 + clamp(effects.reverbDecay / 100, 0, 1) * 6.2;
+    const decaySeconds = 0.45 + clamp(effects.reverbDecay / 100, 0, 1) * 3.1;
     if (
       !this.currentEffects ||
       Math.abs(this.currentEffects.reverbDecay - effects.reverbDecay) > 2 ||
@@ -439,6 +456,16 @@ export class TrackAudioController {
     return this.mediaStartSeconds + this.audio.currentTime;
   }
 
+  syncTo(referenceSeconds: number, toleranceSeconds = 0.35) {
+    if (this.destroyed || this.audio.paused || !Number.isFinite(referenceSeconds)) {
+      return;
+    }
+
+    if (Math.abs(this.getCurrentTime() - referenceSeconds) > toleranceSeconds) {
+      this.loadAt(referenceSeconds, true);
+    }
+  }
+
   destroy() {
     if (this.destroyed) {
       return;
@@ -458,6 +485,7 @@ export class TrackAudioController {
     try {
       this.source.disconnect();
       this.dryGain.disconnect();
+      this.lofiHighpassFilter.disconnect();
       this.lofiFilter.disconnect();
       this.lofiWetGain.disconnect();
       this.mixGain.disconnect();
@@ -467,6 +495,7 @@ export class TrackAudioController {
       this.delayWetGain.disconnect();
       this.reverbPreDelay.disconnect();
       this.reverbConvolver.disconnect();
+      this.reverbToneFilter.disconnect();
       this.reverbWetGain.disconnect();
     } catch {
       // Disconnect operations can fail if the graph is already torn down.

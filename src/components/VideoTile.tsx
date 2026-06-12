@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import type { MixChannel } from "../types";
+import type { MixChannel, MixChannelState } from "../types";
 import {
   applyPlayerVolume,
   createYouTubePlayerVars,
@@ -15,7 +15,7 @@ import { primeSharedAudioContext, TrackAudioController } from "../lib/trackAudio
 
 type VideoTileProps = {
   isDarkMode?: boolean;
-  channel: MixChannel;
+  channel: MixChannelState;
   effectiveVolume: number;
   isDragging: boolean;
   isDragTarget: boolean;
@@ -153,6 +153,7 @@ export function VideoTile({
       delayMix: channel.delayMix,
       delayTimeMs: channel.delayTimeMs,
       lofiCutoffHz: channel.lofiCutoffHz,
+      lofiHighpassHz: channel.lofiHighpassHz,
       lofiEnabled: channel.lofiEnabled,
       lofiMix: channel.lofiMix,
       reverbDecay: channel.reverbDecay,
@@ -192,9 +193,13 @@ export function VideoTile({
         }
 
         const captureProgress = () => {
+          const playerTime = playerRef.current?.getCurrentTime?.();
+          if (webAudioActive && typeof playerTime === "number" && Number.isFinite(playerTime)) {
+            audioControllerRef.current?.syncTo(playerTime);
+          }
           const currentTime = webAudioActive
-            ? audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.()
-            : playerRef.current?.getCurrentTime?.();
+            ? audioControllerRef.current?.getCurrentTime?.() ?? playerTime
+            : playerTime;
           if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
             onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
           }
@@ -343,6 +348,7 @@ export function VideoTile({
       delayMix: channel.delayMix,
       delayTimeMs: channel.delayTimeMs,
       lofiCutoffHz: channel.lofiCutoffHz,
+      lofiHighpassHz: channel.lofiHighpassHz,
       lofiEnabled: channel.lofiEnabled,
       lofiMix: channel.lofiMix,
       reverbDecay: channel.reverbDecay,
@@ -356,6 +362,7 @@ export function VideoTile({
     channel.delayMix,
     channel.delayTimeMs,
     channel.lofiCutoffHz,
+    channel.lofiHighpassHz,
     channel.lofiEnabled,
     channel.lofiMix,
     channel.reverbDecay,
@@ -401,9 +408,13 @@ export function VideoTile({
     }
 
     const captureProgress = () => {
+      const playerTime = playerRef.current?.getCurrentTime?.();
+      if (webAudioActive && typeof playerTime === "number" && Number.isFinite(playerTime)) {
+        audioControllerRef.current?.syncTo(playerTime);
+      }
       const currentTime = webAudioActive
-        ? audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.()
-        : playerRef.current?.getCurrentTime?.();
+        ? audioControllerRef.current?.getCurrentTime?.() ?? playerTime
+        : playerTime;
       if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
         onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
       }
@@ -554,7 +565,7 @@ export function VideoTile({
             : isFocused
               ? "border-blue-200 bg-white"
               : "border-slate-200 bg-white"
-      } ${isDragging ? "scale-[0.98] opacity-70" : ""}`}
+      } ${isDragging ? "scale-[0.98] opacity-70" : ""} ${channel.silencedBySolo ? "opacity-45 grayscale" : ""}`}
     >
       <div
         className={`group/video relative overflow-hidden bg-slate-100 ${
@@ -848,6 +859,7 @@ export function VideoTile({
                     <div className="space-y-3">
                       {renderEffectSlider({ label: "Mix", min: 0, max: 100, value: channel.lofiMix, patchKey: "lofiMix", unit: "%" })}
                       {renderEffectSlider({ label: "Cutoff", min: 300, max: 12000, step: 50, value: channel.lofiCutoffHz, patchKey: "lofiCutoffHz", unit: " Hz" })}
+                      {renderEffectSlider({ label: "High-pass", min: 20, max: 1200, step: 10, value: channel.lofiHighpassHz, patchKey: "lofiHighpassHz", unit: " Hz" })}
                     </div>
                   </div>
 

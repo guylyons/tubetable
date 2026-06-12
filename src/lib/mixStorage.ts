@@ -197,6 +197,7 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
     lofiEnabled: Boolean(record.lofiEnabled),
     lofiMix: clampPercent(record.lofiMix, DEFAULT_TRACK_EFFECTS.lofiMix),
     lofiCutoffHz: clampNumber(record.lofiCutoffHz, DEFAULT_TRACK_EFFECTS.lofiCutoffHz, 300, 12000),
+    lofiHighpassHz: clampNumber(record.lofiHighpassHz, DEFAULT_TRACK_EFFECTS.lofiHighpassHz, 20, 1200),
     pitchShiftEnabled: Boolean(record.pitchShiftEnabled),
     pitchShiftSemitones: clampNumber(record.pitchShiftSemitones, DEFAULT_TRACK_EFFECTS.pitchShiftSemitones, -12, 12),
     muted: record.muted,

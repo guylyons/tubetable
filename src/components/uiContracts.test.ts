@@ -53,6 +53,7 @@ describe("UI interaction contracts", () => {
     expect(typesSource).toContain("reverbEnabled: boolean");
     expect(typesSource).toContain("delayEnabled: boolean");
     expect(typesSource).toContain("lofiEnabled: boolean");
+    expect(typesSource).toContain("lofiHighpassHz: number");
     expect(typesSource).toContain("pitchShiftEnabled: boolean");
     expect(trackAudioSource).toContain("class TrackAudioController");
     expect(trackAudioSource).toContain("setEffects(effects: TrackEffectState)");
@@ -100,5 +101,21 @@ describe("UI interaction contracts", () => {
     expect(trackAudioSource).toContain("this.loadAt(nextSeconds");
     expect(serverSource).toContain("parseStartSeconds");
     expect(serverSource).toContain('"-ss"');
+  });
+
+  test("polishes DSP tone controls and keeps DSP audio synced to the video clock", () => {
+    const videoTileSource = readSource("src/components/VideoTile.tsx");
+    const trackAudioSource = readSource("src/lib/trackAudio.ts");
+    const mixChannelsSource = readSource("src/lib/mixChannels.ts");
+
+    expect(trackAudioSource).toContain("lofiHighpassFilter");
+    expect(trackAudioSource).toContain('this.lofiHighpassFilter.type = "highpass"');
+    expect(videoTileSource).toContain("High-pass");
+    expect(trackAudioSource).toContain("reverbToneFilter");
+    expect(trackAudioSource).toContain("this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix / 100, 0, 0.35) : 0");
+    expect(trackAudioSource).toContain("syncTo(referenceSeconds: number");
+    expect(videoTileSource).toContain("audioControllerRef.current?.syncTo(playerTime)");
+    expect(mixChannelsSource).toContain("silencedBySolo");
+    expect(videoTileSource).toContain("channel.silencedBySolo");
   });
 });
