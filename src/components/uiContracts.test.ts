@@ -15,6 +15,13 @@ describe("UI interaction contracts", () => {
     expect(source).toContain("isFocused ? \"pointer-events-auto opacity-100\" : \"pointer-events-none opacity-0\"");
   });
 
+  test("positions the Focus control above the scrubber hit target", () => {
+    const source = readSource("src/components/VideoTile.tsx");
+
+    expect(source).toContain("absolute top-3 right-16");
+    expect(source).not.toContain("absolute bottom-3 right-3 z-20 inline-flex cursor-pointer");
+  });
+
   test("scrolls the Library list after roughly six saved mixes", () => {
     const source = readSource("src/components/SavedMixesPanel.tsx");
 

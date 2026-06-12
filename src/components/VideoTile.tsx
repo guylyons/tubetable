@@ -338,7 +338,7 @@ export function VideoTile({
         <button
           type="button"
           onClick={() => onFocus(channel.id)}
-          className={`absolute bottom-3 right-3 z-20 inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm transition-opacity duration-150 group-hover/video:pointer-events-auto group-hover/video:opacity-100 group-focus-within/video:pointer-events-auto group-focus-within/video:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 ${
+          className={`absolute top-3 right-16 z-20 inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm transition-opacity duration-150 group-hover/video:pointer-events-auto group-hover/video:opacity-100 group-focus-within/video:pointer-events-auto group-focus-within/video:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 ${
             isFocused
               ? isDarkMode
                 ? "border-sky-400/40 bg-sky-500 text-white hover:bg-sky-400"
