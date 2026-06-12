@@ -79,4 +79,22 @@ describe("UI interaction contracts", () => {
     expect(videoTileSource).toContain("setWebAudioReady(false)");
     expect(videoTileSource).toContain("const webAudioActive = usesWebAudio && webAudioReady");
   });
+
+  test("only creates the DSP audio controller while an effect is enabled", () => {
+    const videoTileSource = readSource("src/components/VideoTile.tsx");
+
+    expect(videoTileSource).toContain("if (!usesWebAudio) {\n      audioControllerRef.current?.destroy();");
+    expect(videoTileSource).toContain("const controller = new TrackAudioController");
+  });
+
+  test("seeks DSP audio by rebuilding the proxy stream at the requested offset", () => {
+    const trackAudioSource = readSource("src/lib/trackAudio.ts");
+    const serverSource = readSource("src/server.ts");
+
+    expect(trackAudioSource).toContain("startSeconds");
+    expect(trackAudioSource).toContain("mediaStartSeconds");
+    expect(trackAudioSource).toContain("this.loadAt(nextSeconds");
+    expect(serverSource).toContain("parseStartSeconds");
+    expect(serverSource).toContain('"-ss"');
+  });
 });

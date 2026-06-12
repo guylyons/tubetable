@@ -79,8 +79,19 @@ function parsePitchShiftSemitones(request: Request) {
   return Number.isFinite(value) ? Math.min(12, Math.max(-12, value)) : 0;
 }
 
+function parseStartSeconds(request: Request) {
+  const rawValue = new URL(request.url).searchParams.get("startSeconds");
+  if (rawValue === null) {
+    return 0;
+  }
+
+  const value = Number(rawValue);
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
 async function proxyAudioStream(request: Request, videoId: string) {
   const pitchShiftSemitones = parsePitchShiftSemitones(request);
+  const startSeconds = parseStartSeconds(request);
   const pitchShiftRatio = pitchShiftSemitones === 0 ? 1 : Math.pow(2, pitchShiftSemitones / 12);
   const audioUrl = getCachedAudioUrl(videoId);
   const ffmpeg = Bun.spawn({
@@ -92,6 +103,7 @@ async function proxyAudioStream(request: Request, videoId: string) {
       "-nostdin",
       "-user_agent",
       USER_AGENT,
+      ...(startSeconds > 0 ? ["-ss", startSeconds.toFixed(2)] : []),
       "-i",
       audioUrl,
       ...(pitchShiftSemitones === 0

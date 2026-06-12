@@ -96,6 +96,16 @@ export function VideoTile({
   useEffect(() => {
     let disposed = false;
     setWebAudioReady(false);
+
+    if (!usesWebAudio) {
+      audioControllerRef.current?.destroy();
+      audioControllerRef.current = null;
+      applyPlayerVolume(playerRef.current, effectiveVolume);
+      return () => {
+        disposed = true;
+      };
+    }
+
     const audioUrl = `/api/youtube/audio?videoId=${encodeURIComponent(channel.video.videoId)}`;
     const controller = new TrackAudioController({
       audioUrl,
@@ -161,7 +171,7 @@ export function VideoTile({
         audioControllerRef.current = null;
       }
     };
-  }, [channel.id, channel.video.videoId, mixKey, trackLabel]);
+  }, [channel.id, channel.video.videoId, mixKey, trackLabel, usesWebAudio]);
 
   useEffect(() => {
     let disposed = false;
@@ -222,7 +232,7 @@ export function VideoTile({
                 event.target,
                 transportPlaying && !channel.paused,
               );
-              if (usesWebAudio && transportPlaying && !channel.paused) {
+              if (webAudioActive && transportPlaying && !channel.paused) {
                 void audioControllerRef.current?.play();
               }
               captureProgress();
@@ -309,7 +319,7 @@ export function VideoTile({
     }
 
     syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
-    if (!usesWebAudio) {
+    if (!webAudioActive) {
       return;
     }
     if (transportPlaying && !channel.paused) {
@@ -317,7 +327,7 @@ export function VideoTile({
     } else {
       audioControllerRef.current?.pause();
     }
-  }, [channel.paused, ready, transportPlaying, usesWebAudio]);
+  }, [channel.paused, ready, transportPlaying, webAudioActive]);
 
   useEffect(() => {
     audioControllerRef.current?.setEffects({
@@ -365,13 +375,13 @@ export function VideoTile({
         playerRef.current,
         transportPlaying && !channel.paused,
       );
-      if (usesWebAudio && transportPlaying && !channel.paused) {
+      if (webAudioActive && transportPlaying && !channel.paused) {
         void audioControllerRef.current?.play();
       }
     } catch {
       // A restart can land while the iframe is still buffering.
     }
-  }, [ready, restartToken, usesWebAudio]);
+  }, [ready, restartToken, usesWebAudio, webAudioActive]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {

@@ -79,14 +79,21 @@ function createImpulseResponse(context: AudioContextLike, decaySeconds: number) 
   return buffer;
 }
 
-function buildAudioUrl(audioUrl: string, pitchShiftSemitones: number) {
+function buildAudioUrl(audioUrl: string, pitchShiftSemitones: number, startSeconds: number) {
   const url = new URL(audioUrl, window.location.origin);
   const normalized = Math.round(pitchShiftSemitones * 100) / 100;
+  const normalizedStartSeconds = Math.max(0, Math.round(startSeconds * 100) / 100);
 
   if (normalized === 0) {
     url.searchParams.delete("pitchShiftSemitones");
   } else {
     url.searchParams.set("pitchShiftSemitones", String(normalized));
+  }
+
+  if (normalizedStartSeconds === 0) {
+    url.searchParams.delete("startSeconds");
+  } else {
+    url.searchParams.set("startSeconds", String(normalizedStartSeconds));
   }
 
   return url.toString();
@@ -117,6 +124,7 @@ export class TrackAudioController {
   private destroyed = false;
   private currentEffects: TrackEffectState | null = null;
   private currentPitchShiftSemitones = 0;
+  private mediaStartSeconds = 0;
 
   constructor({ audioUrl, debugLabel, onEnded, onError, onReady }: TrackAudioOptions) {
     this.context = getAudioContext();
@@ -128,7 +136,7 @@ export class TrackAudioController {
     this.audio.loop = false;
     this.audio.muted = false;
     this.audio.volume = 1;
-    this.audio.src = buildAudioUrl(audioUrl, 0);
+    this.audio.src = buildAudioUrl(audioUrl, 0, 0);
 
     console.info("[tubetable audio] create controller", {
       debugLabel,
@@ -189,13 +197,8 @@ export class TrackAudioController {
         debugLabel,
         duration: this.audio.duration,
         readyState: this.audio.readyState,
+        mediaStartSeconds: this.mediaStartSeconds,
       });
-
-      if (this.pendingSeekSeconds !== null) {
-        const nextSeek = this.pendingSeekSeconds;
-        this.pendingSeekSeconds = null;
-        this.seek(nextSeek);
-      }
     };
 
     const notifyReady = () => {
@@ -230,7 +233,7 @@ export class TrackAudioController {
         readyState: this.audio.readyState,
         networkState: this.audio.networkState,
         paused: this.audio.paused,
-        currentTime: this.audio.currentTime,
+        currentTime: this.getCurrentTime(),
         duration: this.audio.duration,
       });
     };
@@ -254,7 +257,6 @@ export class TrackAudioController {
     };
     const handleWaiting = () => logMediaState("waiting");
     const handleStalled = () => logMediaState("stalled");
-    const handleTimeUpdate = () => logMediaState("timeupdate");
 
     this.audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     this.audio.addEventListener("loadstart", handleLoadStart);
@@ -264,7 +266,6 @@ export class TrackAudioController {
     this.audio.addEventListener("playing", handlePlaying);
     this.audio.addEventListener("waiting", handleWaiting);
     this.audio.addEventListener("stalled", handleStalled);
-    this.audio.addEventListener("timeupdate", handleTimeUpdate);
     this.audio.addEventListener("ended", handleEnded);
     this.audio.addEventListener("error", handleError);
 
@@ -277,10 +278,36 @@ export class TrackAudioController {
       { target: this.audio, type: "playing", listener: handlePlaying },
       { target: this.audio, type: "waiting", listener: handleWaiting },
       { target: this.audio, type: "stalled", listener: handleStalled },
-      { target: this.audio, type: "timeupdate", listener: handleTimeUpdate },
       { target: this.audio, type: "ended", listener: handleEnded },
       { target: this.audio, type: "error", listener: handleError },
     );
+
+    this.audio.load();
+  }
+
+  private loadAt(startSeconds: number, autoplay = false) {
+    if (this.destroyed) {
+      return;
+    }
+
+    this.pendingSeekSeconds = null;
+    this.mediaStartSeconds = Math.max(0, startSeconds);
+    this.audio.src = buildAudioUrl(
+      this.audioUrl,
+      this.currentPitchShiftSemitones,
+      this.mediaStartSeconds,
+    );
+    this.audio.load();
+
+    console.info("[tubetable audio] load", {
+      src: this.audio.currentSrc || this.audio.src,
+      mediaStartSeconds: this.mediaStartSeconds,
+      autoplay,
+    });
+
+    if (autoplay) {
+      void this.play();
+    }
   }
 
   async play() {
@@ -332,24 +359,7 @@ export class TrackAudioController {
       return;
     }
 
-    if (!this.audio.duration || Number.isNaN(this.audio.duration) || this.audio.readyState < 1) {
-      this.pendingSeekSeconds = nextSeconds;
-      return;
-    }
-
-    try {
-      this.audio.currentTime = nextSeconds;
-      this.pendingSeekSeconds = null;
-      console.info("[tubetable audio] seek", {
-        currentTime: this.audio.currentTime,
-        target: nextSeconds,
-      });
-    } catch {
-      this.pendingSeekSeconds = nextSeconds;
-      console.info("[tubetable audio] seek deferred", {
-        target: nextSeconds,
-      });
-    }
+    this.loadAt(nextSeconds, !this.audio.paused);
   }
 
   setPlaybackRate(rate: number) {
@@ -412,27 +422,21 @@ export class TrackAudioController {
     }
 
     const wasPlaying = !this.audio.paused;
-    const currentTime = this.audio.currentTime;
+    const currentTime = this.getCurrentTime();
     this.currentPitchShiftSemitones = normalized;
 
-    const nextUrl = buildAudioUrl(this.audioUrl, normalized);
+    const nextUrl = buildAudioUrl(this.audioUrl, normalized, currentTime);
     console.info("[tubetable audio] pitch shift", {
       pitchShiftEnabled,
       pitchShiftSemitones: normalized,
       nextUrl,
     });
 
-    this.pendingSeekSeconds = currentTime;
-    this.audio.src = nextUrl;
-    this.audio.load();
-
-    if (wasPlaying) {
-      void this.play();
-    }
+    this.loadAt(currentTime, wasPlaying);
   }
 
   getCurrentTime() {
-    return this.audio.currentTime;
+    return this.mediaStartSeconds + this.audio.currentTime;
   }
 
   destroy() {
