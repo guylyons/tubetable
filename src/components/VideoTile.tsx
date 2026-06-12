@@ -11,7 +11,7 @@ import {
   YT_PLAYER_STATE_PAUSED,
   type YouTubePlayer,
 } from "../lib/youtube";
-import { TrackAudioController } from "../lib/trackAudio";
+import { primeSharedAudioContext, TrackAudioController } from "../lib/trackAudio";
 
 type VideoTileProps = {
   isDarkMode?: boolean;
@@ -162,6 +162,10 @@ export function VideoTile({
     });
     controller.setPitchShift(channel.pitchShiftEnabled, channel.pitchShiftSemitones);
     controller.seek(playerRef.current?.getCurrentTime?.() ?? channel.progressSeconds);
+    const playbackState = playbackStateRef.current;
+    if (playbackState.transportPlaying && !playbackState.paused) {
+      void controller.play();
+    }
 
     return () => {
       disposed = true;
@@ -436,6 +440,14 @@ export function VideoTile({
   const effectLabelClass = `font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`;
 
   function patchChannel(patch: Partial<MixChannel>) {
+    if (
+      patch.reverbEnabled ||
+      patch.delayEnabled ||
+      patch.lofiEnabled ||
+      patch.pitchShiftEnabled
+    ) {
+      void primeSharedAudioContext();
+    }
     onPatchChannel(channel.id, patch);
   }
 

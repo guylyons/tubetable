@@ -83,9 +83,12 @@ describe("UI interaction contracts", () => {
   test("only creates the DSP audio controller while an effect is enabled", () => {
     const videoTileSource = readSource("src/components/VideoTile.tsx");
 
+    expect(videoTileSource).toContain("primeSharedAudioContext");
+    expect(videoTileSource).toContain("void primeSharedAudioContext();");
     expect(videoTileSource).toContain("if (!usesWebAudio) {\n      audioControllerRef.current?.destroy();");
     expect(videoTileSource).toContain("const player = playerRef.current;\n      if (player) {\n        applyPlayerVolume(player, effectiveVolume);");
     expect(videoTileSource).toContain("const controller = new TrackAudioController");
+    expect(videoTileSource).toContain("const playbackState = playbackStateRef.current;\n    if (playbackState.transportPlaying && !playbackState.paused) {\n      void controller.play();");
   });
 
   test("seeks DSP audio by rebuilding the proxy stream at the requested offset", () => {
