@@ -25,8 +25,10 @@ type AudioContextLike = AudioContext;
 
 let sharedAudioContext: AudioContextLike | null = null;
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
+function clamp(value: unknown, fallback: number, min: number, max: number) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, value))
+    : fallback;
 }
 
 function getAudioContext() {
@@ -307,7 +309,7 @@ export class TrackAudioController {
     }
 
     this.pendingSeekSeconds = null;
-    this.mediaStartSeconds = Math.max(0, startSeconds);
+    this.mediaStartSeconds = clamp(startSeconds, 0, 0, Number.MAX_SAFE_INTEGER);
     this.audio.src = buildAudioUrl(
       this.audioUrl,
       this.currentPitchShiftSemitones,
@@ -370,7 +372,7 @@ export class TrackAudioController {
       return;
     }
 
-    const nextSeconds = Math.max(0, seconds);
+    const nextSeconds = clamp(seconds, 0, 0, Number.MAX_SAFE_INTEGER);
     if (!Number.isFinite(nextSeconds)) {
       return;
     }
@@ -383,7 +385,7 @@ export class TrackAudioController {
       return;
     }
 
-    this.audio.playbackRate = rate;
+    this.audio.playbackRate = clamp(rate, 1, 0.5, 2);
     console.info("[tubetable audio] rate", rate);
   }
 
@@ -392,7 +394,7 @@ export class TrackAudioController {
       return;
     }
 
-    this.masterGain.gain.value = clamp(volume / 100, 0, 1);
+    this.masterGain.gain.value = clamp(volume, 76, 0, 100) / 100;
     console.info("[tubetable audio] volume", volume);
   }
 
@@ -401,24 +403,25 @@ export class TrackAudioController {
       return;
     }
 
-    const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix / 100, 0, 1) : 0;
+    const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix, 40, 0, 100) / 100 : 0;
     this.dryGain.gain.value = 1 - lofiMix;
     this.lofiWetGain.gain.value = lofiMix;
-    this.lofiHighpassFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiHighpassHz, 20, 1200) : 20;
-    this.lofiFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiCutoffHz, 300, 12000) : 22050;
+    this.lofiHighpassFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiHighpassHz, 80, 20, 1200) : 20;
+    this.lofiFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiCutoffHz, 2400, 300, 12000) : 22050;
     this.lofiFilter.Q.value = effects.lofiEnabled ? 0.95 : 0.1;
 
-    this.delayWetGain.gain.value = effects.delayEnabled ? clamp(effects.delayMix / 100, 0, 1) : 0;
-    this.delayNode.delayTime.value = clamp(effects.delayTimeMs / 1000, 0.02, 0.9);
-    this.delayFeedbackGain.gain.value = effects.delayEnabled ? clamp(effects.delayFeedback / 100, 0, 0.92) : 0;
+    this.delayWetGain.gain.value = effects.delayEnabled ? clamp(effects.delayMix, 28, 0, 100) / 100 : 0;
+    this.delayNode.delayTime.value = clamp(effects.delayTimeMs, 290, 20, 900) / 1000;
+    this.delayFeedbackGain.gain.value = effects.delayEnabled ? clamp(effects.delayFeedback, 36, 0, 92) / 100 : 0;
 
-    this.reverbPreDelay.delayTime.value = clamp(effects.reverbPreDelayMs / 1000, 0, 0.2);
-    this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix / 100, 0, 0.35) : 0;
+    this.reverbPreDelay.delayTime.value = clamp(effects.reverbPreDelayMs, 12, 0, 200) / 1000;
+    this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix, 22, 0, 35) / 100 : 0;
 
-    const decaySeconds = 0.45 + clamp(effects.reverbDecay / 100, 0, 1) * 3.1;
+    const reverbDecay = clamp(effects.reverbDecay, 55, 0, 100);
+    const decaySeconds = 0.45 + (reverbDecay / 100) * 3.1;
     if (
       !this.currentEffects ||
-      Math.abs(this.currentEffects.reverbDecay - effects.reverbDecay) > 2 ||
+      Math.abs(clamp(this.currentEffects.reverbDecay, 55, 0, 100) - reverbDecay) > 2 ||
       !this.reverbConvolver.buffer
     ) {
       this.reverbConvolver.buffer = createImpulseResponse(this.context, decaySeconds);
@@ -433,7 +436,7 @@ export class TrackAudioController {
       return;
     }
 
-    const normalized = pitchShiftEnabled ? clamp(pitchShiftSemitones, -12, 12) : 0;
+    const normalized = pitchShiftEnabled ? clamp(pitchShiftSemitones, 0, -12, 12) : 0;
     if (normalized === this.currentPitchShiftSemitones) {
       return;
     }

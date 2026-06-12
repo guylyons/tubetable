@@ -112,10 +112,19 @@ describe("UI interaction contracts", () => {
     expect(trackAudioSource).toContain('this.lofiHighpassFilter.type = "highpass"');
     expect(videoTileSource).toContain("High-pass");
     expect(trackAudioSource).toContain("reverbToneFilter");
-    expect(trackAudioSource).toContain("this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix / 100, 0, 0.35) : 0");
+    expect(trackAudioSource).toContain("this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix, 22, 0, 35) / 100 : 0");
     expect(trackAudioSource).toContain("syncTo(referenceSeconds: number");
     expect(videoTileSource).toContain("audioControllerRef.current?.syncTo(playerTime)");
     expect(mixChannelsSource).toContain("silencedBySolo");
     expect(videoTileSource).toContain("channel.silencedBySolo");
+  });
+
+  test("guards DSP AudioParam values against missing persisted effect fields", () => {
+    const trackAudioSource = readSource("src/lib/trackAudio.ts");
+
+    expect(trackAudioSource).toContain("function clamp(value: unknown, fallback: number, min: number, max: number)");
+    expect(trackAudioSource).toContain("const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix, 40, 0, 100) / 100 : 0");
+    expect(trackAudioSource).toContain("clamp(effects.lofiHighpassHz, 80, 20, 1200)");
+    expect(trackAudioSource).toContain("clamp(effects.lofiCutoffHz, 2400, 300, 12000)");
   });
 });
