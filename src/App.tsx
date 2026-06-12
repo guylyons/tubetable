@@ -623,6 +623,12 @@ export function App() {
                   currentFocusedChannelId === channelId ? null : channelId,
                 )
               }
+              onPatchChannel={(channelId, patch) =>
+                updateChannel(channelId, (currentChannel) => ({
+                  ...currentChannel,
+                  ...patch,
+                }))
+              }
               onReorderChannel={(draggedChannelId, targetChannelId) =>
                 setChannels((currentChannels) =>
                   reorderChannels(

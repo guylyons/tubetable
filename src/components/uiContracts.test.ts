@@ -35,4 +35,27 @@ describe("UI interaction contracts", () => {
 
     expect(source).toContain("cursor-pointer");
   });
+
+  test("restores DSP effects in a track options modal without the unfinished loop editor", () => {
+    const videoTileSource = readSource("src/components/VideoTile.tsx");
+    const typesSource = readSource("src/types.ts");
+    const trackAudioSource = readSource("src/lib/trackAudio.ts");
+    const serverSource = readSource("src/server.ts");
+
+    expect(videoTileSource).toContain("Track options");
+    expect(videoTileSource).toContain("DSP effects");
+    expect(videoTileSource).toContain("Reverb");
+    expect(videoTileSource).toContain("Delay");
+    expect(videoTileSource).toContain("Lofi");
+    expect(videoTileSource).toContain("Pitch");
+    expect(videoTileSource).not.toContain("LoopRegionEditor");
+    expect(videoTileSource).not.toContain("Beat sync");
+    expect(typesSource).toContain("reverbEnabled: boolean");
+    expect(typesSource).toContain("delayEnabled: boolean");
+    expect(typesSource).toContain("lofiEnabled: boolean");
+    expect(typesSource).toContain("pitchShiftEnabled: boolean");
+    expect(trackAudioSource).toContain("class TrackAudioController");
+    expect(trackAudioSource).toContain("setEffects(effects: TrackEffectState)");
+    expect(serverSource).toContain('"/api/youtube/audio"');
+  });
 });

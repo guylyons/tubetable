@@ -14,12 +14,119 @@ type YouTubeSearchPayload = {
   suggestions: string[];
 };
 
+type AudioStreamCacheEntry = {
+  expiresAt: number;
+  url: string;
+};
+
+const AUDIO_STREAM_CACHE_TTL_MS = 10 * 60 * 1000;
+const audioStreamCache = new Map<string, AudioStreamCacheEntry>();
+const YT_WATCH_URL = (videoId: string) => `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+const USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
+
 function json(data: unknown, init?: ResponseInit) {
   return Response.json(data, {
     headers: {
       "Cache-Control": "public, max-age=120, stale-while-revalidate=300",
     },
     ...init,
+  });
+}
+
+function getCachedAudioUrl(videoId: string) {
+  const cached = audioStreamCache.get(videoId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.url;
+  }
+
+  const result = Bun.spawnSync({
+    cmd: ["yt-dlp", "--no-playlist", "-f", "ba[ext=m4a]/ba", "-g", YT_WATCH_URL(videoId)],
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+
+  if (result.exitCode !== 0) {
+    const stderr = new TextDecoder().decode(result.stderr).trim();
+    throw new Error(stderr || "Could not resolve audio for that video.");
+  }
+
+  const url = new TextDecoder()
+    .decode(result.stdout)
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .find(Boolean);
+
+  if (!url) {
+    throw new Error("Could not resolve audio for that video.");
+  }
+
+  audioStreamCache.set(videoId, {
+    expiresAt: Date.now() + AUDIO_STREAM_CACHE_TTL_MS,
+    url,
+  });
+
+  return url;
+}
+
+function parsePitchShiftSemitones(request: Request) {
+  const rawValue = new URL(request.url).searchParams.get("pitchShiftSemitones");
+  if (rawValue === null) {
+    return 0;
+  }
+
+  const value = Number(rawValue);
+  return Number.isFinite(value) ? Math.min(12, Math.max(-12, value)) : 0;
+}
+
+async function proxyAudioStream(request: Request, videoId: string) {
+  const pitchShiftSemitones = parsePitchShiftSemitones(request);
+  const pitchShiftRatio = pitchShiftSemitones === 0 ? 1 : Math.pow(2, pitchShiftSemitones / 12);
+  const audioUrl = getCachedAudioUrl(videoId);
+  const ffmpeg = Bun.spawn({
+    cmd: [
+      "ffmpeg",
+      "-loglevel",
+      "error",
+      "-hide_banner",
+      "-nostdin",
+      "-user_agent",
+      USER_AGENT,
+      "-i",
+      audioUrl,
+      ...(pitchShiftSemitones === 0
+        ? []
+        : ["-af", `asetrate=44100*${pitchShiftRatio.toFixed(6)},atempo=${(1 / pitchShiftRatio).toFixed(6)}`]),
+      "-vn",
+      "-ac",
+      "2",
+      "-ar",
+      "44100",
+      "-b:a",
+      "192k",
+      "-f",
+      "mp3",
+      "pipe:1",
+    ],
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+
+  const abortHandler = () => {
+    try {
+      ffmpeg.kill();
+    } catch {
+      // Ignore abort cleanup failures.
+    }
+  };
+
+  request.signal.addEventListener("abort", abortHandler, { once: true });
+
+  return new Response(ffmpeg.stdout, {
+    headers: {
+      "Cache-Control": "no-store",
+      "Content-Type": "audio/mpeg",
+    },
   });
 }
 
@@ -70,6 +177,25 @@ const server = serve({
             },
             { status: 502 },
           );
+        }
+      },
+    },
+
+    "/api/youtube/audio": {
+      async GET(request) {
+        const url = new URL(request.url);
+        const videoId = url.searchParams.get("videoId")?.trim() ?? "";
+
+        if (!/^[\w-]{11}$/.test(videoId)) {
+          return new Response("A valid YouTube video ID is required.", { status: 400 });
+        }
+
+        try {
+          return await proxyAudioStream(request, videoId);
+        } catch (error) {
+          return new Response(error instanceof Error ? error.message : "Could not resolve audio.", {
+            status: 502,
+          });
         }
       },
     },

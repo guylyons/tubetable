@@ -11,6 +11,7 @@ import {
   YT_PLAYER_STATE_PAUSED,
   type YouTubePlayer,
 } from "../lib/youtube";
+import { TrackAudioController } from "../lib/trackAudio";
 
 type VideoTileProps = {
   isDarkMode?: boolean;
@@ -22,6 +23,7 @@ type VideoTileProps = {
   onDragEnd: () => void;
   onDragStart: () => void;
   onFocus: (id: string) => void;
+  onPatchChannel: (id: string, patch: Partial<MixChannel>) => void;
   trackLabel: string;
   onRemove: (id: string) => void;
   onToggleLoop: (id: string) => void;
@@ -45,6 +47,7 @@ export function VideoTile({
   onDragEnd,
   onDragStart,
   onFocus,
+  onPatchChannel,
   trackLabel,
   onRemove,
   onToggleLoop,
@@ -59,6 +62,7 @@ export function VideoTile({
 }: VideoTileProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const audioControllerRef = useRef<TrackAudioController | null>(null);
   const onProgressRef = useRef(onProgress);
   const playbackStateRef = useRef({
     looped: channel.looped,
@@ -68,6 +72,7 @@ export function VideoTile({
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(0);
+  const [trackOptionsOpen, setTrackOptionsOpen] = useState(false);
 
   useEffect(() => {
     onProgressRef.current = onProgress;
@@ -83,6 +88,70 @@ export function VideoTile({
 
   useEffect(() => {
     let disposed = false;
+    const audioUrl = `/api/youtube/audio?videoId=${encodeURIComponent(channel.video.videoId)}`;
+    const controller = new TrackAudioController({
+      audioUrl,
+      debugLabel: `${trackLabel} ${channel.video.title}`,
+      onEnded: () => {
+        const playbackState = playbackStateRef.current;
+        if (playbackState.looped && playbackState.transportPlaying && !playbackState.paused) {
+          try {
+            controller.seek(0);
+            void controller.play();
+            playerRef.current?.seekTo(0, true);
+            playerRef.current?.playVideo();
+          } catch {
+            // Loop restarts can briefly collide with browser playback state.
+          }
+          return;
+        }
+
+        const currentTime = controller.getCurrentTime();
+        if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+          onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+        }
+      },
+      onError: (message) => {
+        if (!disposed) {
+          setLoadError(message);
+        }
+      },
+    });
+
+    audioControllerRef.current = controller;
+    controller.setVolume(effectiveVolume);
+    controller.setPlaybackRate(channel.playbackRate);
+    controller.setEffects({
+      delayEnabled: channel.delayEnabled,
+      delayFeedback: channel.delayFeedback,
+      delayMix: channel.delayMix,
+      delayTimeMs: channel.delayTimeMs,
+      lofiCutoffHz: channel.lofiCutoffHz,
+      lofiEnabled: channel.lofiEnabled,
+      lofiMix: channel.lofiMix,
+      reverbDecay: channel.reverbDecay,
+      reverbEnabled: channel.reverbEnabled,
+      reverbMix: channel.reverbMix,
+      reverbPreDelayMs: channel.reverbPreDelayMs,
+    });
+    controller.setPitchShift(channel.pitchShiftEnabled, channel.pitchShiftSemitones);
+    controller.seek(channel.progressSeconds);
+
+    return () => {
+      disposed = true;
+      const currentTime = controller.getCurrentTime();
+      if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+        onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+      }
+      controller.destroy();
+      if (audioControllerRef.current === controller) {
+        audioControllerRef.current = null;
+      }
+    };
+  }, [channel.id, channel.video.videoId, mixKey, trackLabel]);
+
+  useEffect(() => {
+    let disposed = false;
     setReady(false);
     setLoadError(null);
 
@@ -93,7 +162,8 @@ export function VideoTile({
         }
 
         const captureProgress = () => {
-          const currentTime = playerRef.current?.getCurrentTime?.();
+          const currentTime =
+            audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.();
           if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
             onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
           }
@@ -127,12 +197,20 @@ export function VideoTile({
                   // The YouTube iframe can briefly reject seek commands during initialization.
                 }
               }
-              applyPlayerVolume(event.target, effectiveVolume);
+              applyPlayerVolume(event.target, 0);
+              try {
+                event.target.setPlaybackRate?.(channel.playbackRate);
+              } catch {
+                // Some embeds briefly reject playback-rate changes during init.
+              }
               lockPlayerInteraction(event.target);
               syncPlayerPlayback(
                 event.target,
                 transportPlaying && !channel.paused,
               );
+              if (transportPlaying && !channel.paused) {
+                void audioControllerRef.current?.play();
+              }
               captureProgress();
             },
             onStateChange: (event) => {
@@ -174,7 +252,8 @@ export function VideoTile({
 
     return () => {
       disposed = true;
-      const currentTime = playerRef.current?.getCurrentTime?.();
+      const currentTime =
+        audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.();
       if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
         onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
       }
@@ -188,7 +267,8 @@ export function VideoTile({
       return;
     }
 
-    applyPlayerVolume(playerRef.current, effectiveVolume);
+    audioControllerRef.current?.setVolume(effectiveVolume);
+    applyPlayerVolume(playerRef.current, 0);
   }, [effectiveVolume, ready]);
 
   useEffect(() => {
@@ -196,8 +276,58 @@ export function VideoTile({
       return;
     }
 
+    try {
+      audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
+      playerRef.current.setPlaybackRate?.(channel.playbackRate);
+    } catch {
+      // The iframe may briefly reject playback-rate updates while buffering.
+    }
+  }, [channel.playbackRate, ready]);
+
+  useEffect(() => {
+    if (!ready || !playerRef.current) {
+      return;
+    }
+
     syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
+    if (transportPlaying && !channel.paused) {
+      void audioControllerRef.current?.play();
+    } else {
+      audioControllerRef.current?.pause();
+    }
   }, [channel.paused, ready, transportPlaying]);
+
+  useEffect(() => {
+    audioControllerRef.current?.setEffects({
+      delayEnabled: channel.delayEnabled,
+      delayFeedback: channel.delayFeedback,
+      delayMix: channel.delayMix,
+      delayTimeMs: channel.delayTimeMs,
+      lofiCutoffHz: channel.lofiCutoffHz,
+      lofiEnabled: channel.lofiEnabled,
+      lofiMix: channel.lofiMix,
+      reverbDecay: channel.reverbDecay,
+      reverbEnabled: channel.reverbEnabled,
+      reverbMix: channel.reverbMix,
+      reverbPreDelayMs: channel.reverbPreDelayMs,
+    });
+  }, [
+    channel.delayEnabled,
+    channel.delayFeedback,
+    channel.delayMix,
+    channel.delayTimeMs,
+    channel.lofiCutoffHz,
+    channel.lofiEnabled,
+    channel.lofiMix,
+    channel.reverbDecay,
+    channel.reverbEnabled,
+    channel.reverbMix,
+    channel.reverbPreDelayMs,
+  ]);
+
+  useEffect(() => {
+    audioControllerRef.current?.setPitchShift(channel.pitchShiftEnabled, channel.pitchShiftSemitones);
+  }, [channel.pitchShiftEnabled, channel.pitchShiftSemitones]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -205,11 +335,15 @@ export function VideoTile({
     }
 
     try {
+      audioControllerRef.current?.seek(channel.progressSeconds);
       playerRef.current.seekTo(channel.progressSeconds, true);
       syncPlayerPlayback(
         playerRef.current,
         transportPlaying && !channel.paused,
       );
+      if (transportPlaying && !channel.paused) {
+        void audioControllerRef.current?.play();
+      }
     } catch {
       // A restart can land while the iframe is still buffering.
     }
@@ -226,7 +360,8 @@ export function VideoTile({
     }
 
     const captureProgress = () => {
-      const currentTime = playerRef.current?.getCurrentTime?.();
+      const currentTime =
+        audioControllerRef.current?.getCurrentTime?.() ?? playerRef.current?.getCurrentTime?.();
       if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
         onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
       }
@@ -252,6 +387,78 @@ export function VideoTile({
       ? Math.min(100, (channel.progressSeconds / durationSeconds) * 100)
       : 0;
 
+  const effectCardClass = `rounded-2xl border px-4 py-3 ${
+    isDarkMode ? "border-slate-800 bg-slate-950/60" : "border-slate-200 bg-slate-50"
+  }`;
+  const effectTitleClass = `text-xs font-semibold uppercase tracking-[0.16em] ${
+    isDarkMode ? "text-sky-300" : "text-blue-700"
+  }`;
+  const effectCopyClass = `mt-1 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`;
+  const effectValueClass = isDarkMode ? "text-slate-200" : "text-slate-700";
+  const effectLabelClass = `font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`;
+
+  function patchChannel(patch: Partial<MixChannel>) {
+    onPatchChannel(channel.id, patch);
+  }
+
+  function renderEffectToggle(enabled: boolean, patch: Partial<MixChannel>) {
+    return (
+      <button
+        type="button"
+        onClick={() => patchChannel(patch)}
+        className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+          enabled
+            ? isDarkMode
+              ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+              : "border-blue-200 bg-blue-50 text-blue-700"
+            : isDarkMode
+              ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+              : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+        }`}
+        aria-pressed={enabled}
+      >
+        {enabled ? "On" : "Off"}
+      </button>
+    );
+  }
+
+  function renderEffectSlider({
+    label,
+    max,
+    min,
+    patchKey,
+    step,
+    unit = "",
+    value,
+  }: {
+    label: string;
+    max: number;
+    min: number;
+    patchKey: keyof MixChannel;
+    step?: number;
+    unit?: string;
+    value: number;
+  }) {
+    return (
+      <label className="block">
+        <div className="mb-1 flex items-center justify-between text-xs">
+          <span className={effectLabelClass}>{label}</span>
+          <span className={effectValueClass}>{unit === "x" ? `${value.toFixed(2)}x` : `${value}${unit}`}</span>
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(event) => patchChannel({ [patchKey]: Number(event.target.value) } as Partial<MixChannel>)}
+          className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+          aria-label={`${trackLabel} ${label.toLowerCase()}`}
+        />
+      </label>
+    );
+  }
+
   function scrubToPointerPosition(event: PointerEvent<HTMLButtonElement>) {
     if (!playerRef.current) {
       return;
@@ -273,6 +480,7 @@ export function VideoTile({
 
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
+      audioControllerRef.current?.seek(nextProgressSeconds);
       playerRef.current.seekTo(nextProgressSeconds, true);
       onProgressRef.current(mixKey, channel.id, nextProgressSeconds);
     } catch {
@@ -485,7 +693,127 @@ export function VideoTile({
           >
             {channel.looped ? "Loop on" : "Loop"}
           </button>
+          <button
+            type="button"
+            onClick={() => setTrackOptionsOpen(true)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+              isDarkMode
+                ? "border-sky-400/30 bg-sky-500/10 text-sky-200 hover:border-sky-400 hover:bg-sky-500/15"
+                : "border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100"
+            }`}
+          >
+            Track options
+          </button>
         </div>
+
+        {trackOptionsOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setTrackOptionsOpen(false)} />
+            <div
+              className={`relative flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border shadow-[0_30px_120px_rgba(15,23,42,0.45)] ${
+                isDarkMode
+                  ? "border-slate-700 bg-slate-950 text-slate-100"
+                  : "border-white bg-white text-slate-900"
+              }`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={`${channel.id}-track-options-title`}
+            >
+              <div className={`flex items-start justify-between gap-4 border-b px-5 py-5 sm:px-7 ${isDarkMode ? "border-slate-800 bg-slate-950/85" : "border-slate-200 bg-white/95"}`}>
+                <div className="space-y-2">
+                  <p className={`text-xs font-semibold uppercase tracking-[0.2em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>DSP effects</p>
+                  <h3 id={`${channel.id}-track-options-title`} className={`text-2xl font-semibold sm:text-3xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
+                    Track options
+                  </h3>
+                  <p className={`max-w-2xl text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                    Dial in tone and timing for {channel.video.title}. Loop-region editing is intentionally not included here.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTrackOptionsOpen(false)}
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-full border text-xl transition ${
+                    isDarkMode
+                      ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-200"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
+                  }`}
+                  aria-label="Close track options"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={`flex-1 overflow-y-auto p-5 sm:p-7 ${isDarkMode ? "bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_40%)]" : "bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.12),_transparent_40%)]"}`}>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className={effectCardClass}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className={effectTitleClass}>Speed</p>
+                        <p className={effectCopyClass}>Slow down or speed up this track.</p>
+                      </div>
+                    </div>
+                    {renderEffectSlider({ label: "Playback speed", min: 0.5, max: 2, step: 0.25, value: channel.playbackRate, patchKey: "playbackRate", unit: "x" })}
+                  </div>
+
+                  <div className={effectCardClass}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className={effectTitleClass}>Reverb</p>
+                        <p className={effectCopyClass}>Add space, decay, and pre-delay.</p>
+                      </div>
+                      {renderEffectToggle(channel.reverbEnabled, { reverbEnabled: !channel.reverbEnabled })}
+                    </div>
+                    <div className="space-y-3">
+                      {renderEffectSlider({ label: "Mix", min: 0, max: 100, value: channel.reverbMix, patchKey: "reverbMix", unit: "%" })}
+                      {renderEffectSlider({ label: "Decay", min: 0, max: 100, value: channel.reverbDecay, patchKey: "reverbDecay", unit: "%" })}
+                      {renderEffectSlider({ label: "Pre-delay", min: 0, max: 200, value: channel.reverbPreDelayMs, patchKey: "reverbPreDelayMs", unit: " ms" })}
+                    </div>
+                  </div>
+
+                  <div className={effectCardClass}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className={effectTitleClass}>Delay</p>
+                        <p className={effectCopyClass}>Tune the repeats and feedback.</p>
+                      </div>
+                      {renderEffectToggle(channel.delayEnabled, { delayEnabled: !channel.delayEnabled })}
+                    </div>
+                    <div className="space-y-3">
+                      {renderEffectSlider({ label: "Mix", min: 0, max: 100, value: channel.delayMix, patchKey: "delayMix", unit: "%" })}
+                      {renderEffectSlider({ label: "Feedback", min: 0, max: 100, value: channel.delayFeedback, patchKey: "delayFeedback", unit: "%" })}
+                      {renderEffectSlider({ label: "Time", min: 20, max: 900, step: 10, value: channel.delayTimeMs, patchKey: "delayTimeMs", unit: " ms" })}
+                    </div>
+                  </div>
+
+                  <div className={effectCardClass}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className={effectTitleClass}>Lofi</p>
+                        <p className={effectCopyClass}>Darken and soften the track.</p>
+                      </div>
+                      {renderEffectToggle(channel.lofiEnabled, { lofiEnabled: !channel.lofiEnabled })}
+                    </div>
+                    <div className="space-y-3">
+                      {renderEffectSlider({ label: "Mix", min: 0, max: 100, value: channel.lofiMix, patchKey: "lofiMix", unit: "%" })}
+                      {renderEffectSlider({ label: "Cutoff", min: 300, max: 12000, step: 50, value: channel.lofiCutoffHz, patchKey: "lofiCutoffHz", unit: " Hz" })}
+                    </div>
+                  </div>
+
+                  <div className={effectCardClass}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className={effectTitleClass}>Pitch</p>
+                        <p className={effectCopyClass}>Shift pitch without changing the transport speed.</p>
+                      </div>
+                      {renderEffectToggle(channel.pitchShiftEnabled, { pitchShiftEnabled: !channel.pitchShiftEnabled })}
+                    </div>
+                    {renderEffectSlider({ label: "Semitones", min: -12, max: 12, step: 1, value: channel.pitchShiftSemitones, patchKey: "pitchShiftSemitones" })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </article>
   );

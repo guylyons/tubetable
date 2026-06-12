@@ -4,6 +4,7 @@ import {
   buildVisualizerProfile,
   calculateVisualizerLevels,
 } from "./transportVisualizer";
+import { DEFAULT_TRACK_EFFECTS } from "./mixChannels";
 import type { MixChannelState } from "../types";
 
 function channel(
@@ -13,6 +14,8 @@ function channel(
   return {
     id,
     effectiveVolume: 76,
+    playbackRate: 1,
+    ...DEFAULT_TRACK_EFFECTS,
     looped: true,
     muted: false,
     paused: false,
