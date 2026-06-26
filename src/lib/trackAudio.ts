@@ -111,6 +111,35 @@ function buildAudioUrl(audioUrl: string, pitchShiftSemitones: number, startSecon
   return url.toString();
 }
 
+type AudioSyncState = {
+  currentTime: number;
+  isPaused: boolean;
+  readyState: number;
+  referenceSeconds: number;
+  toleranceSeconds: number;
+};
+
+const HAVE_CURRENT_DATA = 2;
+
+export function shouldReloadAudioForSync({
+  currentTime,
+  isPaused,
+  readyState,
+  referenceSeconds,
+  toleranceSeconds,
+}: AudioSyncState) {
+  if (
+    isPaused ||
+    readyState < HAVE_CURRENT_DATA ||
+    !Number.isFinite(currentTime) ||
+    !Number.isFinite(referenceSeconds)
+  ) {
+    return false;
+  }
+
+  return currentTime - referenceSeconds > toleranceSeconds;
+}
+
 export class TrackAudioController {
   private readonly audio: HTMLAudioElement;
   private readonly context: AudioContextLike;
@@ -512,13 +541,21 @@ export class TrackAudioController {
   }
 
   syncTo(referenceSeconds: number, toleranceSeconds = 0.35) {
-    if (this.destroyed || this.audio.paused || !Number.isFinite(referenceSeconds)) {
+    if (this.destroyed) {
       return;
     }
 
     const currentTime = this.getCurrentTime();
     const driftSeconds = currentTime - referenceSeconds;
-    if (Math.abs(driftSeconds) > toleranceSeconds) {
+    if (
+      shouldReloadAudioForSync({
+        currentTime,
+        isPaused: this.audio.paused,
+        readyState: this.audio.readyState,
+        referenceSeconds,
+        toleranceSeconds,
+      })
+    ) {
       this.diagnostics.record("sync-reload", {
         currentTime,
         referenceSeconds,
