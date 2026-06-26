@@ -3,6 +3,7 @@ import {
   createAudioDiagnostics,
   isAudioDiagnosticsEnabled,
 } from "./audioDiagnostics";
+import { createTrackDspChain } from "./trackDsp";
 
 export type TrackEffectState = {
   reverbEnabled: boolean;
@@ -72,25 +73,6 @@ export async function primeSharedAudioContext() {
   }
 }
 
-function createImpulseResponse(context: AudioContextLike, decaySeconds: number) {
-  const length = Math.max(1, Math.floor(context.sampleRate * decaySeconds));
-  const buffer = context.createBuffer(2, length, context.sampleRate);
-
-  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
-    const data = buffer.getChannelData(channel);
-    let previous = 0;
-    for (let index = 0; index < length; index += 1) {
-      const normalized = index / length;
-      const decay = Math.exp(-normalized * 5.4);
-      const noise = (Math.random() * 2 - 1) * 0.42;
-      previous = previous * 0.72 + noise * 0.28;
-      data[index] = previous * decay;
-    }
-  }
-
-  return buffer;
-}
-
 function buildAudioUrl(audioUrl: string, pitchShiftSemitones: number, startSeconds: number) {
   const url = new URL(audioUrl, window.location.origin);
   const normalized = Math.round(pitchShiftSemitones * 100) / 100;
@@ -144,19 +126,7 @@ export class TrackAudioController {
   private readonly audio: HTMLAudioElement;
   private readonly context: AudioContextLike;
   private readonly source: MediaElementAudioSourceNode;
-  private readonly dryGain: GainNode;
-  private readonly lofiHighpassFilter: BiquadFilterNode;
-  private readonly lofiFilter: BiquadFilterNode;
-  private readonly lofiWetGain: GainNode;
-  private readonly mixGain: GainNode;
-  private readonly masterGain: GainNode;
-  private readonly delayNode: DelayNode;
-  private readonly delayFeedbackGain: GainNode;
-  private readonly delayWetGain: GainNode;
-  private readonly reverbPreDelay: DelayNode;
-  private readonly reverbConvolver: ConvolverNode;
-  private readonly reverbToneFilter: BiquadFilterNode;
-  private readonly reverbWetGain: GainNode;
+  private readonly dsp: ReturnType<typeof createTrackDspChain>;
   private readonly diagnostics: AudioDiagnostics;
   private readonly listeners: Array<{
     target: HTMLAudioElement;
@@ -166,7 +136,6 @@ export class TrackAudioController {
   private readonly audioUrl: string;
   private pendingSeekSeconds: number | null = null;
   private destroyed = false;
-  private currentEffects: TrackEffectState | null = null;
   private currentPitchShiftSemitones = 0;
   private mediaStartSeconds = 0;
 
@@ -193,62 +162,19 @@ export class TrackAudioController {
     });
 
     this.source = this.context.createMediaElementSource(this.audio);
-    this.dryGain = this.context.createGain();
-    this.lofiHighpassFilter = this.context.createBiquadFilter();
-    this.lofiFilter = this.context.createBiquadFilter();
-    this.lofiWetGain = this.context.createGain();
-    this.mixGain = this.context.createGain();
-    this.masterGain = this.context.createGain();
-    this.delayNode = this.context.createDelay(8);
-    this.delayFeedbackGain = this.context.createGain();
-    this.delayWetGain = this.context.createGain();
-    this.reverbPreDelay = this.context.createDelay(2.5);
-    this.reverbConvolver = this.context.createConvolver();
-    this.reverbToneFilter = this.context.createBiquadFilter();
-    this.reverbWetGain = this.context.createGain();
-
-    this.lofiHighpassFilter.type = "highpass";
-    this.lofiHighpassFilter.frequency.value = 80;
-    this.lofiHighpassFilter.Q.value = 0.7;
-    this.lofiFilter.type = "lowpass";
-    this.lofiFilter.frequency.value = 2400;
-    this.lofiFilter.Q.value = 0.8;
-    this.reverbToneFilter.type = "lowpass";
-    this.reverbToneFilter.frequency.value = 5600;
-    this.reverbToneFilter.Q.value = 0.45;
-
-    this.dryGain.gain.value = 1;
-    this.lofiWetGain.gain.value = 0;
-    this.mixGain.gain.value = 1;
-    this.masterGain.gain.value = 0.76;
-    this.delayNode.delayTime.value = 0.29;
-    this.delayFeedbackGain.gain.value = 0.36;
-    this.delayWetGain.gain.value = 0;
-    this.reverbPreDelay.delayTime.value = 0.012;
-    this.replaceReverbBuffer(1.6, "initial");
-    this.reverbWetGain.gain.value = 0;
-
-    this.source.connect(this.dryGain);
-    this.source.connect(this.lofiHighpassFilter);
-    this.lofiHighpassFilter.connect(this.lofiFilter);
-    this.lofiFilter.connect(this.lofiWetGain);
-    this.dryGain.connect(this.mixGain);
-    this.lofiWetGain.connect(this.mixGain);
-
-    this.source.connect(this.delayNode);
-    this.delayNode.connect(this.delayFeedbackGain);
-    this.delayFeedbackGain.connect(this.delayNode);
-    this.delayNode.connect(this.delayWetGain);
-    this.delayWetGain.connect(this.mixGain);
-
-    this.source.connect(this.reverbPreDelay);
-    this.reverbPreDelay.connect(this.reverbConvolver);
-    this.reverbConvolver.connect(this.reverbToneFilter);
-    this.reverbToneFilter.connect(this.reverbWetGain);
-    this.reverbWetGain.connect(this.mixGain);
-
-    this.mixGain.connect(this.masterGain);
-    this.masterGain.connect(this.context.destination);
+    this.dsp = createTrackDspChain({
+      context: this.context,
+      destination: this.context.destination,
+      source: this.source,
+      onImpulseResponse: ({ decaySeconds, durationMs, reason }) => {
+        this.diagnostics.record("impulse-response", {
+          reason,
+          decaySeconds,
+          durationMs,
+          ...this.getContextSnapshot(),
+        });
+      },
+    });
 
     const handleLoadedMetadata = () => {
       this.diagnostics.record("loaded-metadata", {
@@ -356,17 +282,6 @@ export class TrackAudioController {
     };
   }
 
-  private replaceReverbBuffer(decaySeconds: number, reason: string) {
-    const startedAt = performance.now();
-    this.reverbConvolver.buffer = createImpulseResponse(this.context, decaySeconds);
-    this.diagnostics.record("impulse-response", {
-      reason,
-      decaySeconds,
-      durationMs: Math.round(performance.now() - startedAt),
-      ...this.getContextSnapshot(),
-    });
-  }
-
   private loadAt(startSeconds: number, autoplay = false) {
     if (this.destroyed) {
       return;
@@ -459,10 +374,10 @@ export class TrackAudioController {
       return;
     }
 
-    this.masterGain.gain.value = clamp(volume, 76, 0, 100) / 100;
+    const masterGain = this.dsp.setVolume(volume);
     this.diagnostics.record("set-volume", {
       requestedVolume: volume,
-      masterGain: this.masterGain.gain.value,
+      masterGain,
     });
   }
 
@@ -471,31 +386,7 @@ export class TrackAudioController {
       return;
     }
 
-    const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix, 40, 0, 100) / 100 : 0;
-    this.dryGain.gain.value = 1 - lofiMix;
-    this.lofiWetGain.gain.value = lofiMix;
-    this.lofiHighpassFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiHighpassHz, 80, 20, 1200) : 20;
-    this.lofiFilter.frequency.value = effects.lofiEnabled ? clamp(effects.lofiCutoffHz, 2400, 300, 12000) : 22050;
-    this.lofiFilter.Q.value = effects.lofiEnabled ? 0.95 : 0.1;
-
-    this.delayWetGain.gain.value = effects.delayEnabled ? clamp(effects.delayMix, 28, 0, 100) / 100 : 0;
-    this.delayNode.delayTime.value = clamp(effects.delayTimeMs, 290, 20, 900) / 1000;
-    this.delayFeedbackGain.gain.value = effects.delayEnabled ? clamp(effects.delayFeedback, 36, 0, 92) / 100 : 0;
-
-    this.reverbPreDelay.delayTime.value = clamp(effects.reverbPreDelayMs, 12, 0, 200) / 1000;
-    this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix, 22, 0, 35) / 100 : 0;
-
-    const reverbDecay = clamp(effects.reverbDecay, 55, 0, 100);
-    const decaySeconds = 0.45 + (reverbDecay / 100) * 3.1;
-    if (
-      !this.currentEffects ||
-      Math.abs(clamp(this.currentEffects.reverbDecay, 55, 0, 100) - reverbDecay) > 2 ||
-      !this.reverbConvolver.buffer
-    ) {
-      this.replaceReverbBuffer(decaySeconds, "effect-change");
-    }
-
-    this.currentEffects = { ...effects };
+    const { reverbDecay } = this.dsp.setEffects(effects);
     this.diagnostics.record("set-effects", {
       delayEnabled: effects.delayEnabled,
       delayMix: effects.delayMix,
@@ -583,20 +474,7 @@ export class TrackAudioController {
     }
 
     try {
-      this.source.disconnect();
-      this.dryGain.disconnect();
-      this.lofiHighpassFilter.disconnect();
-      this.lofiFilter.disconnect();
-      this.lofiWetGain.disconnect();
-      this.mixGain.disconnect();
-      this.masterGain.disconnect();
-      this.delayNode.disconnect();
-      this.delayFeedbackGain.disconnect();
-      this.delayWetGain.disconnect();
-      this.reverbPreDelay.disconnect();
-      this.reverbConvolver.disconnect();
-      this.reverbToneFilter.disconnect();
-      this.reverbWetGain.disconnect();
+      this.dsp.disconnect();
     } catch {
       // Disconnect operations can fail if the graph is already torn down.
     }

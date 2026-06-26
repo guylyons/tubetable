@@ -106,13 +106,14 @@ describe("UI interaction contracts", () => {
   test("polishes DSP tone controls and keeps DSP audio synced to the video clock", () => {
     const videoTileSource = readSource("src/components/VideoTile.tsx");
     const trackAudioSource = readSource("src/lib/trackAudio.ts");
+    const trackDspSource = readSource("src/lib/trackDsp.ts");
     const mixChannelsSource = readSource("src/lib/mixChannels.ts");
 
-    expect(trackAudioSource).toContain("lofiHighpassFilter");
-    expect(trackAudioSource).toContain('this.lofiHighpassFilter.type = "highpass"');
+    expect(trackDspSource).toContain("lofiHighpassFilter");
+    expect(trackDspSource).toContain('lofiHighpassFilter.type = "highpass"');
     expect(videoTileSource).toContain("High-pass");
-    expect(trackAudioSource).toContain("reverbToneFilter");
-    expect(trackAudioSource).toContain("this.reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix, 22, 0, 35) / 100 : 0");
+    expect(trackDspSource).toContain("reverbToneFilter");
+    expect(trackDspSource).toContain("reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix, 22, 0, 35) / 100 : 0");
     expect(trackAudioSource).toContain("syncTo(referenceSeconds: number");
     expect(videoTileSource).toContain("audioControllerRef.current?.syncTo(playerTime)");
     expect(mixChannelsSource).toContain("silencedBySolo");
@@ -120,12 +121,12 @@ describe("UI interaction contracts", () => {
   });
 
   test("guards DSP AudioParam values against missing persisted effect fields", () => {
-    const trackAudioSource = readSource("src/lib/trackAudio.ts");
+    const trackDspSource = readSource("src/lib/trackDsp.ts");
 
-    expect(trackAudioSource).toContain("function clamp(value: unknown, fallback: number, min: number, max: number)");
-    expect(trackAudioSource).toContain("const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix, 40, 0, 100) / 100 : 0");
-    expect(trackAudioSource).toContain("clamp(effects.lofiHighpassHz, 80, 20, 1200)");
-    expect(trackAudioSource).toContain("clamp(effects.lofiCutoffHz, 2400, 300, 12000)");
+    expect(trackDspSource).toContain("function clamp(value: unknown, fallback: number, min: number, max: number)");
+    expect(trackDspSource).toContain("const lofiMix = effects.lofiEnabled ? clamp(effects.lofiMix, 40, 0, 100) / 100 : 0");
+    expect(trackDspSource).toContain("clamp(effects.lofiHighpassHz, 80, 20, 1200)");
+    expect(trackDspSource).toContain("clamp(effects.lofiCutoffHz, 2400, 300, 12000)");
   });
 
   test("keeps DSP diagnostics behind an explicit debug switch", () => {
