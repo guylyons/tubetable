@@ -32,6 +32,12 @@ function createImpulseResponse(context: AudioContext, decaySeconds: number) {
   return buffer;
 }
 
+const DEFAULT_REVERB_DECAY = 55;
+
+function getReverbDecaySeconds(decay: number) {
+  return 0.45 + (decay / 100) * 3.1;
+}
+
 export function createTrackDspChain({
   context,
   destination,
@@ -52,15 +58,43 @@ export function createTrackDspChain({
   const reverbToneFilter = context.createBiquadFilter();
   const reverbWetGain = context.createGain();
   let currentEffects: TrackEffectState | null = null;
+  let currentReverbDecay = DEFAULT_REVERB_DECAY;
+  let pendingReverbDecay: number | null = null;
+  let pendingReverbDecaySeconds: number | null = null;
+  let reverbUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function replaceReverbBuffer(decaySeconds: number, reason: string) {
+  function replaceReverbBuffer(decay: number, decaySeconds: number, reason: string) {
     const startedAt = performance.now();
     reverbConvolver.buffer = createImpulseResponse(context, decaySeconds);
+    currentReverbDecay = decay;
     onImpulseResponse?.({
       reason,
       decaySeconds,
       durationMs: Math.round(performance.now() - startedAt),
     });
+  }
+
+  function scheduleReverbBuffer(decay: number, decaySeconds: number) {
+    pendingReverbDecay = decay;
+    pendingReverbDecaySeconds = decaySeconds;
+    if (reverbUpdateTimer !== null) {
+      return;
+    }
+
+    reverbUpdateTimer = setTimeout(() => {
+      reverbUpdateTimer = null;
+      const nextDecay = pendingReverbDecay;
+      const nextDecaySeconds = pendingReverbDecaySeconds;
+      pendingReverbDecay = null;
+      pendingReverbDecaySeconds = null;
+      if (
+        nextDecay !== null &&
+        nextDecaySeconds !== null &&
+        Math.abs(currentReverbDecay - nextDecay) > 2
+      ) {
+        replaceReverbBuffer(nextDecay, nextDecaySeconds, "effect-change");
+      }
+    }, 0);
   }
 
   lofiHighpassFilter.type = "highpass";
@@ -81,7 +115,11 @@ export function createTrackDspChain({
   delayFeedbackGain.gain.value = 0.36;
   delayWetGain.gain.value = 0;
   reverbPreDelay.delayTime.value = 0.012;
-  replaceReverbBuffer(1.6, "initial");
+  replaceReverbBuffer(
+    DEFAULT_REVERB_DECAY,
+    getReverbDecaySeconds(DEFAULT_REVERB_DECAY),
+    "initial",
+  );
   reverbWetGain.gain.value = 0;
 
   source.connect(dryGain);
@@ -137,14 +175,14 @@ export function createTrackDspChain({
       reverbPreDelay.delayTime.value = clamp(effects.reverbPreDelayMs, 12, 0, 200) / 1000;
       reverbWetGain.gain.value = effects.reverbEnabled ? clamp(effects.reverbMix, 22, 0, 35) / 100 : 0;
 
-      const reverbDecay = clamp(effects.reverbDecay, 55, 0, 100);
-      const decaySeconds = 0.45 + (reverbDecay / 100) * 3.1;
-      if (
-        !currentEffects ||
-        Math.abs(clamp(currentEffects.reverbDecay, 55, 0, 100) - reverbDecay) > 2 ||
-        !reverbConvolver.buffer
-      ) {
-        replaceReverbBuffer(decaySeconds, "effect-change");
+      const reverbDecay = clamp(effects.reverbDecay, DEFAULT_REVERB_DECAY, 0, 100);
+      const previousReverbDecay = currentEffects
+        ? clamp(currentEffects.reverbDecay, DEFAULT_REVERB_DECAY, 0, 100)
+        : currentReverbDecay;
+      const decayChanged = Math.abs(previousReverbDecay - reverbDecay) > 2;
+      const bufferChanged = Math.abs(currentReverbDecay - reverbDecay) > 2 || !reverbConvolver.buffer;
+      if (decayChanged && bufferChanged) {
+        scheduleReverbBuffer(reverbDecay, getReverbDecaySeconds(reverbDecay));
       }
 
       currentEffects = { ...effects };
@@ -155,6 +193,10 @@ export function createTrackDspChain({
       return masterGain.gain.value;
     },
     disconnect() {
+      if (reverbUpdateTimer !== null) {
+        clearTimeout(reverbUpdateTimer);
+        reverbUpdateTimer = null;
+      }
       source.disconnect();
       dryGain.disconnect();
       lofiHighpassFilter.disconnect();

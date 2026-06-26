@@ -63,6 +63,7 @@ export function VideoTile({
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const audioControllerRef = useRef<TrackAudioController | null>(null);
+  const pitchShiftControllerRef = useRef<TrackAudioController | null>(null);
   const onProgressRef = useRef(onProgress);
   const playbackStateRef = useRef({
     looped: channel.looped,
@@ -74,12 +75,51 @@ export function VideoTile({
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [trackOptionsOpen, setTrackOptionsOpen] = useState(false);
   const [webAudioReady, setWebAudioReady] = useState(false);
-  const usesWebAudio =
-    channel.reverbEnabled ||
-    channel.delayEnabled ||
-    channel.lofiEnabled ||
-    channel.pitchShiftEnabled;
-  const webAudioActive = usesWebAudio && webAudioReady;
+  const [pitchShiftReady, setPitchShiftReady] = useState(false);
+  const hasPitchShiftMirror = channel.pitchShiftSemitones !== 0;
+  const pitchShiftActive = channel.pitchShiftEnabled && hasPitchShiftMirror;
+  const webAudioActive = webAudioReady && (!pitchShiftActive || pitchShiftReady);
+  const pitchShiftStateRef = useRef({
+    enabled: channel.pitchShiftEnabled,
+    ready: pitchShiftReady,
+    semitones: channel.pitchShiftSemitones,
+  });
+
+  pitchShiftStateRef.current = {
+    enabled: channel.pitchShiftEnabled,
+    ready: pitchShiftReady,
+    semitones: channel.pitchShiftSemitones,
+  };
+
+  function handleAudioEnded(mode: "base" | "pitch", controller: TrackAudioController) {
+    const playbackState = playbackStateRef.current;
+    const pitchState = pitchShiftStateRef.current;
+    const pitchMirrorActive = pitchState.enabled && pitchState.semitones !== 0 && pitchState.ready;
+    const activeMode: "base" | "pitch" = pitchMirrorActive ? "pitch" : "base";
+
+    if (playbackState.looped && playbackState.transportPlaying && !playbackState.paused) {
+      try {
+        controller.seek(0);
+        void controller.play();
+        if (mode === activeMode) {
+          playerRef.current?.seekTo(0, true);
+          playerRef.current?.playVideo();
+        }
+      } catch {
+        // Loop restarts can briefly collide with browser playback state.
+      }
+      return;
+    }
+
+    if (mode !== activeMode) {
+      return;
+    }
+
+    const currentTime = controller.getCurrentTime();
+    if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+      onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+    }
+  }
 
   useEffect(() => {
     onProgressRef.current = onProgress;
@@ -97,41 +137,13 @@ export function VideoTile({
     let disposed = false;
     setWebAudioReady(false);
 
-    if (!usesWebAudio) {
-      audioControllerRef.current?.destroy();
-      audioControllerRef.current = null;
-      const player = playerRef.current;
-      if (player) {
-        applyPlayerVolume(player, effectiveVolume);
-      }
-      return () => {
-        disposed = true;
-      };
-    }
-
     const audioUrl = `/api/youtube/audio?videoId=${encodeURIComponent(channel.video.videoId)}`;
+    const initialStartSeconds = playerRef.current?.getCurrentTime?.() ?? channel.progressSeconds;
     const controller = new TrackAudioController({
       audioUrl,
       debugLabel: `${trackLabel} ${channel.video.title}`,
-      onEnded: () => {
-        const playbackState = playbackStateRef.current;
-        if (playbackState.looped && playbackState.transportPlaying && !playbackState.paused) {
-          try {
-            controller.seek(0);
-            void controller.play();
-            playerRef.current?.seekTo(0, true);
-            playerRef.current?.playVideo();
-          } catch {
-            // Loop restarts can briefly collide with browser playback state.
-          }
-          return;
-        }
-
-        const currentTime = controller.getCurrentTime();
-        if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
-          onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
-        }
-      },
+      initialStartSeconds,
+      onEnded: () => handleAudioEnded("base", controller),
       onError: (message) => {
         if (!disposed) {
           setLoadError(message);
@@ -161,8 +173,6 @@ export function VideoTile({
       reverbMix: channel.reverbMix,
       reverbPreDelayMs: channel.reverbPreDelayMs,
     });
-    controller.setPitchShift(channel.pitchShiftEnabled, channel.pitchShiftSemitones);
-    controller.seek(playerRef.current?.getCurrentTime?.() ?? channel.progressSeconds);
     const playbackState = playbackStateRef.current;
     if (playbackState.transportPlaying && !playbackState.paused) {
       void controller.play();
@@ -179,7 +189,74 @@ export function VideoTile({
         audioControllerRef.current = null;
       }
     };
-  }, [channel.id, channel.video.videoId, mixKey, trackLabel, usesWebAudio]);
+  }, [channel.id, channel.video.videoId, mixKey, trackLabel]);
+
+  useEffect(() => {
+    let disposed = false;
+    setPitchShiftReady(false);
+
+    if (!hasPitchShiftMirror) {
+      pitchShiftControllerRef.current?.destroy();
+      pitchShiftControllerRef.current = null;
+      return () => {
+        disposed = true;
+      };
+    }
+
+    const audioUrl = `/api/youtube/audio?videoId=${encodeURIComponent(channel.video.videoId)}`;
+    const initialStartSeconds = playerRef.current?.getCurrentTime?.() ?? channel.progressSeconds;
+    const controller = new TrackAudioController({
+      audioUrl,
+      debugLabel: `${trackLabel} ${channel.video.title} pitch mirror`,
+      initialStartSeconds,
+      onEnded: () => handleAudioEnded("pitch", controller),
+      onError: (message) => {
+        if (!disposed) {
+          setLoadError(message);
+        }
+      },
+      onReady: () => {
+        if (!disposed) {
+          setPitchShiftReady(true);
+        }
+      },
+    });
+
+    pitchShiftControllerRef.current = controller;
+    controller.setVolume(0);
+    controller.setPlaybackRate(channel.playbackRate);
+    controller.setEffects({
+      delayEnabled: channel.delayEnabled,
+      delayFeedback: channel.delayFeedback,
+      delayMix: channel.delayMix,
+      delayTimeMs: channel.delayTimeMs,
+      lofiCutoffHz: channel.lofiCutoffHz,
+      lofiHighpassHz: channel.lofiHighpassHz,
+      lofiEnabled: channel.lofiEnabled,
+      lofiMix: channel.lofiMix,
+      reverbDecay: channel.reverbDecay,
+      reverbEnabled: channel.reverbEnabled,
+      reverbMix: channel.reverbMix,
+      reverbPreDelayMs: channel.reverbPreDelayMs,
+    });
+    controller.setPitchShift(true, channel.pitchShiftSemitones);
+    const playbackState = playbackStateRef.current;
+    if (playbackState.transportPlaying && !playbackState.paused) {
+      void controller.play();
+    }
+
+    return () => {
+      disposed = true;
+      const currentTime = controller.getCurrentTime();
+      if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+        onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
+      }
+      controller.destroy();
+      if (pitchShiftControllerRef.current === controller) {
+        pitchShiftControllerRef.current = null;
+      }
+    };
+  }, [channel.id, channel.video.videoId, channel.pitchShiftSemitones, mixKey, trackLabel, hasPitchShiftMirror]);
 
   useEffect(() => {
     let disposed = false;
@@ -194,11 +271,16 @@ export function VideoTile({
 
         const captureProgress = () => {
           const playerTime = playerRef.current?.getCurrentTime?.();
-          if (webAudioActive && typeof playerTime === "number" && Number.isFinite(playerTime)) {
+          if (typeof playerTime === "number" && Number.isFinite(playerTime)) {
             audioControllerRef.current?.syncTo(playerTime);
+            pitchShiftControllerRef.current?.syncTo(playerTime);
           }
           const currentTime = webAudioActive
-            ? audioControllerRef.current?.getCurrentTime?.() ?? playerTime
+            ? pitchShiftActive
+              ? pitchShiftControllerRef.current?.getCurrentTime?.() ??
+                audioControllerRef.current?.getCurrentTime?.() ??
+                playerTime
+              : audioControllerRef.current?.getCurrentTime?.() ?? playerTime
             : playerTime;
           if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
             onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));
@@ -246,6 +328,7 @@ export function VideoTile({
               );
               if (webAudioActive && transportPlaying && !channel.paused) {
                 void audioControllerRef.current?.play();
+                void pitchShiftControllerRef.current?.play();
               }
               captureProgress();
             },
@@ -304,11 +387,18 @@ export function VideoTile({
       return;
     }
 
-    if (usesWebAudio) {
-      audioControllerRef.current?.setVolume(effectiveVolume);
-    }
+    const pitchMirrorActive = hasPitchShiftMirror && channel.pitchShiftEnabled && pitchShiftReady;
+    audioControllerRef.current?.setVolume(pitchMirrorActive ? 0 : effectiveVolume);
+    pitchShiftControllerRef.current?.setVolume(pitchMirrorActive ? effectiveVolume : 0);
     applyPlayerVolume(playerRef.current, webAudioActive ? 0 : effectiveVolume);
-  }, [effectiveVolume, ready, usesWebAudio, webAudioActive]);
+  }, [
+    channel.pitchShiftEnabled,
+    effectiveVolume,
+    hasPitchShiftMirror,
+    pitchShiftReady,
+    ready,
+    webAudioActive,
+  ]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -316,14 +406,13 @@ export function VideoTile({
     }
 
     try {
-      if (usesWebAudio) {
-        audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
-      }
+      audioControllerRef.current?.setPlaybackRate(channel.playbackRate);
+      pitchShiftControllerRef.current?.setPlaybackRate(channel.playbackRate);
       playerRef.current.setPlaybackRate?.(channel.playbackRate);
     } catch {
       // The iframe may briefly reject playback-rate updates while buffering.
     }
-  }, [channel.playbackRate, ready, usesWebAudio]);
+  }, [channel.playbackRate, ready]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -331,18 +420,31 @@ export function VideoTile({
     }
 
     syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
-    if (!webAudioActive) {
-      return;
-    }
     if (transportPlaying && !channel.paused) {
       void audioControllerRef.current?.play();
+      void pitchShiftControllerRef.current?.play();
     } else {
       audioControllerRef.current?.pause();
+      pitchShiftControllerRef.current?.pause();
     }
   }, [channel.paused, ready, transportPlaying, webAudioActive]);
 
   useEffect(() => {
     audioControllerRef.current?.setEffects({
+      delayEnabled: channel.delayEnabled,
+      delayFeedback: channel.delayFeedback,
+      delayMix: channel.delayMix,
+      delayTimeMs: channel.delayTimeMs,
+      lofiCutoffHz: channel.lofiCutoffHz,
+      lofiHighpassHz: channel.lofiHighpassHz,
+      lofiEnabled: channel.lofiEnabled,
+      lofiMix: channel.lofiMix,
+      reverbDecay: channel.reverbDecay,
+      reverbEnabled: channel.reverbEnabled,
+      reverbMix: channel.reverbMix,
+      reverbPreDelayMs: channel.reverbPreDelayMs,
+    });
+    pitchShiftControllerRef.current?.setEffects({
       delayEnabled: channel.delayEnabled,
       delayFeedback: channel.delayFeedback,
       delayMix: channel.delayMix,
@@ -372,18 +474,13 @@ export function VideoTile({
   ]);
 
   useEffect(() => {
-    audioControllerRef.current?.setPitchShift(channel.pitchShiftEnabled, channel.pitchShiftSemitones);
-  }, [channel.pitchShiftEnabled, channel.pitchShiftSemitones]);
-
-  useEffect(() => {
     if (!ready || !playerRef.current) {
       return;
     }
 
     try {
-      if (usesWebAudio) {
-        audioControllerRef.current?.seek(channel.progressSeconds);
-      }
+      audioControllerRef.current?.seek(channel.progressSeconds);
+      pitchShiftControllerRef.current?.seek(channel.progressSeconds);
       playerRef.current.seekTo(channel.progressSeconds, true);
       syncPlayerPlayback(
         playerRef.current,
@@ -391,11 +488,12 @@ export function VideoTile({
       );
       if (webAudioActive && transportPlaying && !channel.paused) {
         void audioControllerRef.current?.play();
+        void pitchShiftControllerRef.current?.play();
       }
     } catch {
       // A restart can land while the iframe is still buffering.
     }
-  }, [ready, restartToken, usesWebAudio, webAudioActive]);
+  }, [ready, restartToken, webAudioActive, transportPlaying, channel.paused]);
 
   useEffect(() => {
     if (!ready || !playerRef.current) {
@@ -409,11 +507,16 @@ export function VideoTile({
 
     const captureProgress = () => {
       const playerTime = playerRef.current?.getCurrentTime?.();
-      if (webAudioActive && typeof playerTime === "number" && Number.isFinite(playerTime)) {
+      if (typeof playerTime === "number" && Number.isFinite(playerTime)) {
         audioControllerRef.current?.syncTo(playerTime);
+        pitchShiftControllerRef.current?.syncTo(playerTime);
       }
       const currentTime = webAudioActive
-        ? audioControllerRef.current?.getCurrentTime?.() ?? playerTime
+        ? pitchShiftActive
+          ? pitchShiftControllerRef.current?.getCurrentTime?.() ??
+            audioControllerRef.current?.getCurrentTime?.() ??
+            playerTime
+          : audioControllerRef.current?.getCurrentTime?.() ?? playerTime
         : playerTime;
       if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
         onProgressRef.current(mixKey, channel.id, Math.max(0, currentTime));

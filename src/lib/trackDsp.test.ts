@@ -111,4 +111,29 @@ describe("track DSP chain", () => {
     expect(dsp.nodes.mixGain.connections).toContain(dsp.nodes.masterGain);
     expect(dsp.nodes.masterGain.connections).toContain(context.destination);
   });
+
+  test("does not rebuild the reverb impulse while applying initial effects or toggling reverb", () => {
+    const context = new FakeAudioContext();
+    const source = new FakeAudioNode();
+    const impulseReasons: string[] = [];
+
+    const dsp = createTrackDspChain({
+      context: context as unknown as AudioContext,
+      destination: context.destination as unknown as AudioNode,
+      source: source as unknown as AudioNode,
+      onImpulseResponse: ({ reason }) => {
+        impulseReasons.push(reason);
+      },
+    });
+
+    expect(impulseReasons).toEqual(["initial"]);
+
+    dsp.setEffects({ ...enabledEffects, reverbEnabled: false });
+    dsp.setEffects({ ...enabledEffects, reverbEnabled: true });
+    dsp.setEffects({ ...enabledEffects, reverbEnabled: false });
+
+    expect(impulseReasons).toEqual(["initial"]);
+
+    dsp.disconnect();
+  });
 });

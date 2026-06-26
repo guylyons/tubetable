@@ -60,11 +60,11 @@ describe("UI interaction contracts", () => {
     expect(serverSource).toContain('"/api/youtube/audio"');
   });
 
-  test("keeps default no-DSP playback on the YouTube iframe so scrubbed playback resumes immediately", () => {
+  test("keeps the iframe audible until the DSP controller is ready, then hands off instantly", () => {
     const videoTileSource = readSource("src/components/VideoTile.tsx");
 
-    expect(videoTileSource).toContain("const usesWebAudio =");
-    expect(videoTileSource).toContain("const webAudioActive = usesWebAudio && webAudioReady");
+    expect(videoTileSource).toContain("const hasPitchShiftMirror = channel.pitchShiftSemitones !== 0;");
+    expect(videoTileSource).toContain("const webAudioActive = webAudioReady && (!pitchShiftActive || pitchShiftReady);");
     expect(videoTileSource).toContain("webAudioActive ? 0 : effectiveVolume");
     expect(videoTileSource).toContain("if (webAudioActive) {\n        audioControllerRef.current?.seek(nextProgressSeconds);");
   });
@@ -78,18 +78,20 @@ describe("UI interaction contracts", () => {
     expect(videoTileSource).toContain("const [webAudioReady, setWebAudioReady] = useState(false)");
     expect(videoTileSource).toContain("onReady: () => {\n        if (!disposed) {\n          setWebAudioReady(true);");
     expect(videoTileSource).toContain("setWebAudioReady(false)");
-    expect(videoTileSource).toContain("const webAudioActive = usesWebAudio && webAudioReady");
+    expect(videoTileSource).toContain("const webAudioActive = webAudioReady && (!pitchShiftActive || pitchShiftReady);");
   });
 
-  test("only creates the DSP audio controller while an effect is enabled", () => {
+  test("keeps the DSP audio controller alive from track start so effect toggles are instant", () => {
     const videoTileSource = readSource("src/components/VideoTile.tsx");
 
     expect(videoTileSource).toContain("primeSharedAudioContext");
     expect(videoTileSource).toContain("void primeSharedAudioContext();");
-    expect(videoTileSource).toContain("if (!usesWebAudio) {\n      audioControllerRef.current?.destroy();");
-    expect(videoTileSource).toContain("const player = playerRef.current;\n      if (player) {\n        applyPlayerVolume(player, effectiveVolume);");
+    expect(videoTileSource).toContain("const initialStartSeconds = playerRef.current?.getCurrentTime?.() ?? channel.progressSeconds;");
     expect(videoTileSource).toContain("const controller = new TrackAudioController");
-    expect(videoTileSource).toContain("const playbackState = playbackStateRef.current;\n    if (playbackState.transportPlaying && !playbackState.paused) {\n      void controller.play();");
+    expect(videoTileSource).toContain("const pitchShiftControllerRef = useRef<TrackAudioController | null>(null);");
+    expect(videoTileSource).toContain("const hasPitchShiftMirror = channel.pitchShiftSemitones !== 0;");
+    expect(videoTileSource).not.toContain("if (!usesWebAudio) {\n      audioControllerRef.current?.destroy();");
+    expect(videoTileSource).not.toContain("controller.seek(playerRef.current?.getCurrentTime?.() ?? channel.progressSeconds);");
   });
 
   test("seeks DSP audio by rebuilding the proxy stream at the requested offset", () => {
