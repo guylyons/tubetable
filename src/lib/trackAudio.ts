@@ -1,3 +1,9 @@
+import {
+  type AudioDiagnostics,
+  createAudioDiagnostics,
+  isAudioDiagnosticsEnabled,
+} from "./audioDiagnostics";
+
 export type TrackEffectState = {
   reverbEnabled: boolean;
   reverbMix: number;
@@ -122,6 +128,7 @@ export class TrackAudioController {
   private readonly reverbConvolver: ConvolverNode;
   private readonly reverbToneFilter: BiquadFilterNode;
   private readonly reverbWetGain: GainNode;
+  private readonly diagnostics: AudioDiagnostics;
   private readonly listeners: Array<{
     target: HTMLAudioElement;
     type: keyof HTMLMediaElementEventMap;
@@ -136,6 +143,11 @@ export class TrackAudioController {
 
   constructor({ audioUrl, debugLabel, onEnded, onError, onReady }: TrackAudioOptions) {
     this.context = getAudioContext();
+    this.diagnostics = createAudioDiagnostics({
+      enabled: isAudioDiagnosticsEnabled(),
+      label: debugLabel,
+      logger: console,
+    });
     this.audioUrl = audioUrl;
     this.audio = document.createElement("audio");
     this.audio.preload = "auto";
@@ -146,10 +158,9 @@ export class TrackAudioController {
     this.audio.volume = 1;
     this.audio.src = buildAudioUrl(audioUrl, 0, 0);
 
-    console.info("[tubetable audio] create controller", {
-      debugLabel,
+    this.diagnostics.record("create-controller", {
       audioUrl,
-      contextState: this.context.state,
+      ...this.getContextSnapshot(),
     });
 
     this.source = this.context.createMediaElementSource(this.audio);
@@ -185,7 +196,7 @@ export class TrackAudioController {
     this.delayFeedbackGain.gain.value = 0.36;
     this.delayWetGain.gain.value = 0;
     this.reverbPreDelay.delayTime.value = 0.012;
-    this.reverbConvolver.buffer = createImpulseResponse(this.context, 1.6);
+    this.replaceReverbBuffer(1.6, "initial");
     this.reverbWetGain.gain.value = 0;
 
     this.source.connect(this.dryGain);
@@ -211,8 +222,7 @@ export class TrackAudioController {
     this.masterGain.connect(this.context.destination);
 
     const handleLoadedMetadata = () => {
-      console.info("[tubetable audio] loaded metadata", {
-        debugLabel,
+      this.diagnostics.record("loaded-metadata", {
         duration: this.audio.duration,
         readyState: this.audio.readyState,
         mediaStartSeconds: this.mediaStartSeconds,
@@ -245,14 +255,14 @@ export class TrackAudioController {
     };
 
     const logMediaState = (eventName: string) => {
-      console.info("[tubetable audio] media event", {
-        debugLabel,
+      this.diagnostics.record("media-event", {
         eventName,
         readyState: this.audio.readyState,
         networkState: this.audio.networkState,
         paused: this.audio.paused,
         currentTime: this.getCurrentTime(),
         duration: this.audio.duration,
+        ...this.getContextSnapshot(),
       });
     };
 
@@ -303,6 +313,31 @@ export class TrackAudioController {
     this.audio.load();
   }
 
+  private getContextSnapshot() {
+    const context = this.context as AudioContext & {
+      outputLatency?: number;
+    };
+
+    return {
+      contextState: context.state,
+      contextTime: context.currentTime,
+      sampleRate: context.sampleRate,
+      baseLatency: context.baseLatency,
+      outputLatency: context.outputLatency,
+    };
+  }
+
+  private replaceReverbBuffer(decaySeconds: number, reason: string) {
+    const startedAt = performance.now();
+    this.reverbConvolver.buffer = createImpulseResponse(this.context, decaySeconds);
+    this.diagnostics.record("impulse-response", {
+      reason,
+      decaySeconds,
+      durationMs: Math.round(performance.now() - startedAt),
+      ...this.getContextSnapshot(),
+    });
+  }
+
   private loadAt(startSeconds: number, autoplay = false) {
     if (this.destroyed) {
       return;
@@ -317,7 +352,7 @@ export class TrackAudioController {
     );
     this.audio.load();
 
-    console.info("[tubetable audio] load", {
+    this.diagnostics.record("load", {
       src: this.audio.currentSrc || this.audio.src,
       mediaStartSeconds: this.mediaStartSeconds,
       autoplay,
@@ -333,19 +368,17 @@ export class TrackAudioController {
       return;
     }
 
-    console.info("[tubetable audio] play request", {
+    this.diagnostics.record("play-request", {
       src: this.audio.currentSrc || this.audio.src,
       paused: this.audio.paused,
-      contextState: this.context.state,
       playbackRate: this.audio.playbackRate,
+      ...this.getContextSnapshot(),
     });
 
     if (this.context.state === "suspended") {
       try {
         await this.context.resume();
-        console.info("[tubetable audio] context resumed", {
-          contextState: this.context.state,
-        });
+        this.diagnostics.record("context-resumed", this.getContextSnapshot());
       } catch {
         console.warn("[tubetable audio] context resume rejected");
       }
@@ -353,7 +386,7 @@ export class TrackAudioController {
 
     try {
       await this.audio.play();
-      console.info("[tubetable audio] audio play resolved");
+      this.diagnostics.record("play-resolved");
     } catch {
       console.warn("[tubetable audio] audio play rejected");
     }
@@ -386,7 +419,10 @@ export class TrackAudioController {
     }
 
     this.audio.playbackRate = clamp(rate, 1, 0.5, 2);
-    console.info("[tubetable audio] rate", rate);
+    this.diagnostics.record("set-playback-rate", {
+      requestedRate: rate,
+      playbackRate: this.audio.playbackRate,
+    });
   }
 
   setVolume(volume: number) {
@@ -395,7 +431,10 @@ export class TrackAudioController {
     }
 
     this.masterGain.gain.value = clamp(volume, 76, 0, 100) / 100;
-    console.info("[tubetable audio] volume", volume);
+    this.diagnostics.record("set-volume", {
+      requestedVolume: volume,
+      masterGain: this.masterGain.gain.value,
+    });
   }
 
   setEffects(effects: TrackEffectState) {
@@ -424,11 +463,24 @@ export class TrackAudioController {
       Math.abs(clamp(this.currentEffects.reverbDecay, 55, 0, 100) - reverbDecay) > 2 ||
       !this.reverbConvolver.buffer
     ) {
-      this.reverbConvolver.buffer = createImpulseResponse(this.context, decaySeconds);
+      this.replaceReverbBuffer(decaySeconds, "effect-change");
     }
 
     this.currentEffects = { ...effects };
-    console.info("[tubetable audio] effects", effects);
+    this.diagnostics.record("set-effects", {
+      delayEnabled: effects.delayEnabled,
+      delayMix: effects.delayMix,
+      delayFeedback: effects.delayFeedback,
+      delayTimeMs: effects.delayTimeMs,
+      lofiEnabled: effects.lofiEnabled,
+      lofiMix: effects.lofiMix,
+      lofiCutoffHz: effects.lofiCutoffHz,
+      lofiHighpassHz: effects.lofiHighpassHz,
+      reverbEnabled: effects.reverbEnabled,
+      reverbMix: effects.reverbMix,
+      reverbDecay,
+      reverbPreDelayMs: effects.reverbPreDelayMs,
+    });
   }
 
   setPitchShift(pitchShiftEnabled: boolean, pitchShiftSemitones: number) {
@@ -446,7 +498,7 @@ export class TrackAudioController {
     this.currentPitchShiftSemitones = normalized;
 
     const nextUrl = buildAudioUrl(this.audioUrl, normalized, currentTime);
-    console.info("[tubetable audio] pitch shift", {
+    this.diagnostics.record("pitch-shift", {
       pitchShiftEnabled,
       pitchShiftSemitones: normalized,
       nextUrl,
@@ -464,7 +516,15 @@ export class TrackAudioController {
       return;
     }
 
-    if (Math.abs(this.getCurrentTime() - referenceSeconds) > toleranceSeconds) {
+    const currentTime = this.getCurrentTime();
+    const driftSeconds = currentTime - referenceSeconds;
+    if (Math.abs(driftSeconds) > toleranceSeconds) {
+      this.diagnostics.record("sync-reload", {
+        currentTime,
+        referenceSeconds,
+        driftSeconds,
+        toleranceSeconds,
+      });
       this.loadAt(referenceSeconds, true);
     }
   }

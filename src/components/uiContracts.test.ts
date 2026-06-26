@@ -127,4 +127,17 @@ describe("UI interaction contracts", () => {
     expect(trackAudioSource).toContain("clamp(effects.lofiHighpassHz, 80, 20, 1200)");
     expect(trackAudioSource).toContain("clamp(effects.lofiCutoffHz, 2400, 300, 12000)");
   });
+
+  test("keeps DSP diagnostics behind an explicit debug switch", () => {
+    const trackAudioSource = readSource("src/lib/trackAudio.ts");
+    const diagnosticsSource = readSource("src/lib/audioDiagnostics.ts");
+
+    expect(trackAudioSource).toContain("createAudioDiagnostics");
+    expect(trackAudioSource).toContain("isAudioDiagnosticsEnabled()");
+    expect(trackAudioSource).toContain('this.diagnostics.record("media-event"');
+    expect(trackAudioSource).toContain('this.diagnostics.record("set-effects"');
+    expect(trackAudioSource).toContain('this.diagnostics.record("sync-reload"');
+    expect(diagnosticsSource).toContain("localStorage.getItem(AUDIO_DIAGNOSTICS_STORAGE_KEY)");
+    expect(diagnosticsSource).toContain('url.searchParams.get("debugAudio") === "1"');
+  });
 });

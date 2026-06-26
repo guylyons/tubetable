@@ -1,4 +1,5 @@
 export const AUDIO_DIAGNOSTICS_LIMIT = 180;
+export const AUDIO_DIAGNOSTICS_STORAGE_KEY = "tubetable.debugAudio";
 
 export type AudioDiagnosticData = Record<string, unknown>;
 
@@ -17,10 +18,43 @@ type AudioDiagnosticsOptions = {
   logger?: Pick<Console, "info">;
 };
 
+type AudioDiagnosticsSwitchOptions = {
+  locationHref?: string;
+  localStorageValue?: string | null;
+};
+
 export type AudioDiagnostics = {
   readonly entries: readonly AudioDiagnosticEntry[];
   record: (eventName: string, data?: AudioDiagnosticData) => void;
 };
+
+export function isAudioDiagnosticsEnabled(options: AudioDiagnosticsSwitchOptions = {}) {
+  if (options.locationHref) {
+    const url = new URL(options.locationHref);
+    if (url.searchParams.get("debugAudio") === "1") {
+      return true;
+    }
+  }
+
+  if (options.localStorageValue === "1") {
+    return true;
+  }
+
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("debugAudio") === "1") {
+      return true;
+    }
+
+    return localStorage.getItem(AUDIO_DIAGNOSTICS_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 export function createAudioDiagnostics({
   enabled,

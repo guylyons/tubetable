@@ -3,9 +3,24 @@ import { describe, expect, test } from "bun:test";
 import {
   AUDIO_DIAGNOSTICS_LIMIT,
   createAudioDiagnostics,
+  isAudioDiagnosticsEnabled,
 } from "./audioDiagnostics";
 
 describe("audio diagnostics", () => {
+  test("enables diagnostics from URL or local storage only", () => {
+    expect(isAudioDiagnosticsEnabled()).toBe(false);
+    expect(isAudioDiagnosticsEnabled({
+      locationHref: "https://example.test/?debugAudio=1",
+    })).toBe(true);
+    expect(isAudioDiagnosticsEnabled({
+      localStorageValue: "1",
+    })).toBe(true);
+    expect(isAudioDiagnosticsEnabled({
+      locationHref: "https://example.test/?debugAudio=0",
+      localStorageValue: "0",
+    })).toBe(false);
+  });
+
   test("does not record entries when disabled", () => {
     const diagnostics = createAudioDiagnostics({
       enabled: false,
