@@ -1,5 +1,6 @@
 import { serve } from "bun";
 import index from "./index.html";
+import { createYouTubeAudioResponse } from "./lib/youtubeAudioProxy";
 import { fetchYouTubeSearchPayload, resolveVideoMetadata } from "./lib/youtubeApi";
 
 type YouTubeSearchPayload = {
@@ -22,8 +23,6 @@ type AudioStreamCacheEntry = {
 const AUDIO_STREAM_CACHE_TTL_MS = 10 * 60 * 1000;
 const audioStreamCache = new Map<string, AudioStreamCacheEntry>();
 const YT_WATCH_URL = (videoId: string) => `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
 function json(data: unknown, init?: ResponseInit) {
   return Response.json(data, {
@@ -34,7 +33,11 @@ function json(data: unknown, init?: ResponseInit) {
   });
 }
 
-function getCachedAudioUrl(videoId: string) {
+function getCachedAudioUrl(videoId: string, options: { forceRefresh: boolean }) {
+  if (options.forceRefresh) {
+    audioStreamCache.delete(videoId);
+  }
+
   const cached = audioStreamCache.get(videoId);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.url;
@@ -69,76 +72,24 @@ function getCachedAudioUrl(videoId: string) {
   return url;
 }
 
-function parsePitchShiftSemitones(request: Request) {
-  const rawValue = new URL(request.url).searchParams.get("pitchShiftSemitones");
-  if (rawValue === null) {
-    return 0;
-  }
-
-  const value = Number(rawValue);
-  return Number.isFinite(value) ? Math.min(12, Math.max(-12, value)) : 0;
-}
-
-function parseStartSeconds(request: Request) {
-  const rawValue = new URL(request.url).searchParams.get("startSeconds");
-  if (rawValue === null) {
-    return 0;
-  }
-
-  const value = Number(rawValue);
-  return Number.isFinite(value) ? Math.max(0, value) : 0;
-}
-
 async function proxyAudioStream(request: Request, videoId: string) {
-  const pitchShiftSemitones = parsePitchShiftSemitones(request);
-  const startSeconds = parseStartSeconds(request);
-  const pitchShiftRatio = pitchShiftSemitones === 0 ? 1 : Math.pow(2, pitchShiftSemitones / 12);
-  const audioUrl = getCachedAudioUrl(videoId);
-  const ffmpeg = Bun.spawn({
-    cmd: [
-      "ffmpeg",
-      "-loglevel",
-      "error",
-      "-hide_banner",
-      "-nostdin",
-      "-user_agent",
-      USER_AGENT,
-      ...(startSeconds > 0 ? ["-ss", startSeconds.toFixed(2)] : []),
-      "-i",
-      audioUrl,
-      ...(pitchShiftSemitones === 0
-        ? []
-        : ["-af", `asetrate=44100*${pitchShiftRatio.toFixed(6)},atempo=${(1 / pitchShiftRatio).toFixed(6)}`]),
-      "-vn",
-      "-ac",
-      "2",
-      "-ar",
-      "44100",
-      "-b:a",
-      "192k",
-      "-f",
-      "mp3",
-      "pipe:1",
-    ],
-    stderr: "pipe",
-    stdout: "pipe",
-  });
+  return createYouTubeAudioResponse({
+    request,
+    resolveAudioUrl: getCachedAudioUrl,
+    spawnAudioProcess: ({ args }) => {
+      const ffmpeg = Bun.spawn({
+        cmd: args,
+        stderr: "pipe",
+        stdout: "pipe",
+      });
 
-  const abortHandler = () => {
-    try {
-      ffmpeg.kill();
-    } catch {
-      // Ignore abort cleanup failures.
-    }
-  };
-
-  request.signal.addEventListener("abort", abortHandler, { once: true });
-
-  return new Response(ffmpeg.stdout, {
-    headers: {
-      "Cache-Control": "no-store",
-      "Content-Type": "audio/mpeg",
+      return {
+        kill: () => ffmpeg.kill(),
+        stderr: ffmpeg.stderr,
+        stdout: ffmpeg.stdout,
+      };
     },
+    videoId,
   });
 }
 

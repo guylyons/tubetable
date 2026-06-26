@@ -94,13 +94,13 @@ describe("UI interaction contracts", () => {
 
   test("seeks DSP audio by rebuilding the proxy stream at the requested offset", () => {
     const trackAudioSource = readSource("src/lib/trackAudio.ts");
-    const serverSource = readSource("src/server.ts");
+    const audioProxySource = readSource("src/lib/youtubeAudioProxy.ts");
 
     expect(trackAudioSource).toContain("startSeconds");
     expect(trackAudioSource).toContain("mediaStartSeconds");
     expect(trackAudioSource).toContain("this.loadAt(nextSeconds");
-    expect(serverSource).toContain("parseStartSeconds");
-    expect(serverSource).toContain('"-ss"');
+    expect(audioProxySource).toContain("parseStartSeconds");
+    expect(audioProxySource).toContain('"-ss"');
   });
 
   test("polishes DSP tone controls and keeps DSP audio synced to the video clock", () => {
