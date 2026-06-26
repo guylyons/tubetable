@@ -1,5 +1,6 @@
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
+const MAX_START_SECONDS = 24 * 60 * 60;
 
 type ResolveAudioUrlOptions = {
   forceRefresh: boolean;
@@ -44,7 +45,11 @@ function parseStartSeconds(request: Request) {
   }
 
   const value = Number(rawValue);
-  return Number.isFinite(value) ? Math.max(0, value) : 0;
+  if (!Number.isFinite(value) || value > MAX_START_SECONDS) {
+    return 0;
+  }
+
+  return Math.max(0, value);
 }
 
 function buildFfmpegArgs(request: Request, audioUrl: string) {
