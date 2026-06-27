@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { TrackAudioController } from "./trackAudio";
+import { TrackAudioController, type TrackEffectState } from "./trackAudio";
 
 type FakeListener = { type: string; listener: EventListener };
 type FakeAudioParam = { value: number };
+let latestFakeAudioContext: FakeAudioContext | null = null;
 
 class FakeAudioElement {
   readonly listeners: FakeListener[] = [];
   readonly loadCalls: string[] = [];
+  onLoad?: () => void;
   currentSrc = "";
   currentTime = 0;
   duration = 0;
@@ -43,6 +45,7 @@ class FakeAudioElement {
 
   load() {
     this.loadCalls.push(this.src);
+    this.onLoad?.();
   }
 
   pause() {
@@ -104,8 +107,13 @@ class FakeAudioContext {
   readonly baseLatency = 0;
   readonly currentTime = 0;
   readonly destination = new FakeAudioNode();
+  readonly gains: FakeGainNode[] = [];
   readonly sampleRate = 100;
   readonly state = "running";
+
+  constructor() {
+    latestFakeAudioContext = this;
+  }
 
   createBiquadFilter() {
     return new FakeBiquadFilterNode();
@@ -124,7 +132,9 @@ class FakeAudioContext {
   }
 
   createGain() {
-    return new FakeGainNode();
+    const gain = new FakeGainNode();
+    this.gains.push(gain);
+    return gain;
   }
 
   createMediaElementSource() {
@@ -133,6 +143,21 @@ class FakeAudioContext {
 }
 
 describe("TrackAudioController startup", () => {
+  const enabledEffects: TrackEffectState = {
+    delayEnabled: true,
+    delayFeedback: 74,
+    delayMix: 63,
+    delayTimeMs: 420,
+    lofiCutoffHz: 1800,
+    lofiEnabled: true,
+    lofiHighpassHz: 140,
+    lofiMix: 70,
+    reverbDecay: 65,
+    reverbEnabled: true,
+    reverbMix: 31,
+    reverbPreDelayMs: 80,
+  };
+
   test("loads once at the current video time when DSP starts mid-track", () => {
     const audio = new FakeAudioElement();
     const originalWindow = globalThis.window;
@@ -164,6 +189,64 @@ describe("TrackAudioController startup", () => {
 
       expect(audio.loadCalls).toHaveLength(1);
       expect(audio.loadCalls[0]).toContain("startSeconds=42.42");
+
+      controller.destroy();
+    } finally {
+      Object.assign(globalThis, {
+        window: originalWindow,
+        document: originalDocument,
+      });
+    }
+  });
+
+  test("applies initial effects before the first audio load", () => {
+    const audio = new FakeAudioElement();
+    const originalWindow = globalThis.window;
+    const originalDocument = globalThis.document;
+    let context: FakeAudioContext | null = null;
+    let gainsAtLoad: number[] | null = null;
+
+    class CapturingAudioContext extends FakeAudioContext {
+      constructor() {
+        super();
+        context = this;
+      }
+    }
+
+    audio.onLoad = () => {
+      const gains = (context ?? latestFakeAudioContext)?.gains ?? [];
+      gainsAtLoad = gains.slice(-7).map((gain) => gain.gain.value);
+    };
+
+    Object.assign(globalThis, {
+      window: {
+        location: { origin: "http://localhost" },
+        AudioContext: CapturingAudioContext,
+      },
+      document: {
+        createElement: (tagName: string) => {
+          if (tagName !== "audio") {
+            throw new Error(`Unexpected element: ${tagName}`);
+          }
+          return audio;
+        },
+      },
+    });
+
+    try {
+      const controller = new TrackAudioController({
+        audioUrl: "/api/youtube/audio?videoId=abc",
+        initialEffects: enabledEffects,
+        onEnded: () => {},
+        onError: () => {},
+        onReady: () => {},
+      });
+
+      expect(gainsAtLoad).not.toBeNull();
+      expect(gainsAtLoad?.[0]).toBeCloseTo(0.3, 5);
+      expect(gainsAtLoad?.[1]).toBeCloseTo(0.7, 5);
+      expect(gainsAtLoad?.[5]).toBeCloseTo(0.63, 5);
+      expect(gainsAtLoad?.[6]).toBeCloseTo(0.31, 5);
 
       controller.destroy();
     } finally {

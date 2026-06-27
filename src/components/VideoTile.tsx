@@ -11,7 +11,7 @@ import {
   YT_PLAYER_STATE_PAUSED,
   type YouTubePlayer,
 } from "../lib/youtube";
-import { primeSharedAudioContext, TrackAudioController } from "../lib/trackAudio";
+import { primeSharedAudioContext, TrackAudioController, type TrackEffectState } from "../lib/trackAudio";
 
 type VideoTileProps = {
   isDarkMode?: boolean;
@@ -36,6 +36,23 @@ type VideoTileProps = {
   restartToken: number;
   transportPlaying: boolean;
 };
+
+function getTrackEffects(channel: MixChannelState): TrackEffectState {
+  return {
+    delayEnabled: channel.delayEnabled,
+    delayFeedback: channel.delayFeedback,
+    delayMix: channel.delayMix,
+    delayTimeMs: channel.delayTimeMs,
+    lofiCutoffHz: channel.lofiCutoffHz,
+    lofiHighpassHz: channel.lofiHighpassHz,
+    lofiEnabled: channel.lofiEnabled,
+    lofiMix: channel.lofiMix,
+    reverbDecay: channel.reverbDecay,
+    reverbEnabled: channel.reverbEnabled,
+    reverbMix: channel.reverbMix,
+    reverbPreDelayMs: channel.reverbPreDelayMs,
+  };
+}
 
 export function VideoTile({
   isDarkMode = false,
@@ -142,6 +159,7 @@ export function VideoTile({
     const controller = new TrackAudioController({
       audioUrl,
       debugLabel: `${trackLabel} ${channel.video.title}`,
+      initialEffects: getTrackEffects(channel),
       initialStartSeconds,
       onEnded: () => handleAudioEnded("base", controller),
       onError: (message) => {
@@ -159,20 +177,6 @@ export function VideoTile({
     audioControllerRef.current = controller;
     controller.setVolume(effectiveVolume);
     controller.setPlaybackRate(channel.playbackRate);
-    controller.setEffects({
-      delayEnabled: channel.delayEnabled,
-      delayFeedback: channel.delayFeedback,
-      delayMix: channel.delayMix,
-      delayTimeMs: channel.delayTimeMs,
-      lofiCutoffHz: channel.lofiCutoffHz,
-      lofiHighpassHz: channel.lofiHighpassHz,
-      lofiEnabled: channel.lofiEnabled,
-      lofiMix: channel.lofiMix,
-      reverbDecay: channel.reverbDecay,
-      reverbEnabled: channel.reverbEnabled,
-      reverbMix: channel.reverbMix,
-      reverbPreDelayMs: channel.reverbPreDelayMs,
-    });
     const playbackState = playbackStateRef.current;
     if (playbackState.transportPlaying && !playbackState.paused) {
       void controller.play();
@@ -208,6 +212,7 @@ export function VideoTile({
     const controller = new TrackAudioController({
       audioUrl,
       debugLabel: `${trackLabel} ${channel.video.title} pitch mirror`,
+      initialEffects: getTrackEffects(channel),
       initialStartSeconds,
       onEnded: () => handleAudioEnded("pitch", controller),
       onError: (message) => {
@@ -225,20 +230,6 @@ export function VideoTile({
     pitchShiftControllerRef.current = controller;
     controller.setVolume(0);
     controller.setPlaybackRate(channel.playbackRate);
-    controller.setEffects({
-      delayEnabled: channel.delayEnabled,
-      delayFeedback: channel.delayFeedback,
-      delayMix: channel.delayMix,
-      delayTimeMs: channel.delayTimeMs,
-      lofiCutoffHz: channel.lofiCutoffHz,
-      lofiHighpassHz: channel.lofiHighpassHz,
-      lofiEnabled: channel.lofiEnabled,
-      lofiMix: channel.lofiMix,
-      reverbDecay: channel.reverbDecay,
-      reverbEnabled: channel.reverbEnabled,
-      reverbMix: channel.reverbMix,
-      reverbPreDelayMs: channel.reverbPreDelayMs,
-    });
     controller.setPitchShift(true, channel.pitchShiftSemitones);
     const playbackState = playbackStateRef.current;
     if (playbackState.transportPlaying && !playbackState.paused) {
@@ -430,34 +421,9 @@ export function VideoTile({
   }, [channel.paused, ready, transportPlaying, webAudioActive]);
 
   useEffect(() => {
-    audioControllerRef.current?.setEffects({
-      delayEnabled: channel.delayEnabled,
-      delayFeedback: channel.delayFeedback,
-      delayMix: channel.delayMix,
-      delayTimeMs: channel.delayTimeMs,
-      lofiCutoffHz: channel.lofiCutoffHz,
-      lofiHighpassHz: channel.lofiHighpassHz,
-      lofiEnabled: channel.lofiEnabled,
-      lofiMix: channel.lofiMix,
-      reverbDecay: channel.reverbDecay,
-      reverbEnabled: channel.reverbEnabled,
-      reverbMix: channel.reverbMix,
-      reverbPreDelayMs: channel.reverbPreDelayMs,
-    });
-    pitchShiftControllerRef.current?.setEffects({
-      delayEnabled: channel.delayEnabled,
-      delayFeedback: channel.delayFeedback,
-      delayMix: channel.delayMix,
-      delayTimeMs: channel.delayTimeMs,
-      lofiCutoffHz: channel.lofiCutoffHz,
-      lofiHighpassHz: channel.lofiHighpassHz,
-      lofiEnabled: channel.lofiEnabled,
-      lofiMix: channel.lofiMix,
-      reverbDecay: channel.reverbDecay,
-      reverbEnabled: channel.reverbEnabled,
-      reverbMix: channel.reverbMix,
-      reverbPreDelayMs: channel.reverbPreDelayMs,
-    });
+    const effects = getTrackEffects(channel);
+    audioControllerRef.current?.setEffects(effects);
+    pitchShiftControllerRef.current?.setEffects(effects);
   }, [
     channel.delayEnabled,
     channel.delayFeedback,

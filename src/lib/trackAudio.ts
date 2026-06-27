@@ -23,6 +23,7 @@ export type TrackEffectState = {
 type TrackAudioOptions = {
   debugLabel?: string;
   audioUrl: string;
+  initialEffects?: TrackEffectState;
   initialStartSeconds?: number;
   onEnded: () => void;
   onError: (message: string) => void;
@@ -140,7 +141,15 @@ export class TrackAudioController {
   private currentPitchShiftSemitones = 0;
   private mediaStartSeconds = 0;
 
-  constructor({ audioUrl, debugLabel, initialStartSeconds = 0, onEnded, onError, onReady }: TrackAudioOptions) {
+  constructor({
+    audioUrl,
+    debugLabel,
+    initialEffects,
+    initialStartSeconds = 0,
+    onEnded,
+    onError,
+    onReady,
+  }: TrackAudioOptions) {
     this.context = getAudioContext();
     this.diagnostics = createAudioDiagnostics({
       enabled: isAudioDiagnosticsEnabled(),
@@ -177,6 +186,9 @@ export class TrackAudioController {
         });
       },
     });
+    if (initialEffects) {
+      this.setEffects(initialEffects);
+    }
 
     const handleLoadedMetadata = () => {
       this.diagnostics.record("loaded-metadata", {
