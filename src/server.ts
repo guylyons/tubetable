@@ -1,5 +1,6 @@
 import { serve } from "bun";
 import index from "./index.html";
+import { buildYtDlpAudioUrlArgs } from "./lib/youtubeAudioFormat";
 import { createYouTubeAudioResponse } from "./lib/youtubeAudioProxy";
 import { fetchYouTubeSearchPayload, resolveVideoMetadata } from "./lib/youtubeApi";
 
@@ -22,7 +23,6 @@ type AudioStreamCacheEntry = {
 
 const AUDIO_STREAM_CACHE_TTL_MS = 10 * 60 * 1000;
 const audioStreamCache = new Map<string, AudioStreamCacheEntry>();
-const YT_WATCH_URL = (videoId: string) => `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
 
 function json(data: unknown, init?: ResponseInit) {
   return Response.json(data, {
@@ -44,7 +44,7 @@ function getCachedAudioUrl(videoId: string, options: { forceRefresh: boolean }) 
   }
 
   const result = Bun.spawnSync({
-    cmd: ["yt-dlp", "--no-playlist", "-f", "ba[ext=m4a]/ba", "-g", YT_WATCH_URL(videoId)],
+    cmd: buildYtDlpAudioUrlArgs(videoId),
     stderr: "pipe",
     stdout: "pipe",
   });
