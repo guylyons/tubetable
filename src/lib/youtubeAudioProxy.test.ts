@@ -99,4 +99,18 @@ describe("YouTube audio proxy", () => {
     expect(resolvedUrls).toEqual(["stale-audio-url", "fresh-audio-url"]);
     expect(spawnedUrls).toEqual(["stale-audio-url", "fresh-audio-url"]);
   });
+
+  test("rejects streams that start with non-audio bytes instead of returning an invalid audio response", async () => {
+    const response = createYouTubeAudioResponse({
+      request: new Request("http://localhost/api/youtube/audio?videoId=Xw5AiRVqfqk"),
+      resolveAudioUrl: (_videoId, options) => (options.forceRefresh ? "fresh-audio-url" : "stale-audio-url"),
+      spawnAudioProcess: () => ({
+        stderr: streamFromChunks([]),
+        stdout: streamFromChunks([bytes("<html>not audio</html>")]),
+      }),
+      videoId: "Xw5AiRVqfqk",
+    });
+
+    await expect(response).rejects.toThrow("Audio process produced non-MP3 data.");
+  });
 });

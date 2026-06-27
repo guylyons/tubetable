@@ -109,6 +109,18 @@ async function readStreamText(stream: ReadableStream<Uint8Array> | null) {
   return text.trim();
 }
 
+function startsWithMp3Data(chunk: Uint8Array) {
+  const first = chunk[0];
+  const second = chunk[1];
+  const third = chunk[2];
+
+  if (first === 0x49 && second === 0x44 && third === 0x33) {
+    return true;
+  }
+
+  return first === 0xff && second !== undefined && (second & 0xe0) === 0xe0;
+}
+
 async function createPrimedAudioStream(request: Request, process: AudioProcess) {
   if (!process.stdout) {
     throw new Error("Audio process did not provide an output stream.");
@@ -121,6 +133,12 @@ async function createPrimedAudioStream(request: Request, process: AudioProcess) 
     reader.releaseLock();
     const stderr = await readStreamText(process.stderr);
     throw new Error(stderr || "Audio process exited before producing audio.");
+  }
+
+  if (!startsWithMp3Data(firstChunk.value)) {
+    reader.releaseLock();
+    const stderr = await readStreamText(process.stderr);
+    throw new Error(stderr || "Audio process produced non-MP3 data.");
   }
 
   let abortHandler: (() => void) | null = () => {
