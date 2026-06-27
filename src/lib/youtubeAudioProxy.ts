@@ -150,27 +150,36 @@ async function createPrimedAudioStream(request: Request, process: AudioProcess) 
   };
   request.signal.addEventListener("abort", abortHandler, { once: true });
 
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      controller.enqueue(firstChunk.value);
+  let readerReleased = false;
+  const cleanup = () => {
+    if (!readerReleased) {
+      reader.releaseLock();
+      readerReleased = true;
+    }
 
+    if (abortHandler) {
+      request.signal.removeEventListener("abort", abortHandler);
+      abortHandler = null;
+    }
+  };
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(firstChunk.value);
+    },
+    async pull(controller) {
       try {
-        while (true) {
-          const result = await reader.read();
-          if (result.done) {
-            break;
-          }
-          controller.enqueue(result.value);
+        const result = await reader.read();
+        if (result.done) {
+          cleanup();
+          controller.close();
+          return;
         }
-        controller.close();
+
+        controller.enqueue(result.value);
       } catch (error) {
+        cleanup();
         controller.error(error);
-      } finally {
-        reader.releaseLock();
-        if (abortHandler) {
-          request.signal.removeEventListener("abort", abortHandler);
-          abortHandler = null;
-        }
       }
     },
     cancel() {
@@ -178,6 +187,8 @@ async function createPrimedAudioStream(request: Request, process: AudioProcess) 
         process.kill?.();
       } catch {
         // Ignore stream cancellation cleanup failures.
+      } finally {
+        cleanup();
       }
     },
   });

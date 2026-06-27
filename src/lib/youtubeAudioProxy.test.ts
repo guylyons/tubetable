@@ -16,6 +16,27 @@ function streamFromChunks(chunks: Uint8Array[]) {
   });
 }
 
+function pullStreamFromChunks(chunks: Uint8Array[], onPull: () => void) {
+  const pendingChunks = [...chunks];
+
+  return new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        onPull();
+
+        const chunk = pendingChunks.shift();
+        if (chunk) {
+          controller.enqueue(chunk);
+          return;
+        }
+
+        controller.close();
+      },
+    },
+    { highWaterMark: 0 },
+  );
+}
+
 describe("YouTube audio proxy", () => {
   test("does not seek into live streams when the player reports a huge wall-clock offset", async () => {
     let spawnedArgs: string[] = [];
@@ -112,5 +133,29 @@ describe("YouTube audio proxy", () => {
     });
 
     await expect(response).rejects.toThrow("Audio process produced non-MP3 data.");
+  });
+
+  test("waits for response reads before pulling more audio process output", async () => {
+    let processPulls = 0;
+
+    const response = await createYouTubeAudioResponse({
+      request: new Request("http://localhost/api/youtube/audio?videoId=Xw5AiRVqfqk"),
+      resolveAudioUrl: () => "audio-url",
+      spawnAudioProcess: () => ({
+        stderr: streamFromChunks([]),
+        stdout: pullStreamFromChunks([bytes("ID3"), bytes("mp3-data"), bytes("tail")], () => {
+          processPulls += 1;
+        }),
+      }),
+      videoId: "Xw5AiRVqfqk",
+    });
+
+    await Promise.resolve();
+
+    expect(response.status).toBe(200);
+    expect(processPulls).toBe(1);
+
+    expect(await response.text()).toBe("ID3mp3-datatail");
+    expect(processPulls).toBe(4);
   });
 });
