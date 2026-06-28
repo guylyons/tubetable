@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { VideoTile } from "./VideoTile";
-import type { MixChannel, MixChannelState } from "../types";
+import type { MixChannelState } from "../types";
 
 type TableSectionProps = {
   isDarkMode: boolean;
   channelStates: MixChannelState[];
   focusedChannelId: string | null;
   onFocusChannel: (channelId: string) => void;
-  onPatchChannel: (channelId: string, patch: Partial<MixChannel>) => void;
   onReorderChannel: (draggedChannelId: string, targetChannelId: string) => void;
   onRemoveChannel: (channelId: string) => void;
   onToggleLoop: (channelId: string) => void;
@@ -25,7 +24,6 @@ export function TableSection({
   channelStates,
   focusedChannelId,
   onFocusChannel,
-  onPatchChannel,
   onReorderChannel,
   onRemoveChannel,
   onToggleLoop,
@@ -100,7 +98,6 @@ export function TableSection({
             setDragOverChannelId(channel.id);
           }}
           onFocus={onFocusChannel}
-          onPatchChannel={onPatchChannel}
           onRemove={onRemoveChannel}
           onToggleLoop={onToggleLoop}
           onToggleMute={onToggleMute}

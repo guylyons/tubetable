@@ -16,21 +16,6 @@ export type MixChannel = {
   id: string;
   video: YouTubeSearchResult;
   volume: number;
-  playbackRate: number;
-  reverbEnabled: boolean;
-  reverbMix: number;
-  reverbDecay: number;
-  reverbPreDelayMs: number;
-  delayEnabled: boolean;
-  delayMix: number;
-  delayFeedback: number;
-  delayTimeMs: number;
-  lofiEnabled: boolean;
-  lofiMix: number;
-  lofiCutoffHz: number;
-  lofiHighpassHz: number;
-  pitchShiftEnabled: boolean;
-  pitchShiftSemitones: number;
   muted: boolean;
   solo: boolean;
   paused: boolean;
@@ -40,7 +25,6 @@ export type MixChannel = {
 
 export type MixChannelState = MixChannel & {
   effectiveVolume: number;
-  silencedBySolo: boolean;
 };
 
 export type PersistedMix = {

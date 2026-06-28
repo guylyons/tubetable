@@ -7,7 +7,6 @@ import {
   type PersistedMix,
   type SavedMix,
 } from "../types";
-import { DEFAULT_TRACK_EFFECTS } from "./mixChannels";
 
 const EXAMPLE_MIX_NAME = "Example Mix";
 const EXAMPLE_MIX_ID = "example-mix";
@@ -22,8 +21,6 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
       thumbnail: "https://i.ytimg.com/vi/CxHa5KaMBcM/hqdefault.jpg",
     },
     volume: 76,
-    playbackRate: 1,
-    ...DEFAULT_TRACK_EFFECTS,
     muted: false,
     solo: false,
     paused: false,
@@ -39,8 +36,6 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
       thumbnail: "https://i.ytimg.com/vi/vNwYtllyt3Q/hqdefault.jpg",
     },
     volume: 76,
-    playbackRate: 1,
-    ...DEFAULT_TRACK_EFFECTS,
     muted: false,
     solo: false,
     paused: false,
@@ -56,8 +51,6 @@ const EXAMPLE_CHANNELS: MixChannel[] = [
       thumbnail: "https://i.ytimg.com/vi/mPZkdNFkNps/hqdefault.jpg",
     },
     volume: 76,
-    playbackRate: 1,
-    ...DEFAULT_TRACK_EFFECTS,
     muted: false,
     solo: false,
     paused: false,
@@ -185,37 +178,12 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
       viewCountText: typeof videoRecord.viewCountText === "string" ? videoRecord.viewCountText : undefined,
     },
     volume: record.volume,
-    playbackRate: clampNumber(record.playbackRate, 1, 0.5, 2),
-    reverbEnabled: Boolean(record.reverbEnabled),
-    reverbMix: clampPercent(record.reverbMix, DEFAULT_TRACK_EFFECTS.reverbMix),
-    reverbDecay: clampPercent(record.reverbDecay, DEFAULT_TRACK_EFFECTS.reverbDecay),
-    reverbPreDelayMs: clampNumber(record.reverbPreDelayMs, DEFAULT_TRACK_EFFECTS.reverbPreDelayMs, 0, 200),
-    delayEnabled: Boolean(record.delayEnabled),
-    delayMix: clampPercent(record.delayMix, DEFAULT_TRACK_EFFECTS.delayMix),
-    delayFeedback: clampPercent(record.delayFeedback, DEFAULT_TRACK_EFFECTS.delayFeedback),
-    delayTimeMs: clampNumber(record.delayTimeMs, DEFAULT_TRACK_EFFECTS.delayTimeMs, 20, 900),
-    lofiEnabled: Boolean(record.lofiEnabled),
-    lofiMix: clampPercent(record.lofiMix, DEFAULT_TRACK_EFFECTS.lofiMix),
-    lofiCutoffHz: clampNumber(record.lofiCutoffHz, DEFAULT_TRACK_EFFECTS.lofiCutoffHz, 300, 12000),
-    lofiHighpassHz: clampNumber(record.lofiHighpassHz, DEFAULT_TRACK_EFFECTS.lofiHighpassHz, 20, 1200),
-    pitchShiftEnabled: Boolean(record.pitchShiftEnabled),
-    pitchShiftSemitones: clampNumber(record.pitchShiftSemitones, DEFAULT_TRACK_EFFECTS.pitchShiftSemitones, -12, 12),
     muted: record.muted,
     solo: record.solo,
     paused: record.paused,
     looped: typeof record.looped === "boolean" ? record.looped : true,
     progressSeconds: typeof record.progressSeconds === "number" ? Math.max(0, record.progressSeconds) : 0,
   };
-}
-
-function clampNumber(value: unknown, fallback: number, min: number, max: number) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? Math.min(max, Math.max(min, value))
-    : fallback;
-}
-
-function clampPercent(value: unknown, fallback: number) {
-  return clampNumber(value, fallback, 0, 100);
 }
 
 export function readStoredMixState(): MixStorage {

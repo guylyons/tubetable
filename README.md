@@ -83,26 +83,6 @@ netlify/functions/
 
 Saved mixes live in browser local storage. There is no account system, database, or required API key. Clearing site data clears saved mixes.
 
-## Audio Diagnostics
-
-DSP diagnostics are off by default. To capture effect hiccups, open the app with:
-
-```txt
-http://localhost:3000?debugAudio=1
-```
-
-For repeat sessions, enable the same logging from the browser console:
-
-```js
-localStorage.setItem("tubetable.debugAudio", "1")
-```
-
-Reproduce the hiccup with one effect at a time, then compare console entries tagged `[tubetable audio diagnostics]`. The most useful events are `media-event` with `waiting` or `stalled`, `impulse-response` duration, `set-effects`, `pitch-shift`, and `sync-reload`. Turn logging back off with:
-
-```js
-localStorage.removeItem("tubetable.debugAudio")
-```
-
 ## YouTube Search
 
 Local routes:

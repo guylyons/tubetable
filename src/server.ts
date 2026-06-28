@@ -1,7 +1,5 @@
 import { serve } from "bun";
 import index from "./index.html";
-import { buildYtDlpAudioUrlArgs } from "./lib/youtubeAudioFormat";
-import { createYouTubeAudioResponse } from "./lib/youtubeAudioProxy";
 import { fetchYouTubeSearchPayload, resolveVideoMetadata } from "./lib/youtubeApi";
 
 type YouTubeSearchPayload = {
@@ -16,80 +14,12 @@ type YouTubeSearchPayload = {
   suggestions: string[];
 };
 
-type AudioStreamCacheEntry = {
-  expiresAt: number;
-  url: string;
-};
-
-const AUDIO_STREAM_CACHE_TTL_MS = 10 * 60 * 1000;
-const audioStreamCache = new Map<string, AudioStreamCacheEntry>();
-
 function json(data: unknown, init?: ResponseInit) {
   return Response.json(data, {
     headers: {
       "Cache-Control": "public, max-age=120, stale-while-revalidate=300",
     },
     ...init,
-  });
-}
-
-function getCachedAudioUrl(videoId: string, options: { forceRefresh: boolean }) {
-  if (options.forceRefresh) {
-    audioStreamCache.delete(videoId);
-  }
-
-  const cached = audioStreamCache.get(videoId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.url;
-  }
-
-  const result = Bun.spawnSync({
-    cmd: buildYtDlpAudioUrlArgs(videoId),
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-
-  if (result.exitCode !== 0) {
-    const stderr = new TextDecoder().decode(result.stderr).trim();
-    throw new Error(stderr || "Could not resolve audio for that video.");
-  }
-
-  const url = new TextDecoder()
-    .decode(result.stdout)
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .find(Boolean);
-
-  if (!url) {
-    throw new Error("Could not resolve audio for that video.");
-  }
-
-  audioStreamCache.set(videoId, {
-    expiresAt: Date.now() + AUDIO_STREAM_CACHE_TTL_MS,
-    url,
-  });
-
-  return url;
-}
-
-async function proxyAudioStream(request: Request, videoId: string) {
-  return createYouTubeAudioResponse({
-    request,
-    resolveAudioUrl: getCachedAudioUrl,
-    spawnAudioProcess: ({ args }) => {
-      const ffmpeg = Bun.spawn({
-        cmd: args,
-        stderr: "pipe",
-        stdout: "pipe",
-      });
-
-      return {
-        kill: () => ffmpeg.kill(),
-        stderr: ffmpeg.stderr,
-        stdout: ffmpeg.stdout,
-      };
-    },
-    videoId,
   });
 }
 
@@ -140,25 +70,6 @@ const server = serve({
             },
             { status: 502 },
           );
-        }
-      },
-    },
-
-    "/api/youtube/audio": {
-      async GET(request) {
-        const url = new URL(request.url);
-        const videoId = url.searchParams.get("videoId")?.trim() ?? "";
-
-        if (!/^[\w-]{11}$/.test(videoId)) {
-          return new Response("A valid YouTube video ID is required.", { status: 400 });
-        }
-
-        try {
-          return await proxyAudioStream(request, videoId);
-        } catch (error) {
-          return new Response(error instanceof Error ? error.message : "Could not resolve audio.", {
-            status: 502,
-          });
         }
       },
     },
