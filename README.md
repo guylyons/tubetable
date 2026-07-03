@@ -74,16 +74,16 @@ src/
   lib/                    mix storage, channel logic, YouTube helpers
   types.ts                shared types
 
-netlify/functions/
-  youtube.ts              Netlify API entry
-  _shared/youtubeApi.ts   YouTube search and metadata helpers
+docs/
+  api.md                  local JSON API reference
+  lofi-lowpass-effect.md  notes for future lofi filter work
 ```
 
 ## Local Data
 
 Saved mixes live in browser local storage. There is no account system, database, or required API key. Clearing site data clears saved mixes.
 
-## YouTube Search
+## API
 
 Local routes:
 
@@ -92,8 +92,10 @@ Local routes:
 /api/youtube/video?videoId=...
 ```
 
+See [docs/api.md](docs/api.md) for request parameters, response shapes, status codes, and cache behavior.
+
 The app reads public YouTube page data rather than using a YouTube API key. Search may need parser updates if YouTube changes its page structure.
 
 ## Deploy
 
-The repo includes Netlify config. Netlify serves `dist/` and routes `/api/youtube/*` to `netlify/functions/youtube.ts`.
+The repo includes Netlify config for serving `dist/`. The current API implementation lives in the Bun server in `src/server.ts`, so deployments need to serve those routes from the same origin or provide equivalent rewrites.
