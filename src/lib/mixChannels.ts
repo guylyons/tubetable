@@ -23,11 +23,22 @@ export function getTransportLabel(playing: boolean) {
 export function buildChannelStates(channels: MixChannel[], masterVolume: number): MixChannelState[] {
   const hasSoloChannel = channels.some(channel => channel.solo);
 
-  return channels.map(channel => ({
-    ...channel,
-    effectiveVolume:
-      channel.muted || (hasSoloChannel && !channel.solo) ? 0 : Math.round((channel.volume * masterVolume) / 100),
-  }));
+  return channels.map(channel => {
+    const silencedBy = channel.muted ? "mute" : hasSoloChannel && !channel.solo ? "solo" : null;
+
+    return {
+      ...channel,
+      silencedBy,
+      effectiveVolume: silencedBy ? 0 : Math.round((channel.volume * masterVolume) / 100),
+    };
+  });
+}
+
+export function getStripStatus(channel: MixChannelState) {
+  const levelLabel =
+    channel.silencedBy === "mute" ? "Muted" : channel.silencedBy === "solo" ? "Off (solo)" : `${channel.effectiveVolume}%`;
+
+  return { silencedBy: channel.silencedBy, levelLabel };
 }
 
 export function reorderChannels(channels: MixChannel[], draggedChannelId: string, targetChannelId: string) {

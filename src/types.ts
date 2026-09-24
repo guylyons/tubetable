@@ -25,6 +25,7 @@ export type MixChannel = {
 
 export type MixChannelState = MixChannel & {
   effectiveVolume: number;
+  silencedBy: "mute" | "solo" | null;
 };
 
 export type PersistedMix = {

@@ -17,6 +17,7 @@ function channel(
     muted: false,
     paused: false,
     progressSeconds: 0,
+    silencedBy: null,
     solo: false,
     video: {
       channelTitle: "Test channel",

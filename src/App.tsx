@@ -675,6 +675,18 @@ export function App() {
                   volume,
                 }))
               }
+              onToggleMute={(channelId) =>
+                updateChannel(channelId, (currentChannel) => ({
+                  ...currentChannel,
+                  muted: !currentChannel.muted,
+                }))
+              }
+              onToggleSolo={(channelId) =>
+                updateChannel(channelId, (currentChannel) => ({
+                  ...currentChannel,
+                  solo: !currentChannel.solo,
+                }))
+              }
             />
           </div>
         </main>
