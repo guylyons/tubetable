@@ -571,7 +571,7 @@ export function App() {
           transportPlaying={transportPlaying}
         />
 
-        <main className="grid flex-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <main className="grid flex-1 grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="space-y-6">
             <MixControlPanel
               isDarkMode={isDarkMode}

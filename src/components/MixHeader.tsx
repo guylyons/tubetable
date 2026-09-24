@@ -38,7 +38,7 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
   const logoText = "Tubetable";
 
   return (
-    <div className="flex max-w-3xl items-center gap-4 sm:gap-5" aria-label={logoText}>
+    <div className="flex max-w-3xl flex-wrap items-center gap-4 sm:gap-5" aria-label={logoText}>
       <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.75rem] bg-gradient-to-br from-sky-400 to-blue-700 shadow-lg shadow-blue-500/20 sm:h-24 sm:w-24">
         <div className="absolute inset-x-4 bottom-4 h-2 rounded-full bg-blue-950/30" />
         <div className="relative h-12 w-12 rounded-full bg-white shadow-inner sm:h-14 sm:w-14">
