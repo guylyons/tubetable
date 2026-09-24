@@ -63,16 +63,17 @@ export function SearchPanel({
         >
           <label className="block">
             <span className="sr-only">Search YouTube or paste a video link</span>
-            <textarea
+            <input
+              type="search"
+              enterKeyHint="go"
               value={searchQuery}
               onChange={(event) => onChangeQuery(event.target.value)}
               onFocus={onOpenResults}
               onBlur={() => {
                 window.setTimeout(onCloseResults, 120);
               }}
-              rows={2}
               placeholder="Search a song, channel, or mood — or paste a YouTube link"
-              className={`min-h-[76px] w-full resize-none rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
+              className={`w-full rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
                 isDarkMode
                   ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
                   : "border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-300 focus:bg-white"

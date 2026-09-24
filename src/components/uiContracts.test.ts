@@ -30,6 +30,14 @@ describe("UI interaction contracts", () => {
     expect(source).toContain("pr-2");
   });
 
+  test("uses a single-line search input so Enter submits the add form", () => {
+    const source = readSource("src/components/SearchPanel.tsx");
+
+    expect(source).not.toContain("<textarea");
+    expect(source).toContain('type="search"');
+    expect(source).toContain('enterKeyHint="go"');
+  });
+
   test("uses a pointer cursor for the light/dark mode toggle", () => {
     const source = readSource("src/components/MixHeader.tsx");
 
