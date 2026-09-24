@@ -15,6 +15,13 @@ describe("UI interaction contracts", () => {
     expect(source).toContain("isFocused ? \"pointer-events-auto opacity-100\" : \"pointer-events-none opacity-0\"");
   });
 
+  test("always shows the Remove and Focus controls on touch screens, which have no hover", () => {
+    const source = readSource("src/components/VideoTile.tsx");
+    const touchVisible = "[@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
+
+    expect(source.split(touchVisible).length - 1).toBe(2);
+  });
+
   test("positions the Focus control above the scrubber hit target", () => {
     const source = readSource("src/components/VideoTile.tsx");
 
