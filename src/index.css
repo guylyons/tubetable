@@ -27,8 +27,10 @@
     box-sizing: border-box;
   }
 
-  html {
-    scroll-behavior: smooth;
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {
@@ -62,6 +64,17 @@
 
   .tubetable-logo-letter-e {
     animation-name: tubetable-logo-bounce-e;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tubetable-logo-letter {
+      animation: none;
+    }
+
+    /* Keep the e's resting offset from the end of its bounce. */
+    .tubetable-logo-letter-e {
+      transform: translate(0.12em, 0);
+    }
   }
 
   .tubetable-slider {

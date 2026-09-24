@@ -4,6 +4,8 @@ import {
   BAR_COUNT,
   buildVisualizerProfile,
   calculateVisualizerLevels,
+  getStaticVisualizerState,
+  shouldAnimateVisualizer,
   type BandActivity,
 } from "../lib/transportVisualizer";
 
@@ -14,7 +16,31 @@ type TransportVisualizerProps = {
 };
 
 const FRAME_INTERVAL_MS = 1000 / 34;
-const IDLE_BAND_ACTIVITY: BandActivity = { low: 0, mid: 0, high: 0 };
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false,
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia?.(REDUCED_MOTION_QUERY);
+    if (!query) {
+      return;
+    }
+
+    const handleChange = () => setPrefersReducedMotion(query.matches);
+    handleChange();
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function sameLevels(a: number[], b: number[]) {
+  return a.length === b.length && a.every((level, index) => level === b[index]);
+}
 
 function getBarColor(index: number, isDarkMode: boolean) {
   const position = index / (BAR_COUNT - 1);
@@ -49,11 +75,11 @@ export function TransportVisualizer({
     () => buildVisualizerProfile(channelStates, transportPlaying),
     [channelStates, transportPlaying],
   );
-  const [visualizerState, setVisualizerState] = useState(() => ({
-    bandActivity: IDLE_BAND_ACTIVITY,
-    energy: 0,
-    levels: Array.from({ length: BAR_COUNT }, () => 0.08),
-  }));
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const animating = shouldAnimateVisualizer(profile, prefersReducedMotion);
+  const [visualizerState, setVisualizerState] = useState(() =>
+    getStaticVisualizerState(profile),
+  );
   const profileRef = useRef(profile);
   const stateRef = useRef(visualizerState);
 
@@ -61,6 +87,21 @@ export function TransportVisualizer({
   stateRef.current = visualizerState;
 
   useEffect(() => {
+    if (animating) {
+      return;
+    }
+
+    const staticState = getStaticVisualizerState(profile);
+    setVisualizerState((current) =>
+      sameLevels(current.levels, staticState.levels) ? current : staticState,
+    );
+  }, [animating, profile]);
+
+  useEffect(() => {
+    if (!animating) {
+      return;
+    }
+
     let animationFrameId = 0;
     let lastFrameAt = 0;
 
@@ -85,7 +126,7 @@ export function TransportVisualizer({
 
     animationFrameId = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(animationFrameId);
-  }, []);
+  }, [animating]);
 
   const playing = transportPlaying && profile.activeCount > 0;
   const statusLabel = playing ? "Playing" : transportPlaying ? "Add a video" : "Paused";
@@ -135,7 +176,7 @@ export function TransportVisualizer({
           {visualizerState.levels.map((level, index) => (
             <span
               key={index}
-              className={`block flex-1 rounded-full transition-[height,opacity,transform] duration-100 ease-out ${getBarColor(index, isDarkMode)}`}
+              className={`block flex-1 rounded-full transition-[height,opacity,transform] duration-100 ease-out motion-reduce:transition-none ${getBarColor(index, isDarkMode)}`}
               style={{
                 height: `${Math.round(level * 100)}%`,
                 opacity: playing ? 0.68 + (index % 5) * 0.05 : 0.28,
@@ -161,10 +202,10 @@ export function TransportVisualizer({
               <div
                 className={
                   band === "low"
-                    ? "h-full rounded-full bg-sky-400 transition-[width] duration-100"
+                    ? "h-full rounded-full bg-sky-400 transition-[width] duration-100 motion-reduce:transition-none"
                     : band === "mid"
-                      ? "h-full rounded-full bg-teal-400 transition-[width] duration-100"
-                      : "h-full rounded-full bg-violet-400 transition-[width] duration-100"
+                      ? "h-full rounded-full bg-teal-400 transition-[width] duration-100 motion-reduce:transition-none"
+                      : "h-full rounded-full bg-violet-400 transition-[width] duration-100 motion-reduce:transition-none"
                 }
                 style={{ width: getBandPercent(visualizerState.bandActivity, band) }}
               />

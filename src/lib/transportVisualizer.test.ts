@@ -3,6 +3,8 @@ import {
   BAR_COUNT,
   buildVisualizerProfile,
   calculateVisualizerLevels,
+  getStaticVisualizerState,
+  shouldAnimateVisualizer,
 } from "./transportVisualizer";
 import type { MixChannelState } from "../types";
 
@@ -103,5 +105,43 @@ describe("calculateVisualizerLevels", () => {
     expect(second.levels.some((level, index) => Math.abs(level - first.levels[index]!) > 0.02)).toBe(true);
     expect(second.bandActivity.low + second.bandActivity.mid + second.bandActivity.high).toBeGreaterThan(0);
     expect(second.bandActivity.high).toBeGreaterThan(second.bandActivity.low);
+  });
+});
+
+describe("shouldAnimateVisualizer", () => {
+  const playing = buildVisualizerProfile([channel("a")], true);
+
+  test("animates only while something audible is playing", () => {
+    expect(shouldAnimateVisualizer(playing, false)).toBe(true);
+    expect(shouldAnimateVisualizer(buildVisualizerProfile([channel("a")], false), false)).toBe(false);
+    expect(shouldAnimateVisualizer(buildVisualizerProfile([], true), false)).toBe(false);
+  });
+
+  test("never animates when reduced motion is preferred", () => {
+    expect(shouldAnimateVisualizer(playing, true)).toBe(false);
+  });
+});
+
+describe("getStaticVisualizerState", () => {
+  test("shows flat idle bars when nothing is playing", () => {
+    const state = getStaticVisualizerState(buildVisualizerProfile([], true));
+
+    expect(state.energy).toBe(0);
+    expect(state.levels).toEqual(Array.from({ length: BAR_COUNT }, () => 0.08));
+    expect(state.bandActivity).toEqual({ low: 0, mid: 0, high: 0 });
+  });
+
+  test("shows a fixed snapshot of playing channels that does not change with playback progress", () => {
+    const early = getStaticVisualizerState(
+      buildVisualizerProfile([channel("a", { progressSeconds: 1 }), channel("b", { effectiveVolume: 95 })], true),
+    );
+    const later = getStaticVisualizerState(
+      buildVisualizerProfile([channel("a", { progressSeconds: 40 }), channel("b", { effectiveVolume: 95 })], true),
+    );
+
+    expect(later).toEqual(early);
+    expect(early.levels).toHaveLength(BAR_COUNT);
+    expect(Math.max(...early.levels)).toBeGreaterThan(0.3);
+    expect(early.bandActivity.high).toBeGreaterThan(0);
   });
 });

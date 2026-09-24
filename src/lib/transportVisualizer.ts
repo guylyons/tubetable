@@ -181,3 +181,48 @@ export function calculateVisualizerLevels({
     levels,
   };
 }
+
+const IDLE_LEVEL = 0.08;
+const STATIC_SETTLE_FRAMES = 8;
+
+export function shouldAnimateVisualizer(
+  profile: VisualizerProfile,
+  prefersReducedMotion: boolean,
+) {
+  return profile.activeCount > 0 && !prefersReducedMotion;
+}
+
+// A still frame for when the visualizer is not animating. Playback progress is
+// ignored so the frame does not shift as videos advance.
+export function getStaticVisualizerState(
+  profile: VisualizerProfile,
+): CalculateVisualizerLevelsResult {
+  if (profile.tracks.length === 0) {
+    return {
+      bandActivity: { low: 0, mid: 0, high: 0 },
+      energy: 0,
+      levels: Array.from({ length: BAR_COUNT }, () => IDLE_LEVEL),
+    };
+  }
+
+  const stillProfile = {
+    ...profile,
+    tracks: profile.tracks.map((track) => ({ ...track, progressSeconds: 0 })),
+  };
+  let state: CalculateVisualizerLevelsResult = {
+    bandActivity: { low: 0, mid: 0, high: 0 },
+    energy: 0,
+    levels: Array.from({ length: BAR_COUNT }, () => IDLE_LEVEL),
+  };
+
+  for (let frame = 0; frame < STATIC_SETTLE_FRAMES; frame += 1) {
+    state = calculateVisualizerLevels({
+      energy: state.energy,
+      previousLevels: state.levels,
+      profile: stillProfile,
+      timestamp: 0,
+    });
+  }
+
+  return state;
+}
