@@ -105,7 +105,12 @@ function extractJsonObject(source: string, marker: string) {
 }
 
 function extractInitialData(html: string) {
-  const markers = ["var ytInitialData = ", 'window["ytInitialData"] = ', "window['ytInitialData'] = ", "ytInitialData = "];
+  const markers = [
+    "var ytInitialData = ",
+    'window["ytInitialData"] = ',
+    "window['ytInitialData'] = ",
+    "ytInitialData = ",
+  ];
 
   for (const marker of markers) {
     const jsonString = extractJsonObject(html, marker);
@@ -284,9 +289,7 @@ export async function fetchYouTubeSuggestions(query: string) {
     return [];
   }
 
-  return data[1]
-    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    .slice(0, 6);
+  return data[1].filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 6);
 }
 
 export async function fetchYouTubeSearchPayload(query: string): Promise<YouTubeSearchPayload> {

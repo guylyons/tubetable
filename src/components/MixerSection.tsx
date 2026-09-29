@@ -30,13 +30,19 @@ export function MixerSection({
     }`;
 
   return (
-    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+    <section
+      className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}
+    >
       <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="min-w-0">
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+          >
             Mixer
           </p>
-          <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Track volumes</h2>
+          <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
+            Track volumes
+          </h2>
         </div>
       </div>
 
@@ -54,11 +60,17 @@ export function MixerSection({
                   isDarkMode ? "border-slate-800 bg-slate-950/50" : "border-slate-200 bg-slate-50"
                 }`}
               >
-                <div className={`w-full rounded-2xl border px-3 py-3 text-center transition-opacity motion-reduce:transition-none ${dimClassName} ${isDarkMode ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"}`}>
-                  <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                <div
+                  className={`w-full rounded-2xl border px-3 py-3 text-center transition-opacity motion-reduce:transition-none ${dimClassName} ${isDarkMode ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"}`}
+                >
+                  <p
+                    className={`text-xs font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+                  >
                     {trackLabel}
                   </p>
-                  <p className={`mt-2 line-clamp-2 text-sm font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
+                  <p
+                    className={`mt-2 line-clamp-2 text-sm font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
+                  >
                     {channel.video.title}
                   </p>
                   <p className={`mt-1 truncate text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
@@ -86,18 +98,15 @@ export function MixerSection({
                     </p>
                   </div>
 
-                  <div className={`flex flex-1 items-center justify-center transition-opacity motion-reduce:transition-none ${dimClassName}`}>
+                  <div
+                    className={`flex flex-1 items-center justify-center transition-opacity motion-reduce:transition-none ${dimClassName}`}
+                  >
                     <input
                       type="range"
                       min={0}
                       max={100}
                       value={channel.volume}
-                      onChange={(event) =>
-                        onChangeChannelVolume(
-                          channel.id,
-                          Number(event.target.value),
-                        )
-                      }
+                      onChange={event => onChangeChannelVolume(channel.id, Number(event.target.value))}
                       className="tubetable-slider tubetable-slider-vertical cursor-pointer appearance-none"
                       aria-label={`${trackLabel} volume`}
                     />
@@ -129,7 +138,9 @@ export function MixerSection({
           })}
         </div>
       ) : (
-        <div className={`rounded-[28px] border border-dashed px-6 py-12 text-center ${isDarkMode ? "border-slate-700 bg-slate-950/40 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
+        <div
+          className={`rounded-[28px] border border-dashed px-6 py-12 text-center ${isDarkMode ? "border-slate-700 bg-slate-950/40 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-500"}`}
+        >
           Add a video to open the mixer.
         </div>
       )}

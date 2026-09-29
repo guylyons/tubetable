@@ -36,7 +36,11 @@ export function buildChannelStates(channels: MixChannel[], masterVolume: number)
 
 export function getStripStatus(channel: MixChannelState) {
   const levelLabel =
-    channel.silencedBy === "mute" ? "Muted" : channel.silencedBy === "solo" ? "Off (solo)" : `${channel.effectiveVolume}%`;
+    channel.silencedBy === "mute"
+      ? "Muted"
+      : channel.silencedBy === "solo"
+        ? "Off (solo)"
+        : `${channel.effectiveVolume}%`;
 
   return { silencedBy: channel.silencedBy, levelLabel };
 }

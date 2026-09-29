@@ -72,7 +72,7 @@ function bandWeight(track: VisualizerTrack, band: keyof BandActivity) {
 function calculateBandActivity(tracks: VisualizerTrack[]) {
   const activity: BandActivity = { low: 0, mid: 0, high: 0 };
 
-  tracks.forEach((track) => {
+  tracks.forEach(track => {
     activity.low += track.level * bandWeight(track, "low");
     activity.mid += track.level * bandWeight(track, "mid");
     activity.high += track.level * bandWeight(track, "high");
@@ -85,28 +85,18 @@ function calculateBandActivity(tracks: VisualizerTrack[]) {
   };
 }
 
-export function buildVisualizerProfile(
-  channelStates: MixChannelState[],
-  transportPlaying: boolean,
-): VisualizerProfile {
+export function buildVisualizerProfile(channelStates: MixChannelState[], transportPlaying: boolean): VisualizerProfile {
   const tracks = transportPlaying
     ? channelStates
-        .filter(
-          (channel) =>
-            !channel.paused && !channel.muted && channel.effectiveVolume > 0,
-        )
+        .filter(channel => !channel.paused && !channel.muted && channel.effectiveVolume > 0)
         .map((channel, slot) => ({
           level: clamp(channel.effectiveVolume / 100, 0, 1),
           progressSeconds: Math.max(0, channel.progressSeconds),
           slot,
         }))
     : [];
-  const averageLevel =
-    tracks.length > 0
-      ? tracks.reduce((sum, track) => sum + track.level, 0) / tracks.length
-      : 0;
-  const peakLevel =
-    tracks.length > 0 ? Math.max(...tracks.map((track) => track.level)) : 0;
+  const averageLevel = tracks.length > 0 ? tracks.reduce((sum, track) => sum + track.level, 0) / tracks.length : 0;
+  const peakLevel = tracks.length > 0 ? Math.max(...tracks.map(track => track.level)) : 0;
 
   return {
     activeCount: tracks.length,
@@ -127,18 +117,13 @@ export function calculateVisualizerLevels({
       bandActivity: { low: 0, mid: 0, high: 0 },
       energy: 0,
       levels: Array.from({ length: BAR_COUNT }, (_, index) => {
-        const idleDrift =
-          (Math.sin(timestamp / 900 + index * 0.48) + 1) * 0.025;
+        const idleDrift = (Math.sin(timestamp / 900 + index * 0.48) + 1) * 0.025;
         return clamp(0.06 + idleDrift, 0.05, 0.14);
       }),
     };
   }
 
-  const targetEnergy = clamp(
-    profile.averageLevel * 0.78 + profile.peakLevel * 0.28,
-    0,
-    1,
-  );
+  const targetEnergy = clamp(profile.averageLevel * 0.78 + profile.peakLevel * 0.28, 0, 1);
   const nextEnergy = energy + (targetEnergy - energy) * 0.38;
   const bandActivity = calculateBandActivity(profile.tracks);
 
@@ -148,26 +133,16 @@ export function calculateVisualizerLevels({
     const band = getBand(index);
     const track = profile.tracks[index % profile.tracks.length]!;
     const beatProgress =
-      (((track.progressSeconds + timestamp / 1000) * BEAT_BPM) / 60 +
-        track.slot * 0.19 +
-        index * 0.011) %
-      1;
+      (((track.progressSeconds + timestamp / 1000) * BEAT_BPM) / 60 + track.slot * 0.19 + index * 0.011) % 1;
     const kick = Math.pow(1 - beatProgress, 4);
     const offbeat = Math.pow(1 - Math.abs(beatProgress - 0.5) * 2, 3);
     const arch = Math.sin(position * Math.PI);
-    const ripple =
-      (Math.sin(timestamp / (480 + track.slot * 90) + index * 0.58) + 1) / 2;
+    const ripple = (Math.sin(timestamp / (480 + track.slot * 90) + index * 0.58) + 1) / 2;
     const bandLift = bandActivity[band] * (0.24 + arch * 0.14);
     const trackLift = track.level * bandWeight(track, band) * 0.25;
     const beatLift = (kick * 0.5 + offbeat * 0.16) * (0.45 + track.level);
     const target = clamp(
-      0.07 +
-        arch * 0.16 +
-        ripple * 0.12 +
-        nextEnergy * 0.18 +
-        bandLift +
-        trackLift +
-        beatLift,
+      0.07 + arch * 0.16 + ripple * 0.12 + nextEnergy * 0.18 + bandLift + trackLift + beatLift,
       0.06,
       0.98,
     );
@@ -185,18 +160,13 @@ export function calculateVisualizerLevels({
 const IDLE_LEVEL = 0.08;
 const STATIC_SETTLE_FRAMES = 8;
 
-export function shouldAnimateVisualizer(
-  profile: VisualizerProfile,
-  prefersReducedMotion: boolean,
-) {
+export function shouldAnimateVisualizer(profile: VisualizerProfile, prefersReducedMotion: boolean) {
   return profile.activeCount > 0 && !prefersReducedMotion;
 }
 
 // A still frame for when the visualizer is not animating. Playback progress is
 // ignored so the frame does not shift as videos advance.
-export function getStaticVisualizerState(
-  profile: VisualizerProfile,
-): CalculateVisualizerLevelsResult {
+export function getStaticVisualizerState(profile: VisualizerProfile): CalculateVisualizerLevelsResult {
   if (profile.tracks.length === 0) {
     return {
       bandActivity: { low: 0, mid: 0, high: 0 },
@@ -207,7 +177,7 @@ export function getStaticVisualizerState(
 
   const stillProfile = {
     ...profile,
-    tracks: profile.tracks.map((track) => ({ ...track, progressSeconds: 0 })),
+    tracks: profile.tracks.map(track => ({ ...track, progressSeconds: 0 })),
   };
   let state: CalculateVisualizerLevelsResult = {
     bandActivity: { low: 0, mid: 0, high: 0 },

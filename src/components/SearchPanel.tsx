@@ -42,20 +42,23 @@ export function SearchPanel({
   showResults,
 }: SearchPanelProps) {
   return (
-    <section className={`relative z-40 rounded-[28px] p-3 sm:p-4 ${isDarkMode ? "bg-slate-900 text-slate-100 shadow-black/20" : "bg-white text-slate-900 shadow-sm"}`}>
+    <section
+      className={`relative z-40 rounded-[28px] p-3 sm:p-4 ${isDarkMode ? "bg-slate-900 text-slate-100 shadow-black/20" : "bg-white text-slate-900 shadow-sm"}`}
+    >
       <div className="space-y-2">
-        <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+        <p
+          className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+        >
           Add videos
         </p>
         <p className={`max-w-[46rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Search YouTube or paste a link. Add a few videos, then balance them
-          on the table.
+          Search YouTube or paste a link. Add a few videos, then balance them on the table.
         </p>
       </div>
 
       <div className="relative mt-4">
         <form
-          onSubmit={(event) => {
+          onSubmit={event => {
             event.preventDefault();
             onSubmit();
           }}
@@ -67,7 +70,7 @@ export function SearchPanel({
               type="search"
               enterKeyHint="go"
               value={searchQuery}
-              onChange={(event) => onChangeQuery(event.target.value)}
+              onChange={event => onChangeQuery(event.target.value)}
               onFocus={onOpenResults}
               onBlur={() => {
                 window.setTimeout(onCloseResults, 120);
@@ -89,14 +92,14 @@ export function SearchPanel({
               isDarkMode ? "bg-sky-500 hover:bg-sky-400" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            {isResolvingInput
-              ? "Adding..."
-              : "Add video"}
+            {isResolvingInput ? "Adding..." : "Add video"}
           </button>
         </form>
 
         {showResults ? (
-          <div className={`absolute inset-x-0 top-[calc(100%+14px)] z-[120] overflow-hidden rounded-[28px] border shadow-xl ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}>
+          <div
+            className={`absolute inset-x-0 top-[calc(100%+14px)] z-[120] overflow-hidden rounded-[28px] border shadow-xl ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}
+          >
             {isSearching ? (
               <p className={`px-4 py-5 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
                 Searching YouTube…
@@ -105,15 +108,17 @@ export function SearchPanel({
 
             {!isSearching && searchSuggestions.length > 0 ? (
               <div className={`border-b px-3 py-3 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
-                <p className={`px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+                <p
+                  className={`px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+                >
                   Suggested searches
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {searchSuggestions.map((suggestion) => (
+                  {searchSuggestions.map(suggestion => (
                     <button
                       key={suggestion}
                       type="button"
-                      onMouseDown={(event) => event.preventDefault()}
+                      onMouseDown={event => event.preventDefault()}
                       onClick={() => onSelectSuggestion(suggestion)}
                       className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs transition ${
                         isDarkMode
@@ -134,45 +139,36 @@ export function SearchPanel({
                   Results
                 </p>
 
-                {searchResults.map((result) => {
+                {searchResults.map(result => {
                   const isAlreadyAdded = existingVideoIds.has(result.videoId);
 
                   return (
                     <button
                       key={result.videoId}
                       type="button"
-                      onMouseDown={(event) => event.preventDefault()}
+                      onMouseDown={event => event.preventDefault()}
                       onClick={() => onSelectResult(result)}
                       disabled={isAlreadyAdded || !canAddMore}
                       className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
                         isDarkMode ? "hover:bg-slate-800" : "hover:bg-slate-50"
                       }`}
                     >
-                      <img
-                        src={result.thumbnail}
-                        alt=""
-                        className="h-16 w-28 rounded-xl object-cover"
-                        loading="lazy"
-                      />
+                      <img src={result.thumbnail} alt="" className="h-16 w-28 rounded-xl object-cover" loading="lazy" />
                       <div className="min-w-0 flex-1">
-                        <p className={`line-clamp-2 text-sm font-medium ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
+                        <p
+                          className={`line-clamp-2 text-sm font-medium ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
+                        >
                           {result.title}
                         </p>
                         <p className={`mt-1 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
                           {result.channelTitle}
                         </p>
-                        <div className={`mt-1 flex flex-wrap gap-2 text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
-                          {result.durationText ? (
-                            <span>{result.durationText}</span>
-                          ) : null}
-                          {result.viewCountText ? (
-                            <span>{result.viewCountText}</span>
-                          ) : null}
-                          {isAlreadyAdded ? (
-                            <span className="text-blue-700">
-                              Already added
-                            </span>
-                          ) : null}
+                        <div
+                          className={`mt-1 flex flex-wrap gap-2 text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
+                        >
+                          {result.durationText ? <span>{result.durationText}</span> : null}
+                          {result.viewCountText ? <span>{result.viewCountText}</span> : null}
+                          {isAlreadyAdded ? <span className="text-blue-700">Already added</span> : null}
                         </div>
                       </div>
                     </button>
@@ -198,9 +194,7 @@ export function SearchPanel({
         ) : null}
       </div>
 
-      {addError ? (
-        <p className={`mt-3 text-sm ${isDarkMode ? "text-red-300" : "text-red-600"}`}>{addError}</p>
-      ) : null}
+      {addError ? <p className={`mt-3 text-sm ${isDarkMode ? "text-red-300" : "text-red-600"}`}>{addError}</p> : null}
       {!canAddMore ? (
         <p className={`mt-3 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
           The table is full. Remove a video before adding another.

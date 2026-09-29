@@ -12,7 +12,7 @@ describe("UI interaction contracts", () => {
   test("keeps the focused video's Focus control clickable and visible so users can exit focus mode", () => {
     const source = readSource("src/components/VideoTile.tsx");
 
-    expect(source).toContain("isFocused ? \"pointer-events-auto opacity-100\" : \"pointer-events-none opacity-0\"");
+    expect(source).toContain('isFocused ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"');
   });
 
   test("always shows the Remove and Focus controls on touch screens, which have no hover", () => {

@@ -40,7 +40,12 @@
     background: var(--tubetable-bg);
     color: var(--tubetable-fg);
     font-family:
-      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
   }
 
   button,
@@ -177,9 +182,5 @@
 
 ::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: linear-gradient(
-    180deg,
-    var(--tubetable-scrollbar-thumb-start),
-    var(--tubetable-scrollbar-thumb-end)
-  );
+  background: linear-gradient(180deg, var(--tubetable-scrollbar-thumb-start), var(--tubetable-scrollbar-thumb-end));
 }

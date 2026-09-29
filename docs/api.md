@@ -58,9 +58,9 @@ suggestions.
 
 ### Query Parameters
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `q` | Yes | Search query. Leading and trailing whitespace is ignored. |
+| Name | Required | Description                                               |
+| ---- | -------- | --------------------------------------------------------- |
+| `q`  | Yes      | Search query. Leading and trailing whitespace is ignored. |
 
 Queries shorter than 2 characters return an empty successful payload without
 calling YouTube.
@@ -85,10 +85,7 @@ curl "http://localhost:3000/api/youtube/search?q=lofi%20beats"
       "thumbnail": "https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg"
     }
   ],
-  "suggestions": [
-    "lofi beats",
-    "lofi beats to study to"
-  ]
+  "suggestions": ["lofi beats", "lofi beats to study to"]
 }
 ```
 
@@ -117,9 +114,9 @@ pastes a YouTube URL instead of selecting a search result.
 
 ### Query Parameters
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `videoId` | Yes | An 11-character YouTube video ID containing letters, numbers, `_`, or `-`. |
+| Name      | Required | Description                                                                |
+| --------- | -------- | -------------------------------------------------------------------------- |
+| `videoId` | Yes      | An 11-character YouTube video ID containing letters, numbers, `_`, or `-`. |
 
 ### Example Request
 

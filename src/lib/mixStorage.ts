@@ -78,9 +78,7 @@ function createExampleSavedMix(): SavedMix {
 }
 
 function ensureExampleSavedMix(savedMixes: SavedMix[]): SavedMix[] {
-  return savedMixes.some(mix => mix.id === EXAMPLE_MIX_ID)
-    ? savedMixes
-    : [createExampleSavedMix(), ...savedMixes];
+  return savedMixes.some(mix => mix.id === EXAMPLE_MIX_ID) ? savedMixes : [createExampleSavedMix(), ...savedMixes];
 }
 
 function createDefaultMixState(): MixStorage {
@@ -130,12 +128,10 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
   return {
     name: typeof record.name === "string" ? record.name : "",
     channels,
-    masterVolume:
-      typeof record.masterVolume === "number" ? record.masterVolume : 100,
+    masterVolume: typeof record.masterVolume === "number" ? record.masterVolume : 100,
     transportPlaying: Boolean(record.transportPlaying),
     focusedChannelId:
-      typeof record.focusedChannelId === "string" &&
-      channels.some(channel => channel.id === record.focusedChannelId)
+      typeof record.focusedChannelId === "string" && channels.some(channel => channel.id === record.focusedChannelId)
         ? record.focusedChannelId
         : null,
   };

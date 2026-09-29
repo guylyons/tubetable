@@ -1,9 +1,5 @@
 import { getTransportLabel } from "../lib/mixChannels";
-import {
-  MAX_CHANNELS,
-  type MixChannelState,
-  type YouTubeSearchResult,
-} from "../types";
+import { MAX_CHANNELS, type MixChannelState, type YouTubeSearchResult } from "../types";
 import { SearchPanel } from "./SearchPanel";
 import { TransportVisualizer } from "./TransportVisualizer";
 
@@ -51,7 +47,9 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
         </div>
       </div>
       <div>
-        <h1 className={`text-5xl font-black sm:text-6xl lg:text-7xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
+        <h1
+          className={`text-5xl font-black sm:text-6xl lg:text-7xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}
+        >
           <span className="sr-only">{logoText}</span>
           <span aria-hidden="true" className="inline-flex tracking-normal">
             {[...logoText].map((letter, index) => (
@@ -65,7 +63,9 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
             ))}
           </span>
         </h1>
-        <p className={`mt-2 text-base font-medium leading-7 sm:text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+        <p
+          className={`mt-2 text-base font-medium leading-7 sm:text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
+        >
           Build a table of YouTube videos, then play and mix them together.
         </p>
       </div>
@@ -150,8 +150,12 @@ export function MixHeader({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-        <div className={`rounded-3xl border p-4 text-left ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}>
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+        <div
+          className={`rounded-3xl border p-4 text-left ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}
+        >
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+          >
             Videos added
           </p>
           <p className={`mt-3 text-3xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
@@ -162,7 +166,9 @@ export function MixHeader({
           </p>
         </div>
 
-        <div className={`space-y-3 rounded-3xl border p-4 sm:col-span-2 lg:col-span-1 ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}>
+        <div
+          className={`space-y-3 rounded-3xl border p-4 sm:col-span-2 lg:col-span-1 ${isDarkMode ? "border-slate-800 bg-slate-800/70" : "border-slate-200 bg-slate-50"}`}
+        >
           <TransportVisualizer
             channelStates={channelStates}
             isDarkMode={isDarkMode}

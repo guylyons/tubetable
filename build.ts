@@ -27,7 +27,7 @@ if (!result.success) {
   process.exit(1);
 }
 
-const rows = result.outputs.map((output) => ({
+const rows = result.outputs.map(output => ({
   file: path.relative(process.cwd(), output.path),
   type: output.kind,
   size: `${(output.size / 1024).toFixed(1)} KB`,

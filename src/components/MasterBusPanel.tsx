@@ -12,17 +12,23 @@ export function MasterBusPanel({
   onResetChannelBalances,
 }: MasterBusPanelProps) {
   return (
-    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+    <section
+      className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+          >
             Master volume
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
             Whole mix
           </h2>
         </div>
-        <span className={`rounded-full px-3 py-1 text-sm ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}>
+        <span
+          className={`rounded-full px-3 py-1 text-sm ${isDarkMode ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600"}`}
+        >
           {masterVolume}%
         </span>
       </div>
@@ -37,9 +43,7 @@ export function MasterBusPanel({
             min={0}
             max={100}
             value={masterVolume}
-            onChange={(event) =>
-              onChangeMasterVolume(Number(event.target.value))
-            }
+            onChange={event => onChangeMasterVolume(Number(event.target.value))}
             className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
           />
         </label>

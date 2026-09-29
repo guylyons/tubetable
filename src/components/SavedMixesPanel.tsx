@@ -19,21 +19,24 @@ export function SavedMixesPanel({
   transportPlaying,
 }: SavedMixesPanelProps) {
   return (
-    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+    <section
+      className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}
+    >
       <div className="space-y-3">
-        <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+        <p
+          className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+        >
           Saved mixes
         </p>
         <h2 className={`text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Library</h2>
         <p className={`max-w-[32rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Return to mixes you saved. Each one remembers its videos, levels, and
-          playback position.
+          Return to mixes you saved. Each one remembers its videos, levels, and playback position.
         </p>
       </div>
 
       <div className={`mt-5 space-y-3 ${savedMixes.length > 6 ? "max-h-[36rem] overflow-y-auto pr-2" : ""}`}>
         {savedMixes.length > 0 ? (
-          savedMixes.map((savedMix) => (
+          savedMixes.map(savedMix => (
             <article
               key={savedMix.id}
               className={`relative rounded-2xl border transition ${
@@ -59,8 +62,7 @@ export function SavedMixesPanel({
                   {savedMix.name || deriveMixName(savedMix.channels)}
                 </p>
                 <p className={`mt-1 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-                  {savedMix.channels.length} videos ·{" "}
-                  {new Date(savedMix.updatedAt).toLocaleDateString()}
+                  {savedMix.channels.length} videos · {new Date(savedMix.updatedAt).toLocaleDateString()}
                 </p>
               </button>
 
@@ -86,7 +88,9 @@ export function SavedMixesPanel({
             </article>
           ))
         ) : (
-          <div className={`rounded-2xl border border-dashed px-4 py-6 text-sm ${isDarkMode ? "border-slate-700 bg-slate-950/40 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
+          <div
+            className={`rounded-2xl border border-dashed px-4 py-6 text-sm ${isDarkMode ? "border-slate-700 bg-slate-950/40 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-500"}`}
+          >
             No saved mixes yet. Save this table when it feels right.
           </div>
         )}

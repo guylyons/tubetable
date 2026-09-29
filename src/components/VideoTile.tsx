@@ -87,7 +87,7 @@ export function VideoTile({
     setLoadError(null);
 
     loadIframeApi()
-      .then((YT) => {
+      .then(YT => {
         if (disposed || !playerContainerRef.current) {
           return;
         }
@@ -113,7 +113,7 @@ export function VideoTile({
             origin: window.location.origin,
           },
           events: {
-            onReady: (event) => {
+            onReady: event => {
               if (disposed) {
                 return;
               }
@@ -129,13 +129,10 @@ export function VideoTile({
               }
               applyPlayerVolume(event.target, effectiveVolume);
               lockPlayerInteraction(event.target);
-              syncPlayerPlayback(
-                event.target,
-                transportPlaying && !channel.paused,
-              );
+              syncPlayerPlayback(event.target, transportPlaying && !channel.paused);
               captureProgress();
             },
-            onStateChange: (event) => {
+            onStateChange: event => {
               const playbackState = playbackStateRef.current;
 
               if (
@@ -152,23 +149,16 @@ export function VideoTile({
                 }
               }
 
-              if (
-                event.data === YT_PLAYER_STATE_PAUSED ||
-                event.data === YT_PLAYER_STATE_ENDED
-              ) {
+              if (event.data === YT_PLAYER_STATE_PAUSED || event.data === YT_PLAYER_STATE_ENDED) {
                 captureProgress();
               }
             },
           },
         });
       })
-      .catch((error) => {
+      .catch(error => {
         if (!disposed) {
-          setLoadError(
-            error instanceof Error
-              ? error.message
-              : "Failed to load the YouTube player.",
-          );
+          setLoadError(error instanceof Error ? error.message : "Failed to load the YouTube player.");
         }
       });
 
@@ -206,10 +196,7 @@ export function VideoTile({
 
     try {
       playerRef.current.seekTo(channel.progressSeconds, true);
-      syncPlayerPlayback(
-        playerRef.current,
-        transportPlaying && !channel.paused,
-      );
+      syncPlayerPlayback(playerRef.current, transportPlaying && !channel.paused);
     } catch {
       // A restart can land while the iframe is still buffering.
     }
@@ -247,10 +234,7 @@ export function VideoTile({
   }, [channel.id, channel.paused, mixKey, ready, transportPlaying]);
 
   const isFocusPresentation = presentation === "focus";
-  const progressPercent =
-    durationSeconds > 0
-      ? Math.min(100, (channel.progressSeconds / durationSeconds) * 100)
-      : 0;
+  const progressPercent = durationSeconds > 0 ? Math.min(100, (channel.progressSeconds / durationSeconds) * 100) : 0;
 
   function scrubToPointerPosition(event: PointerEvent<HTMLButtonElement>) {
     if (!playerRef.current) {
@@ -306,7 +290,7 @@ export function VideoTile({
           type="button"
           draggable
           onDragEnd={onDragEnd}
-          onDragStart={(event) => {
+          onDragStart={event => {
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setData("text/plain", channel.id);
             onDragStart();
@@ -378,7 +362,7 @@ export function VideoTile({
           type="button"
           disabled={!ready}
           onPointerDown={scrubToPointerPosition}
-          onPointerMove={(event) => {
+          onPointerMove={event => {
             if (event.buttons === 1) {
               scrubToPointerPosition(event);
             }
@@ -404,12 +388,8 @@ export function VideoTile({
             className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
           >
             <span>{channel.video.channelTitle}</span>
-            {channel.video.durationText ? (
-              <span>{channel.video.durationText}</span>
-            ) : null}
-            {channel.video.viewCountText ? (
-              <span>{channel.video.viewCountText}</span>
-            ) : null}
+            {channel.video.durationText ? <span>{channel.video.durationText}</span> : null}
+            {channel.video.viewCountText ? <span>{channel.video.viewCountText}</span> : null}
             {isFocused ? (
               <span
                 className={`rounded-full px-2 py-1 font-semibold uppercase tracking-[0.14em] ${isDarkMode ? "bg-sky-400/15 text-sky-200" : "bg-blue-50 text-blue-700"}`}

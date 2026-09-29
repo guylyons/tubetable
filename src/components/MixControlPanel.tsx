@@ -22,10 +22,14 @@ export function MixControlPanel({
   saveMessage,
 }: MixControlPanelProps) {
   return (
-    <section className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}>
+    <section
+      className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}
+    >
       <div>
         <div>
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+          >
             Mix settings
           </p>
           <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
@@ -35,8 +39,7 @@ export function MixControlPanel({
       </div>
 
       <p className={`mt-3 max-w-[34rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-        Name this table, save it for later, or start a fresh mix. Your saved
-        mixes stay on this device.
+        Name this table, save it for later, or start a fresh mix. Your saved mixes stay on this device.
       </p>
 
       <div className="mt-5 space-y-3">
@@ -45,7 +48,7 @@ export function MixControlPanel({
           <input
             type="text"
             value={mixTitle}
-            onChange={(event) => onSetMixTitle(event.target.value)}
+            onChange={event => onSetMixTitle(event.target.value)}
             placeholder={generatedMixName}
             className={`min-w-0 w-full rounded-2xl border px-4 py-3 text-sm font-medium outline-none transition placeholder:text-slate-400 ${
               isDarkMode

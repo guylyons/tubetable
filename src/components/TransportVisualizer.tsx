@@ -66,20 +66,14 @@ function getBandPercent(activity: BandActivity, band: keyof BandActivity) {
   return `${Math.round(activity[band] * 100)}%`;
 }
 
-export function TransportVisualizer({
-  channelStates,
-  isDarkMode,
-  transportPlaying,
-}: TransportVisualizerProps) {
+export function TransportVisualizer({ channelStates, isDarkMode, transportPlaying }: TransportVisualizerProps) {
   const profile = useMemo(
     () => buildVisualizerProfile(channelStates, transportPlaying),
     [channelStates, transportPlaying],
   );
   const prefersReducedMotion = usePrefersReducedMotion();
   const animating = shouldAnimateVisualizer(profile, prefersReducedMotion);
-  const [visualizerState, setVisualizerState] = useState(() =>
-    getStaticVisualizerState(profile),
-  );
+  const [visualizerState, setVisualizerState] = useState(() => getStaticVisualizerState(profile));
   const profileRef = useRef(profile);
   const stateRef = useRef(visualizerState);
 
@@ -92,9 +86,7 @@ export function TransportVisualizer({
     }
 
     const staticState = getStaticVisualizerState(profile);
-    setVisualizerState((current) =>
-      sameLevels(current.levels, staticState.levels) ? current : staticState,
-    );
+    setVisualizerState(current => (sameLevels(current.levels, staticState.levels) ? current : staticState));
   }, [animating, profile]);
 
   useEffect(() => {
@@ -139,11 +131,15 @@ export function TransportVisualizer({
           : "border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.22),_transparent_58%),linear-gradient(180deg,_#ffffff,_#eff6ff)]"
       }`}
     >
-      <div className={`pointer-events-none absolute inset-x-4 top-3 h-16 rounded-full blur-2xl ${isDarkMode ? "bg-sky-400/15" : "bg-blue-200/30"}`} />
+      <div
+        className={`pointer-events-none absolute inset-x-4 top-3 h-16 rounded-full blur-2xl ${isDarkMode ? "bg-sky-400/15" : "bg-blue-200/30"}`}
+      />
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-slate-500"}`}>
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-slate-500"}`}
+          >
             Visualizer
           </p>
           <p className={`mt-1 text-[11px] leading-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
@@ -165,7 +161,9 @@ export function TransportVisualizer({
         </span>
       </div>
 
-      <div className={`relative mt-3 h-32 overflow-hidden rounded-[22px] border px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${isDarkMode ? "border-slate-700 bg-slate-950" : "border-white/70 bg-slate-950"}`}>
+      <div
+        className={`relative mt-3 h-32 overflow-hidden rounded-[22px] border px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ${isDarkMode ? "border-slate-700 bg-slate-950" : "border-white/70 bg-slate-950"}`}
+      >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.3),_transparent_46%),linear-gradient(180deg,_rgba(15,23,42,0.7),_rgba(2,6,23,0.96))]" />
         <div className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
@@ -188,10 +186,12 @@ export function TransportVisualizer({
       </div>
 
       <div className="relative mt-3 grid grid-cols-3 gap-2">
-        {(["low", "mid", "high"] as const).map((band) => (
+        {(["low", "mid", "high"] as const).map(band => (
           <div key={band}>
             <div className="flex items-center justify-between gap-2">
-              <span className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              <span
+                className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+              >
                 {band}
               </span>
               <span className={`text-[10px] tabular-nums ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>

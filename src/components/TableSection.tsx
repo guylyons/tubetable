@@ -36,9 +36,7 @@ export function TableSection({
   transportPlaying,
 }: TableSectionProps) {
   const [draggedChannelId, setDraggedChannelId] = useState<string | null>(null);
-  const [dragOverChannelId, setDragOverChannelId] = useState<string | null>(
-    null,
-  );
+  const [dragOverChannelId, setDragOverChannelId] = useState<string | null>(null);
 
   function resetDragState() {
     setDraggedChannelId(null);
@@ -56,23 +54,15 @@ export function TableSection({
   }
 
   const focusedChannel = focusedChannelId
-    ? (channelStates.find((channel) => channel.id === focusedChannelId) ?? null)
+    ? (channelStates.find(channel => channel.id === focusedChannelId) ?? null)
     : null;
 
-  function renderTile(
-    channel: MixChannelState,
-    index: number,
-    presentation: "default" | "focus" = "default",
-  ) {
+  function renderTile(channel: MixChannelState, index: number, presentation: "default" | "focus" = "default") {
     return (
       <div
         key={channel.id}
-        className={
-          presentation === "focus"
-            ? "order-first md:col-span-2 2xl:col-span-3"
-            : undefined
-        }
-        onDragOver={(event) => {
+        className={presentation === "focus" ? "order-first md:col-span-2 2xl:col-span-3" : undefined}
+        onDragOver={event => {
           if (!draggedChannelId || draggedChannelId === channel.id) {
             return;
           }
@@ -80,7 +70,7 @@ export function TableSection({
           event.preventDefault();
           setDragOverChannelId(channel.id);
         }}
-        onDrop={(event) => {
+        onDrop={event => {
           event.preventDefault();
           handleDrop(channel.id);
         }}
@@ -127,7 +117,9 @@ export function TableSection({
       />
       <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="min-w-0">
-          <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>
+          <p
+            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+          >
             Your table
           </p>
         </div>
@@ -136,10 +128,10 @@ export function TableSection({
       {channelStates.length > 0 ? (
         <div className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {channelStates.map((channel) =>
+            {channelStates.map(channel =>
               renderTile(
                 channel,
-                channelStates.findIndex((item) => item.id === channel.id),
+                channelStates.findIndex(item => item.id === channel.id),
                 focusedChannel?.id === channel.id ? "focus" : "default",
               ),
             )}
@@ -148,22 +140,16 @@ export function TableSection({
       ) : (
         <div
           className={`grid min-h-[420px] place-items-center rounded-[28px] border border-dashed px-6 text-center shadow-inner ${
-            isDarkMode
-              ? "border-sky-400/20 bg-slate-950/40"
-              : "border-blue-200 bg-white/70"
+            isDarkMode ? "border-sky-400/20 bg-slate-950/40" : "border-blue-200 bg-white/70"
           }`}
         >
           <div className="max-w-lg space-y-4">
-            <h3
-              className={`text-3xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}
-            >
+            <h3 className={`text-3xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
               Add your first video
             </h3>
-            <p
-              className={`text-base leading-7 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
-            >
-              Search above or paste a YouTube link. Each video becomes a track
-              you can reorder, focus, mute, solo, or loop.
+            <p className={`text-base leading-7 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+              Search above or paste a YouTube link. Each video becomes a track you can reorder, focus, mute, solo, or
+              loop.
             </p>
           </div>
         </div>

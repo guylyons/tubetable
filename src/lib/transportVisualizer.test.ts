@@ -8,10 +8,7 @@ import {
 } from "./transportVisualizer";
 import type { MixChannelState } from "../types";
 
-function channel(
-  id: string,
-  overrides: Partial<MixChannelState> = {},
-): MixChannelState {
+function channel(id: string, overrides: Partial<MixChannelState> = {}): MixChannelState {
   return {
     id,
     effectiveVolume: 76,
@@ -46,9 +43,7 @@ describe("buildVisualizerProfile", () => {
     expect(profile.activeCount).toBe(1);
     expect(profile.averageLevel).toBeCloseTo(0.9, 5);
     expect(profile.peakLevel).toBeCloseTo(0.9, 5);
-    expect(profile.tracks).toEqual([
-      expect.objectContaining({ level: 0.9, progressSeconds: 12, slot: 0 }),
-    ]);
+    expect(profile.tracks).toEqual([expect.objectContaining({ level: 0.9, progressSeconds: 12, slot: 0 })]);
   });
 
   test("has no active tracks while transport is paused", () => {
