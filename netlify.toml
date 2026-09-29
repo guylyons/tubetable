@@ -1,7 +1,0 @@
-[build]
-  functions = "netlify/functions"
-
-[[redirects]]
-  from = "/api/youtube/*"
-  to = "/.netlify/functions/youtube?route=:splat"
-  status = 200

@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-- This is a local browser tool for mixing up to 5 YouTube videos. It is not deployed. `netlify.toml` is stale and `netlify/functions` doesn't exist.
+- This is a local browser tool for mixing up to 5 YouTube videos. It is not deployed.
 - `src/server.ts` runs `Bun.serve`. It serves the React app and `/api/youtube/{search,video}` (documented in `docs/api.md`). Those routes scrape public YouTube pages, so they need no API key and no env vars.
 - Playback goes only through YouTube iframes (`src/lib/youtube.ts`). Volume, mute and solo go through the iframe player API, and mix logic lives in `src/lib/mixChannels.ts`.
 - `src/App.tsx` owns all state. Mixes are saved to localStorage (`src/lib/mixStorage.ts`), so field changes must still load old saved mixes by filling in defaults.

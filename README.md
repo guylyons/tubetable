@@ -98,4 +98,4 @@ The app reads public YouTube page data rather than using a YouTube API key. Sear
 
 ## Deploy
 
-The repo includes Netlify config for serving `dist/`. The current API implementation lives in the Bun server in `src/server.ts`, so deployments need to serve those routes from the same origin or provide equivalent rewrites.
+Tubetable runs locally and isn't deployed. The API routes live in the Bun server in `src/server.ts`, so any future deploy needs to serve them from the same origin as the app.
