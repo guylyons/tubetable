@@ -1,4 +1,7 @@
+import { useEffect, useState, type KeyboardEvent } from "react";
+import { parseYouTubeVideoId } from "../lib/youtube";
 import type { YouTubeSearchResult } from "../types";
+import { mutedTextClassName, primaryButtonClassName } from "./ui";
 
 type SearchPanelProps = {
   addError: string | null;
@@ -7,7 +10,6 @@ type SearchPanelProps = {
   existingVideoIds: Set<string>;
   isResolvingInput: boolean;
   isSearching: boolean;
-  isDarkMode: boolean;
   onChangeQuery: (value: string) => void;
   onCloseResults: () => void;
   onOpenResults: () => void;
@@ -21,6 +23,12 @@ type SearchPanelProps = {
   showResults: boolean;
 };
 
+const RESULTS_ID = "search-results";
+
+function resultOptionId(index: number) {
+  return `search-result-${index}`;
+}
+
 export function SearchPanel({
   addError,
   canAddMore,
@@ -28,7 +36,6 @@ export function SearchPanel({
   existingVideoIds,
   isResolvingInput,
   isSearching,
-  isDarkMode,
   onChangeQuery,
   onCloseResults,
   onOpenResults,
@@ -41,165 +48,155 @@ export function SearchPanel({
   searchSuggestions,
   showResults,
 }: SearchPanelProps) {
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const isLink = parseYouTubeVideoId(searchQuery) !== null;
+  const hasResults = !isSearching && searchResults.length > 0;
+  const resultsOpen = showResults && searchQuery.trim().length > 0;
+  const canSubmit = canAddMore && !isResolvingInput && (isLink || hasResults);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [searchResults, showResults]);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      onCloseResults();
+      return;
+    }
+
+    if (!hasResults || (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter")) {
+      return;
+    }
+
+    if (event.key === "Enter") {
+      const activeResult = searchResults[activeIndex];
+      if (resultsOpen && activeResult) {
+        event.preventDefault();
+        onSelectResult(activeResult);
+      }
+      return;
+    }
+
+    event.preventDefault();
+    onOpenResults();
+    const step = event.key === "ArrowDown" ? 1 : -1;
+    setActiveIndex(current => (current + step + searchResults.length) % searchResults.length);
+  }
+
   return (
-    <section
-      className={`relative z-40 rounded-[28px] p-3 sm:p-4 ${isDarkMode ? "bg-slate-900 text-slate-100 shadow-black/20" : "bg-white text-slate-900 shadow-sm"}`}
-    >
-      <div className="space-y-2">
-        <p
-          className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
-        >
-          Add videos
-        </p>
-        <p className={`max-w-[46rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Search YouTube or paste a link. Add a few videos, then balance them on the table.
-        </p>
-      </div>
+    <section className="relative z-40">
+      <form
+        onSubmit={event => {
+          event.preventDefault();
+          onSubmit();
+        }}
+        className="flex flex-col gap-3 sm:flex-row"
+      >
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Search YouTube or paste a video link</span>
+          <input
+            type="search"
+            enterKeyHint="go"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls={RESULTS_ID}
+            aria-expanded={resultsOpen && hasResults}
+            aria-activedescendant={activeIndex >= 0 ? resultOptionId(activeIndex) : undefined}
+            value={searchQuery}
+            onChange={event => onChangeQuery(event.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={onOpenResults}
+            onBlur={() => {
+              window.setTimeout(onCloseResults, 120);
+            }}
+            placeholder={canAddMore ? "Search a song, channel, or mood — or paste a YouTube link" : "The table is full"}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-400"
+            disabled={!canAddMore}
+          />
+        </label>
 
-      <div className="relative mt-4">
-        <form
-          onSubmit={event => {
-            event.preventDefault();
-            onSubmit();
-          }}
-          className="space-y-3"
-        >
-          <label className="block">
-            <span className="sr-only">Search YouTube or paste a video link</span>
-            <input
-              type="search"
-              enterKeyHint="go"
-              value={searchQuery}
-              onChange={event => onChangeQuery(event.target.value)}
-              onFocus={onOpenResults}
-              onBlur={() => {
-                window.setTimeout(onCloseResults, 120);
-              }}
-              placeholder="Search a song, channel, or mood — or paste a YouTube link"
-              className={`w-full rounded-3xl border px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 ${
-                isDarkMode
-                  ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
-                  : "border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-300 focus:bg-white"
-              }`}
-              disabled={!canAddMore}
-            />
-          </label>
+        <button type="submit" disabled={!canSubmit} className={`sm:w-40 ${primaryButtonClassName}`}>
+          {isResolvingInput ? "Adding…" : isLink || !searchQuery.trim() ? "Add video" : "Add top result"}
+        </button>
+      </form>
 
-          <button
-            type="submit"
-            disabled={!canAddMore || isResolvingInput}
-            className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
-              isDarkMode ? "bg-sky-500 hover:bg-sky-400" : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {isResolvingInput ? "Adding..." : "Add video"}
-          </button>
-        </form>
+      {resultsOpen ? (
+        <div className="absolute inset-x-0 top-[calc(100%+10px)] z-[120] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+          {isSearching ? <p className={`px-4 py-5 text-sm ${mutedTextClassName}`}>Searching YouTube…</p> : null}
 
-        {showResults ? (
-          <div
-            className={`absolute inset-x-0 top-[calc(100%+14px)] z-[120] overflow-hidden rounded-[28px] border shadow-xl ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"}`}
-          >
-            {isSearching ? (
-              <p className={`px-4 py-5 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-                Searching YouTube…
-              </p>
-            ) : null}
-
-            {!isSearching && searchSuggestions.length > 0 ? (
-              <div className={`border-b px-3 py-3 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
-                <p
-                  className={`px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+          {!isSearching && searchSuggestions.length > 0 ? (
+            <div className="flex flex-wrap gap-2 border-b border-slate-100 px-3 py-3 dark:border-slate-800">
+              {searchSuggestions.map(suggestion => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onMouseDown={event => event.preventDefault()}
+                  onClick={() => onSelectSuggestion(suggestion)}
+                  className="cursor-pointer rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-700 dark:hover:text-sky-200"
                 >
-                  Suggested searches
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {searchSuggestions.map(suggestion => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onMouseDown={event => event.preventDefault()}
-                      onClick={() => onSelectSuggestion(suggestion)}
-                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs transition ${
-                        isDarkMode
-                          ? "border-slate-700 bg-slate-800 text-slate-200 hover:border-sky-400 hover:bg-slate-700 hover:text-sky-200"
-                          : "border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                      }`}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
-            {!isSearching && searchResults.length > 0 ? (
-              <div className="max-h-[420px] overflow-y-auto p-2">
-                <p className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Results
-                </p>
+          {hasResults ? (
+            <div
+              id={RESULTS_ID}
+              role="listbox"
+              aria-label="Search results"
+              className="max-h-[420px] overflow-y-auto p-2"
+            >
+              {searchResults.map((result, index) => {
+                const isAlreadyAdded = existingVideoIds.has(result.videoId);
+                const isActive = index === activeIndex;
 
-                {searchResults.map(result => {
-                  const isAlreadyAdded = existingVideoIds.has(result.videoId);
+                return (
+                  <div
+                    key={result.videoId}
+                    id={resultOptionId(index)}
+                    role="option"
+                    aria-selected={isActive}
+                    aria-disabled={isAlreadyAdded || !canAddMore}
+                    onMouseDown={event => event.preventDefault()}
+                    onClick={() => onSelectResult(result)}
+                    className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-slate-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 dark:hover:bg-slate-800 ${
+                      isActive ? "bg-slate-100 dark:bg-slate-800" : ""
+                    }`}
+                  >
+                    <img src={result.thumbnail} alt="" className="h-16 w-28 rounded-xl object-cover" loading="lazy" />
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-medium">{result.title}</p>
+                      <p className={`mt-1 text-xs ${mutedTextClassName}`}>{result.channelTitle}</p>
+                      <p className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+                        {result.durationText ? <span>{result.durationText}</span> : null}
+                        {result.viewCountText ? <span>{result.viewCountText}</span> : null}
+                        {isAlreadyAdded ? <span className="text-blue-700 dark:text-sky-300">Already added</span> : null}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
 
-                  return (
-                    <button
-                      key={result.videoId}
-                      type="button"
-                      onMouseDown={event => event.preventDefault()}
-                      onClick={() => onSelectResult(result)}
-                      disabled={isAlreadyAdded || !canAddMore}
-                      className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                        isDarkMode ? "hover:bg-slate-800" : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <img src={result.thumbnail} alt="" className="h-16 w-28 rounded-xl object-cover" loading="lazy" />
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={`line-clamp-2 text-sm font-medium ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
-                        >
-                          {result.title}
-                        </p>
-                        <p className={`mt-1 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-                          {result.channelTitle}
-                        </p>
-                        <div
-                          className={`mt-1 flex flex-wrap gap-2 text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-                        >
-                          {result.durationText ? <span>{result.durationText}</span> : null}
-                          {result.viewCountText ? <span>{result.viewCountText}</span> : null}
-                          {isAlreadyAdded ? <span className="text-blue-700">Already added</span> : null}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
+          {!isSearching && searchError ? (
+            <p className="px-4 py-5 text-sm text-red-600 dark:text-red-300">{searchError}</p>
+          ) : null}
 
-            {!isSearching && searchError ? (
-              <p className={`px-4 py-5 text-sm ${isDarkMode ? "text-red-300" : "text-red-600"}`}>{searchError}</p>
-            ) : null}
-
-            {!isSearching &&
-            !searchError &&
-            searchResults.length === 0 &&
-            searchSuggestions.length === 0 &&
-            deferredQuery.length >= 2 ? (
-              <p className="px-4 py-5 text-sm text-slate-500">
-                No results yet. Try a shorter search or paste a YouTube link.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
-      {addError ? <p className={`mt-3 text-sm ${isDarkMode ? "text-red-300" : "text-red-600"}`}>{addError}</p> : null}
-      {!canAddMore ? (
-        <p className={`mt-3 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-          The table is full. Remove a video before adding another.
-        </p>
+          {!isSearching &&
+          !searchError &&
+          searchResults.length === 0 &&
+          searchSuggestions.length === 0 &&
+          deferredQuery.length >= 2 ? (
+            <p className={`px-4 py-5 text-sm ${mutedTextClassName}`}>
+              No results yet. Try a shorter search or paste a YouTube link.
+            </p>
+          ) : null}
+        </div>
       ) : null}
+
+      {addError ? <p className="mt-3 text-sm text-red-600 dark:text-red-300">{addError}</p> : null}
     </section>
   );
 }

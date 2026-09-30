@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "..", "..");
@@ -113,5 +113,27 @@ describe("UI interaction contracts", () => {
 
     expect(source).toContain("onUndoDelete");
     expect(source).toMatch(/>\s*Undo\s*</);
+  });
+
+  test("styles dark mode with the dark: variant, passing the theme only to the toggle that names it", () => {
+    const componentFiles = readdirSync(join(repoRoot, "src/components")).filter(name => name.endsWith(".tsx"));
+
+    for (const name of componentFiles.filter(name => name !== "MixHeader.tsx")) {
+      expect(`${name}: ${readSource(`src/components/${name}`).includes("isDarkMode")}`).toBe(`${name}: false`);
+    }
+    expect(readSource("src/components/MixHeader.tsx")).not.toMatch(/className=\{[^}]*isDarkMode/);
+  });
+
+  test("lets the keyboard move through, pick and dismiss search results", () => {
+    const source = readSource("src/components/SearchPanel.tsx");
+
+    expect(source).toContain('role="combobox"');
+    expect(source).toContain("aria-activedescendant");
+    expect(source).toContain('"ArrowDown"');
+    expect(source).toContain('"Escape"');
+  });
+
+  test("says the add button adds the top result when the input is a search", () => {
+    expect(readSource("src/components/SearchPanel.tsx")).toContain("Add top result");
   });
 });

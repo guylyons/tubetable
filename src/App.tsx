@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./index.css";
 import { MixControlPanel } from "./components/MixControlPanel";
 import { MixHeader } from "./components/MixHeader";
@@ -8,6 +8,7 @@ import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixCha
 import { deleteMix, getCurrentMix, restoreMix, saveDraft, selectMix, updateMix } from "./lib/mixLibrary";
 import { deriveMixName } from "./lib/mixNaming";
 import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
+import { useYouTubeSearch } from "./lib/useYouTubeSearch";
 import { parseYouTubeVideoId } from "./lib/youtube";
 import {
   DRAFT_MIX_KEY,
@@ -17,7 +18,6 @@ import {
   type MixChannel,
   type MixLibrary,
   type PersistedMix,
-  type YouTubeSearchPayload,
   type YouTubeSearchResult,
 } from "./types";
 
@@ -44,11 +44,7 @@ export function App() {
   const [restartToken, setRestartToken] = useState(0);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const deferredQuery = useDeferredValue(searchQuery.trim());
-  const [searchResults, setSearchResults] = useState<YouTubeSearchResult[]>([]);
-  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const search = useYouTubeSearch(searchQuery);
   const [addError, setAddError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [isResolvingInput, setIsResolvingInput] = useState(false);
@@ -60,7 +56,6 @@ export function App() {
   const generatedMixName = useMemo(() => deriveMixName(channels), [channels]);
   const isSavedMix = currentMixKey !== DRAFT_MIX_KEY;
   const channelStates = useMemo(() => buildChannelStates(channels, masterVolume), [channels, masterVolume]);
-  const isDarkMode = themeMode === "dark";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -72,56 +67,6 @@ export function App() {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
   }, [library]);
-
-  useEffect(() => {
-    const query = deferredQuery;
-    if (!query || query.length < 2 || parseYouTubeVideoId(query)) {
-      setSearchResults([]);
-      setSearchSuggestions([]);
-      setSearchError(null);
-      setIsSearching(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(async () => {
-      try {
-        setIsSearching(true);
-        setSearchError(null);
-
-        const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-
-        const data = (await response.json()) as YouTubeSearchPayload & {
-          error?: string;
-        };
-        if (!response.ok) {
-          throw new Error(data.error ?? "YouTube search is temporarily unavailable.");
-        }
-
-        setSearchResults(data.results);
-        setSearchSuggestions(data.suggestions);
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setSearchResults([]);
-        setSearchSuggestions([]);
-        setSearchError(error instanceof Error ? error.message : "Unable to search YouTube right now.");
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsSearching(false);
-        }
-      }
-    }, 220);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, [deferredQuery]);
 
   useEffect(() => {
     if (!statusMessage) {
@@ -167,20 +112,15 @@ export function App() {
     );
   }
 
-  function resetSearchUi(clearQuery = false) {
-    if (clearQuery) {
-      setSearchQuery("");
-    }
-    setSearchResults([]);
-    setSearchSuggestions([]);
-    setSearchError(null);
+  function resetSearchUi() {
+    setSearchQuery("");
     setAddError(null);
     setShowResults(false);
   }
 
   function handleSelectMix(mixKey: string) {
     setLibrary(current => selectMix(current, mixKey));
-    resetSearchUi(true);
+    resetSearchUi();
   }
 
   function saveCurrentMix() {
@@ -196,7 +136,7 @@ export function App() {
 
   function createNewMix() {
     setLibrary(current => ({ ...current, currentMixKey: DRAFT_MIX_KEY, draft: createEmptyMix() }));
-    resetSearchUi(true);
+    resetSearchUi();
   }
 
   function startCurrentMixFromBeginning() {
@@ -245,7 +185,7 @@ export function App() {
       focusedChannelId: mix.channels.length === 0 ? nextChannel.id : mix.focusedChannelId,
       transportPlaying: true,
     }));
-    resetSearchUi(true);
+    resetSearchUi();
   }
 
   async function resolveInputToVideo() {
@@ -277,8 +217,8 @@ export function App() {
       return;
     }
 
-    if (searchResults.length > 0) {
-      addResultToMix(searchResults[0]!);
+    if (!search.isSearching && search.results.length > 0) {
+      addResultToMix(search.results[0]!);
       return;
     }
 
@@ -291,11 +231,11 @@ export function App() {
         <MixHeader
           addError={addError}
           canAddMore={canAddMore}
-          deferredQuery={deferredQuery}
+          deferredQuery={search.deferredQuery}
           existingVideoIds={existingVideoIds}
           isResolvingInput={isResolvingInput}
-          isSearching={isSearching}
-          isDarkMode={isDarkMode}
+          isSearching={search.isSearching}
+          isDarkMode={themeMode === "dark"}
           onChangeQuery={value => {
             setSearchQuery(value);
             setShowResults(true);
@@ -309,14 +249,14 @@ export function App() {
             setShowResults(true);
             setAddError(null);
           }}
-          onSubmitSearch={() => {
+          onSubmit={() => {
             void resolveInputToVideo();
           }}
           onToggleTheme={() => setThemeMode(currentMode => (currentMode === "dark" ? "light" : "dark"))}
-          searchError={searchError}
+          searchError={search.error}
           searchQuery={searchQuery}
-          searchResults={searchResults}
-          searchSuggestions={searchSuggestions}
+          searchResults={search.results}
+          searchSuggestions={search.suggestions}
           showResults={showResults}
         />
 

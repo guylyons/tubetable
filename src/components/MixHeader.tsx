@@ -1,33 +1,16 @@
-import type { YouTubeSearchResult } from "../types";
+import type { ComponentProps } from "react";
 import { SearchPanel } from "./SearchPanel";
 
-type MixHeaderProps = {
-  addError: string | null;
-  canAddMore: boolean;
-  deferredQuery: string;
-  existingVideoIds: Set<string>;
-  isResolvingInput: boolean;
-  isSearching: boolean;
+type MixHeaderProps = ComponentProps<typeof SearchPanel> & {
   isDarkMode: boolean;
-  onChangeQuery: (value: string) => void;
-  onCloseResults: () => void;
-  onOpenResults: () => void;
-  onSelectResult: (result: YouTubeSearchResult) => void;
-  onSelectSuggestion: (suggestion: string) => void;
-  onSubmitSearch: () => void;
   onToggleTheme: () => void;
-  searchError: string | null;
-  searchQuery: string;
-  searchResults: YouTubeSearchResult[];
-  searchSuggestions: string[];
-  showResults: boolean;
 };
 
-function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
+function TubetableLogo() {
   const logoText = "Tubetable";
 
   return (
-    <div className="flex max-w-3xl flex-wrap items-center gap-4 sm:gap-5" aria-label={logoText}>
+    <div className="flex flex-wrap items-center gap-4 sm:gap-5" aria-label={logoText}>
       <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-[1.75rem] bg-gradient-to-br from-sky-400 to-blue-700 shadow-lg shadow-blue-500/20 sm:h-24 sm:w-24">
         <div className="absolute inset-x-4 bottom-4 h-2 rounded-full bg-blue-950/30" />
         <div className="relative h-12 w-12 rounded-full bg-white shadow-inner sm:h-14 sm:w-14">
@@ -40,9 +23,7 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
         </div>
       </div>
       <div>
-        <h1
-          className={`text-5xl font-black sm:text-6xl lg:text-7xl ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}
-        >
+        <h1 className="text-5xl font-black text-slate-950 sm:text-6xl dark:text-slate-50">
           <span className="sr-only">{logoText}</span>
           <span aria-hidden="true" className="inline-flex tracking-normal">
             {[...logoText].map((letter, index) => (
@@ -56,9 +37,7 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
             ))}
           </span>
         </h1>
-        <p
-          className={`mt-2 text-base font-medium leading-7 sm:text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
-        >
+        <p className="mt-2 text-base font-medium text-slate-600 dark:text-slate-300">
           Build a table of YouTube videos, then play and mix them together.
         </p>
       </div>
@@ -66,30 +45,21 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
   );
 }
 
-export function MixHeader({ isDarkMode, onSubmitSearch, onToggleTheme, ...searchProps }: MixHeaderProps) {
+export function MixHeader({ isDarkMode, onToggleTheme, ...searchProps }: MixHeaderProps) {
   return (
-    <header
-      className={`space-y-6 rounded-[32px] border p-5 shadow-sm sm:p-6 lg:p-7 ${
-        isDarkMode
-          ? "border-slate-800 bg-slate-900/85 text-slate-100 shadow-black/20"
-          : "border-slate-200 bg-white text-slate-900"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <TubetableLogo isDarkMode={isDarkMode} />
-        <button
-          type="button"
-          onClick={onToggleTheme}
-          className={`inline-flex shrink-0 cursor-pointer items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-            isDarkMode ? "bg-sky-400/15 text-sky-200 hover:bg-sky-400/25" : "bg-slate-900 text-white hover:bg-slate-800"
-          }`}
-          aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {isDarkMode ? "Light mode" : "Dark mode"}
-        </button>
+    <header className="relative grid gap-6 rounded-[32px] border border-slate-200 bg-white p-5 text-slate-900 shadow-sm sm:p-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center lg:gap-10 lg:p-7 dark:border-slate-800 dark:bg-slate-900/85 dark:text-slate-100 dark:shadow-black/20">
+      <button
+        type="button"
+        onClick={onToggleTheme}
+        className="absolute right-5 top-5 inline-flex cursor-pointer items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 sm:right-6 sm:top-6 dark:bg-sky-400/15 dark:text-sky-200 dark:hover:bg-sky-400/25"
+        aria-label={`Switch to ${isDarkMode ? "light" : "dark"} mode`}
+      >
+        {`${isDarkMode ? "Light" : "Dark"} mode`}
+      </button>
+      <TubetableLogo />
+      <div className="lg:pt-8">
+        <SearchPanel {...searchProps} />
       </div>
-
-      <SearchPanel isDarkMode={isDarkMode} onSubmit={onSubmitSearch} {...searchProps} />
     </header>
   );
 }
