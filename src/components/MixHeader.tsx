@@ -55,7 +55,7 @@ function TubetableLogo({ isDarkMode }: { isDarkMode: boolean }) {
             {[...logoText].map((letter, index) => (
               <span
                 key={`${letter}-${index}`}
-                className={`tubetable-logo-letter ${index === logoText.length - 1 ? "tubetable-logo-letter-e" : ""}`}
+                className="tubetable-logo-letter"
                 style={{ animationDelay: `${index * 90}ms` }}
               >
                 {letter}

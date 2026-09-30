@@ -10,7 +10,6 @@ import {
 
 const EXAMPLE_MIX_NAME = "Example Mix";
 const EXAMPLE_MIX_ID = "example-mix";
-const EXAMPLE_UPDATED_AT = "2024-01-01T00:00:00.000Z";
 const EXAMPLE_CHANNELS: MixChannel[] = [
   {
     id: "example-channel-1",
@@ -73,12 +72,8 @@ function createExampleSavedMix(): SavedMix {
   return {
     ...createExampleMix(),
     id: EXAMPLE_MIX_ID,
-    updatedAt: EXAMPLE_UPDATED_AT,
+    updatedAt: new Date().toISOString(),
   };
-}
-
-function ensureExampleSavedMix(savedMixes: SavedMix[]): SavedMix[] {
-  return savedMixes.some(mix => mix.id === EXAMPLE_MIX_ID) ? savedMixes : [createExampleSavedMix(), ...savedMixes];
 }
 
 function createDefaultMixState(): MixStorage {
@@ -215,7 +210,6 @@ export function readStoredMixState(): MixStorage {
           .filter((item): item is SavedMix => item !== null)
           .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       : [];
-    const normalizedSavedMixes = ensureExampleSavedMix(savedMixes);
 
     const rawDraftCache =
       record?.draftCache && typeof record.draftCache === "object" ? (record.draftCache as Record<string, unknown>) : {};
@@ -239,7 +233,7 @@ export function readStoredMixState(): MixStorage {
           ...draftCache,
           [currentMixKey]: draft,
         },
-        savedMixes: normalizedSavedMixes,
+        savedMixes,
       };
     }
 
@@ -249,7 +243,7 @@ export function readStoredMixState(): MixStorage {
         currentMixKey: DRAFT_MIX_KEY,
         draft: legacyMix,
         draftCache: { [DRAFT_MIX_KEY]: legacyMix },
-        savedMixes: ensureExampleSavedMix([]),
+        savedMixes: [],
       };
     }
 

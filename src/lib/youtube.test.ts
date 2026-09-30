@@ -8,9 +8,9 @@ import {
 } from "./youtube";
 
 describe("createYouTubePlayerVars", () => {
-  test("keeps YouTube controls visible so embeds show their progress bar", () => {
+  test("hides YouTube's own controls because the tile draws its own scrubber", () => {
     expect(createYouTubePlayerVars(12.8)).toMatchObject({
-      controls: 1,
+      controls: 0,
       start: 12,
     });
   });

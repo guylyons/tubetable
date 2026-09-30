@@ -124,7 +124,20 @@ describe("readStoredMixState", () => {
     expect(state.draftCache.other?.name).toBe("Other");
     expect(state.draftCache.broken).toBeUndefined();
     expect(state.draftCache[DRAFT_MIX_KEY]).toEqual(createEmptyMix());
-    expect(state.savedMixes.map(mix => mix.id)).toEqual(["example-mix", "saved-2", "saved-1"]);
+    expect(state.savedMixes.map(mix => mix.id)).toEqual(["saved-2", "saved-1"]);
+  });
+
+  test("does not bring back the example mix after it was deleted", () => {
+    withStoredValue(JSON.stringify({ currentMixKey: DRAFT_MIX_KEY, draft: { channels: [] }, savedMixes: [] }));
+
+    expect(readStoredMixState().savedMixes).toEqual([]);
+  });
+
+  test("dates the example mix to when it was first created, not a fixed day that shifts by time zone", () => {
+    const before = Date.now();
+    const [example] = readStoredMixState().savedMixes;
+
+    expect(Date.parse(example!.updatedAt)).toBeGreaterThanOrEqual(before);
   });
 
   test("does not duplicate the example mix when it was saved", () => {
@@ -147,6 +160,6 @@ describe("readStoredMixState", () => {
     expect(state.currentMixKey).toBe(DRAFT_MIX_KEY);
     expect(state.draft.name).toBe("Legacy");
     expect(state.draftCache[DRAFT_MIX_KEY]).toEqual(state.draft);
-    expect(state.savedMixes.map(mix => mix.id)).toEqual(["example-mix"]);
+    expect(state.savedMixes).toEqual([]);
   });
 });

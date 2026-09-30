@@ -50,4 +50,16 @@ describe("UI interaction contracts", () => {
 
     expect(source).toContain("cursor-pointer");
   });
+
+  test("does not reopen search results when a search finishes after the input lost focus", () => {
+    const source = readSource("src/App.tsx");
+
+    expect(source).not.toMatch(/setSearchSuggestions\(data\.suggestions\);\s*setShowResults\(true\)/);
+  });
+
+  test("keeps every logo letter on the baseline grid so the wordmark reads as one word", () => {
+    const source = readSource("src/index.css");
+
+    expect(source).not.toContain("tubetable-logo-letter-e");
+  });
 });

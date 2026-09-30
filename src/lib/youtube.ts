@@ -46,7 +46,7 @@ let iframeApiPromise: Promise<YouTubeNamespace> | null = null;
 export function createYouTubePlayerVars(startSeconds: number) {
   return {
     autoplay: 0,
-    controls: 1,
+    controls: 0,
     disablekb: 1,
     enablejsapi: 1,
     fs: 0,

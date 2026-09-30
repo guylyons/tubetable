@@ -140,7 +140,6 @@ export function App() {
 
         setSearchResults(data.results);
         setSearchSuggestions(data.suggestions);
-        setShowResults(true);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
