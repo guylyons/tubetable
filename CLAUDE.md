@@ -18,8 +18,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - This is a local browser tool for mixing up to 5 YouTube videos. It is not deployed.
 - `src/server.ts` runs `Bun.serve`. It serves the React app and `/api/youtube/{search,video}` (documented in `docs/api.md`). Those routes scrape public YouTube pages, so they need no API key and no env vars.
 - Playback goes only through YouTube iframes (`src/lib/youtube.ts`). Volume, mute and solo go through the iframe player API, and mix logic lives in `src/lib/mixChannels.ts`.
-- `src/App.tsx` owns all state. Mixes are saved to localStorage (`src/lib/mixStorage.ts`), so field changes must still load old saved mixes by filling in defaults.
-- Styling is Tailwind v4 with per-component `isDarkMode` class switching. MUI is **not** installed.
+- `src/App.tsx` owns all state as one `MixLibrary` (the draft plus saved mixes). Saved mixes autosave: edits go straight into the library entry through `src/lib/mixLibrary.ts`, and only the unsaved draft has a Save button.
+- The library is stored in localStorage (`src/lib/mixStorage.ts`), so field changes must still load old saved mixes by filling in defaults. `readStoredMixState` also migrates the pre-autosave `draftCache` shape.
+- Styling is Tailwind v4. Dark mode uses the `dark:` variant tied to `data-theme` on `<html>` (`src/index.css`), so components take no theme prop. Shared class strings live in `src/components/ui.ts`. MUI is **not** installed.
 - `src/components/uiContracts.test.ts` reads `.tsx` files as text and checks for specific class names and markup. Renaming classes or restructuring JSX can break it without any behavior change.
 
 ## Audio effects (lowpass filter, etc.)

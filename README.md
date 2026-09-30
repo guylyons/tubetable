@@ -12,8 +12,8 @@ Tubetable is a local browser app for mixing YouTube clips. Add videos, play them
 - Mix up to five video channels
 - Control per-channel volume and master volume
 - Pause, mute, solo, loop, remove, and reorder channels
-- Save mixes in browser local storage
-- Resume saved mixes with playback positions
+- Save mixes to a library in browser local storage; saved mixes update automatically
+- Resume saved mixes with playback positions, and undo a delete
 - Use light or dark mode
 
 ## Run Locally
