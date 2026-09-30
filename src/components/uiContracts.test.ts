@@ -124,6 +124,15 @@ describe("UI interaction contracts", () => {
     expect(readSource("src/components/MixHeader.tsx")).not.toMatch(/className=\{[^}]*isDarkMode/);
   });
 
+  test("shows the theme toggle as a sun or moon icon instead of text", () => {
+    const source = readSource("src/components/MixHeader.tsx");
+
+    expect(source).toContain("<SunIcon");
+    expect(source).toContain("<MoonIcon");
+    expect(source).not.toContain(`isDarkMode ? "Light" : "Dark"`);
+    expect(source).toContain('aria-label={`Switch to ${isDarkMode ? "light" : "dark"} mode`}');
+  });
+
   test("lets the keyboard move through, pick and dismiss search results", () => {
     const source = readSource("src/components/SearchPanel.tsx");
 

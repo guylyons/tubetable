@@ -6,6 +6,40 @@ type MixHeaderProps = ComponentProps<typeof SearchPanel> & {
   onToggleTheme: () => void;
 };
 
+function SunIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
 function TubetableLogo() {
   const logoText = "Tubetable";
 
@@ -51,10 +85,11 @@ export function MixHeader({ isDarkMode, onToggleTheme, ...searchProps }: MixHead
       <button
         type="button"
         onClick={onToggleTheme}
-        className="absolute right-5 top-5 inline-flex cursor-pointer items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-slate-800 sm:right-6 sm:top-6 dark:bg-sky-400/15 dark:text-sky-200 dark:hover:bg-sky-400/25"
+        className="absolute right-5 top-5 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800 sm:right-6 sm:top-6 dark:bg-sky-400/15 dark:text-sky-200 dark:hover:bg-sky-400/25"
         aria-label={`Switch to ${isDarkMode ? "light" : "dark"} mode`}
+        title={`Switch to ${isDarkMode ? "light" : "dark"} mode`}
       >
-        {`${isDarkMode ? "Light" : "Dark"} mode`}
+        {isDarkMode ? <SunIcon /> : <MoonIcon />}
       </button>
       <TubetableLogo />
       <div className="lg:pt-8">
