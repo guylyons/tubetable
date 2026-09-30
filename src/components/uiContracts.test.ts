@@ -78,4 +78,26 @@ describe("UI interaction contracts", () => {
 
     expect(source.indexOf("<TableSection")).toBeLessThan(source.indexOf("<MixControlPanel"));
   });
+
+  test("puts each track's volume on its video tile instead of a separate mixer", () => {
+    const source = readSource("src/components/VideoTile.tsx");
+
+    expect(existsSync(join(repoRoot, "src/components/MixerSection.tsx"))).toBe(false);
+    expect(source).toContain("aria-label={`${trackLabel} volume`}");
+    expect(source).toContain("getStripStatus(channel)");
+  });
+
+  test("uses a range input for the scrubber so it works from the keyboard and screen readers", () => {
+    const source = readSource("src/components/VideoTile.tsx");
+
+    expect(source).toContain("aria-label={`Seek ${channel.video.title}`}");
+    expect(source).toContain("aria-valuetext={");
+    expect(source).not.toContain("onPointerDown");
+  });
+
+  test("only seeks on load when the user pressed restart, because seekTo starts a cued video", () => {
+    const source = readSource("src/components/VideoTile.tsx");
+
+    expect(source).toContain("handledRestartTokenRef");
+  });
 });

@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  createYouTubePlayerVars,
-  getSeekSecondsFromPointerPosition,
-  getSeekSecondsFromProgressValue,
-  syncPlayerPlayback,
-  type YouTubePlayer,
-} from "./youtube";
+import { createYouTubePlayerVars, formatPlaybackTime, syncPlayerPlayback, type YouTubePlayer } from "./youtube";
 
 describe("createYouTubePlayerVars", () => {
   test("hides YouTube's own controls because the tile draws its own scrubber", () => {
@@ -20,29 +14,14 @@ describe("createYouTubePlayerVars", () => {
   });
 });
 
-describe("getSeekSecondsFromProgressValue", () => {
-  test("converts a scrubber percentage into a clamped playback timestamp", () => {
-    expect(getSeekSecondsFromProgressValue("25", 240)).toBe(60);
-    expect(getSeekSecondsFromProgressValue("125", 240)).toBe(240);
-    expect(getSeekSecondsFromProgressValue("-10", 240)).toBe(0);
+describe("formatPlaybackTime", () => {
+  test("formats minutes and seconds", () => {
+    expect(formatPlaybackTime(0)).toBe("0:00");
+    expect(formatPlaybackTime(65.9)).toBe("1:05");
   });
 
-  test("falls back to the current timestamp when the scrub value or duration is invalid", () => {
-    expect(getSeekSecondsFromProgressValue("nope", 240, 42)).toBe(42);
-    expect(getSeekSecondsFromProgressValue("50", 0, 42)).toBe(42);
-  });
-});
-
-describe("getSeekSecondsFromPointerPosition", () => {
-  test("converts a click position inside the progress bar into a clamped timestamp", () => {
-    expect(getSeekSecondsFromPointerPosition(150, 100, 200, 240)).toBe(60);
-    expect(getSeekSecondsFromPointerPosition(50, 100, 200, 240)).toBe(0);
-    expect(getSeekSecondsFromPointerPosition(350, 100, 200, 240)).toBe(240);
-  });
-
-  test("falls back to the current timestamp when geometry or duration is invalid", () => {
-    expect(getSeekSecondsFromPointerPosition(150, 100, 0, 240, 42)).toBe(42);
-    expect(getSeekSecondsFromPointerPosition(150, 100, 200, 0, 42)).toBe(42);
+  test("adds hours for long videos", () => {
+    expect(formatPlaybackTime(4 * 3600 + 57 * 60 + 41)).toBe("4:57:41");
   });
 });
 

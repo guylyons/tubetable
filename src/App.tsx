@@ -1,7 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import "./index.css";
 import { MasterBusPanel } from "./components/MasterBusPanel";
-import { MixerSection } from "./components/MixerSection";
 import { MixControlPanel } from "./components/MixControlPanel";
 import { MixHeader } from "./components/MixHeader";
 import { SavedMixesPanel } from "./components/SavedMixesPanel";
@@ -478,8 +477,13 @@ export function App() {
         <main className="grid flex-1 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="space-y-6">
             <TableSection
-              isDarkMode={isDarkMode}
               channelStates={channelStates}
+              onChangeChannelVolume={(channelId, volume) =>
+                updateChannel(channelId, currentChannel => ({
+                  ...currentChannel,
+                  volume,
+                }))
+              }
               focusedChannelId={focusedChannelId}
               mixKey={currentMixKey}
               onFocusChannel={channelId =>
@@ -521,29 +525,6 @@ export function App() {
               onProgress={updateChannelProgress}
               restartToken={restartToken}
               transportPlaying={transportPlaying}
-            />
-
-            <MixerSection
-              isDarkMode={isDarkMode}
-              channelStates={channelStates}
-              onChangeChannelVolume={(channelId, volume) =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  volume,
-                }))
-              }
-              onToggleMute={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  muted: !currentChannel.muted,
-                }))
-              }
-              onToggleSolo={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  solo: !currentChannel.solo,
-                }))
-              }
             />
           </div>
 

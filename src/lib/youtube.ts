@@ -59,36 +59,13 @@ export function createYouTubePlayerVars(startSeconds: number) {
   };
 }
 
-export function getSeekSecondsFromProgressValue(progressValue: string, durationSeconds: number, fallbackSeconds = 0) {
-  const progressPercent = Number(progressValue);
-  if (!Number.isFinite(progressPercent) || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-    return Math.max(0, fallbackSeconds);
-  }
+export function formatPlaybackTime(totalSeconds: number) {
+  const seconds = Math.floor(Math.max(0, totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secondsText = String(seconds % 60).padStart(2, "0");
 
-  const clampedPercent = Math.min(100, Math.max(0, progressPercent));
-  return (clampedPercent / 100) * durationSeconds;
-}
-
-export function getSeekSecondsFromPointerPosition(
-  clientX: number,
-  trackLeft: number,
-  trackWidth: number,
-  durationSeconds: number,
-  fallbackSeconds = 0,
-) {
-  if (
-    !Number.isFinite(clientX) ||
-    !Number.isFinite(trackLeft) ||
-    !Number.isFinite(trackWidth) ||
-    trackWidth <= 0 ||
-    !Number.isFinite(durationSeconds) ||
-    durationSeconds <= 0
-  ) {
-    return Math.max(0, fallbackSeconds);
-  }
-
-  const progressPercent = ((clientX - trackLeft) / trackWidth) * 100;
-  return getSeekSecondsFromProgressValue(String(progressPercent), durationSeconds, fallbackSeconds);
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${secondsText}` : `${minutes}:${secondsText}`;
 }
 
 function sanitizeVideoId(value: string | null | undefined) {

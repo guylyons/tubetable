@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { VideoTile } from "./VideoTile";
+import { headingClassName, primaryButtonClassName } from "./ui";
 import { MAX_CHANNELS, type MixChannelState } from "../types";
 
 type TableSectionProps = {
-  isDarkMode: boolean;
   channelStates: MixChannelState[];
   focusedChannelId: string | null;
+  onChangeChannelVolume: (channelId: string, volume: number) => void;
   onFocusChannel: (channelId: string) => void;
   onReorderChannel: (draggedChannelId: string, targetChannelId: string) => void;
   onRemoveChannel: (channelId: string) => void;
@@ -21,9 +22,9 @@ type TableSectionProps = {
 };
 
 export function TableSection({
-  isDarkMode,
   channelStates,
   focusedChannelId,
+  onChangeChannelVolume,
   onFocusChannel,
   onReorderChannel,
   onRemoveChannel,
@@ -46,79 +47,18 @@ export function TableSection({
   }
 
   function handleDrop(targetChannelId: string) {
-    if (!draggedChannelId || draggedChannelId === targetChannelId) {
-      resetDragState();
-      return;
+    if (draggedChannelId && draggedChannelId !== targetChannelId) {
+      onReorderChannel(draggedChannelId, targetChannelId);
     }
 
-    onReorderChannel(draggedChannelId, targetChannelId);
     resetDragState();
   }
 
-  const focusedChannel = focusedChannelId
-    ? (channelStates.find(channel => channel.id === focusedChannelId) ?? null)
-    : null;
-
-  function renderTile(channel: MixChannelState, index: number, presentation: "default" | "focus" = "default") {
-    return (
-      <div
-        key={channel.id}
-        className={presentation === "focus" ? "order-first md:col-span-2 2xl:col-span-3" : undefined}
-        onDragOver={event => {
-          if (!draggedChannelId || draggedChannelId === channel.id) {
-            return;
-          }
-
-          event.preventDefault();
-          setDragOverChannelId(channel.id);
-        }}
-        onDrop={event => {
-          event.preventDefault();
-          handleDrop(channel.id);
-        }}
-      >
-        <VideoTile
-          isDarkMode={isDarkMode}
-          channel={channel}
-          effectiveVolume={channel.effectiveVolume}
-          isDragging={draggedChannelId === channel.id}
-          isDragTarget={dragOverChannelId === channel.id}
-          isFocused={focusedChannelId === channel.id}
-          onDragEnd={resetDragState}
-          onDragStart={() => {
-            setDraggedChannelId(channel.id);
-            setDragOverChannelId(channel.id);
-          }}
-          onFocus={onFocusChannel}
-          onRemove={onRemoveChannel}
-          onToggleLoop={onToggleLoop}
-          onToggleMute={onToggleMute}
-          onTogglePause={onTogglePause}
-          onToggleSolo={onToggleSolo}
-          onProgress={onProgress}
-          mixKey={mixKey}
-          presentation={presentation}
-          restartToken={restartToken}
-          trackLabel={`Channel ${index + 1}`}
-          transportPlaying={transportPlaying}
-        />
-      </div>
-    );
-  }
-
   return (
-    <section
-      className={`relative overflow-hidden rounded-[32px] border p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ring-1 sm:p-5 ${
-        isDarkMode
-          ? "border-sky-400/25 bg-[linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(15,23,42,0.88)_18%)] ring-sky-400/10"
-          : "border-blue-200/80 bg-[linear-gradient(180deg,_rgba(239,246,255,0.9),_#ffffff_18%)] ring-blue-100/70"
-      }`}
-    >
-      <div
-        className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${isDarkMode ? "from-sky-400 via-blue-500 to-transparent" : "from-blue-500 via-sky-400 to-transparent"}`}
-      />
+    <section className="relative overflow-hidden rounded-[32px] border border-blue-200/80 bg-[linear-gradient(180deg,_rgba(239,246,255,0.9),_#ffffff_18%)] p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ring-1 ring-blue-100/70 sm:p-5 dark:border-sky-400/25 dark:bg-[linear-gradient(180deg,_rgba(15,23,42,0.96),_rgba(15,23,42,0.88)_18%)] dark:ring-sky-400/10">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-sky-400 to-transparent dark:from-sky-400 dark:via-blue-500" />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-semibold text-slate-950 dark:text-slate-50">
+        <h2 className={headingClassName}>
           Your table{" "}
           <span className="text-base font-medium text-slate-400 tabular-nums">
             {channelStates.length} / {MAX_CHANNELS}
@@ -128,35 +68,67 @@ export function TableSection({
           type="button"
           onClick={onToggleTransport}
           disabled={channelStates.length === 0}
-          className="inline-flex min-w-32 cursor-pointer items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-sky-500 dark:hover:bg-sky-400"
+          className={`min-w-32 ${primaryButtonClassName}`}
         >
           {transportPlaying ? "Pause all" : "Play all"}
         </button>
       </div>
 
       {channelStates.length > 0 ? (
-        <div className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {channelStates.map(channel =>
-              renderTile(
-                channel,
-                channelStates.findIndex(item => item.id === channel.id),
-                focusedChannel?.id === channel.id ? "focus" : "default",
-              ),
-            )}
-          </div>
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          {channelStates.map((channel, index) => {
+            const isFocused = focusedChannelId === channel.id;
+
+            return (
+              <div
+                key={channel.id}
+                className={isFocused ? "order-first md:col-span-2 2xl:col-span-3" : undefined}
+                onDragOver={event => {
+                  if (!draggedChannelId || draggedChannelId === channel.id) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  setDragOverChannelId(channel.id);
+                }}
+                onDrop={event => {
+                  event.preventDefault();
+                  handleDrop(channel.id);
+                }}
+              >
+                <VideoTile
+                  channel={channel}
+                  isDragging={draggedChannelId === channel.id}
+                  isDragTarget={dragOverChannelId === channel.id}
+                  isFocused={isFocused}
+                  onChangeVolume={onChangeChannelVolume}
+                  onDragEnd={resetDragState}
+                  onDragStart={() => {
+                    setDraggedChannelId(channel.id);
+                    setDragOverChannelId(channel.id);
+                  }}
+                  onFocus={onFocusChannel}
+                  onRemove={onRemoveChannel}
+                  onToggleLoop={onToggleLoop}
+                  onToggleMute={onToggleMute}
+                  onTogglePause={onTogglePause}
+                  onToggleSolo={onToggleSolo}
+                  onProgress={onProgress}
+                  mixKey={mixKey}
+                  presentation={isFocused ? "focus" : "default"}
+                  restartToken={restartToken}
+                  trackLabel={`Channel ${index + 1}`}
+                  transportPlaying={transportPlaying}
+                />
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <div
-          className={`grid min-h-[420px] place-items-center rounded-[28px] border border-dashed px-6 text-center shadow-inner ${
-            isDarkMode ? "border-sky-400/20 bg-slate-950/40" : "border-blue-200 bg-white/70"
-          }`}
-        >
+        <div className="grid min-h-[420px] place-items-center rounded-[28px] border border-dashed border-blue-200 bg-white/70 px-6 text-center shadow-inner dark:border-sky-400/20 dark:bg-slate-950/40">
           <div className="max-w-lg space-y-4">
-            <h3 className={`text-3xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
-              Add your first video
-            </h3>
-            <p className={`text-base leading-7 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+            <h3 className="text-3xl font-semibold text-slate-950 dark:text-slate-50">Add your first video</h3>
+            <p className="text-base leading-7 text-slate-600 dark:text-slate-300">
               Search above or paste a YouTube link. Each video becomes a track you can reorder, focus, mute, solo, or
               loop.
             </p>
