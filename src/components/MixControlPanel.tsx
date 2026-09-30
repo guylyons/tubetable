@@ -1,101 +1,95 @@
+import {
+  headingClassName,
+  inputClassName,
+  mutedTextClassName,
+  panelClassName,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+} from "./ui";
+
 type MixControlPanelProps = {
-  isDarkMode: boolean;
   generatedMixName: string;
   isSavedMix: boolean;
+  masterVolume: number;
   mixTitle: string;
+  onChangeMasterVolume: (value: number) => void;
   onCreateNewMix: () => void;
-  onStartFromBeginning: () => void;
+  onResetChannelBalances: () => void;
   onSaveMix: () => void;
   onSetMixTitle: (value: string) => void;
-  saveMessage: string | null;
+  onStartFromBeginning: () => void;
+  statusMessage: string | null;
 };
 
 export function MixControlPanel({
-  isDarkMode,
   generatedMixName,
   isSavedMix,
+  masterVolume,
   mixTitle,
+  onChangeMasterVolume,
   onCreateNewMix,
-  onStartFromBeginning,
+  onResetChannelBalances,
   onSaveMix,
   onSetMixTitle,
-  saveMessage,
+  onStartFromBeginning,
+  statusMessage,
 }: MixControlPanelProps) {
   return (
-    <section
-      className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}
-    >
+    <section className={`space-y-5 ${panelClassName}`}>
+      <h2 className={headingClassName}>Current mix</h2>
+
+      <label className="block">
+        <span className={`mb-2 block text-sm ${mutedTextClassName}`}>Name</span>
+        <input
+          type="text"
+          value={mixTitle}
+          onChange={event => onSetMixTitle(event.target.value)}
+          placeholder={generatedMixName}
+          className={inputClassName}
+        />
+      </label>
+
       <div>
-        <div>
-          <p
-            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+        <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+          <label htmlFor="master-volume" className={mutedTextClassName}>
+            Master volume <span className="tabular-nums">{masterVolume}%</span>
+          </label>
+          <button
+            type="button"
+            onClick={onResetChannelBalances}
+            className="cursor-pointer text-blue-700 hover:underline dark:text-sky-300"
           >
-            Mix settings
-          </p>
-          <h2 className={`mt-2 text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>
-            Current mix
-          </h2>
+            Reset track levels
+          </button>
         </div>
+        <input
+          id="master-volume"
+          type="range"
+          min={0}
+          max={100}
+          value={masterVolume}
+          onChange={event => onChangeMasterVolume(Number(event.target.value))}
+          className="tubetable-slider h-2 w-full cursor-pointer appearance-none"
+        />
       </div>
 
-      <p className={`mt-3 max-w-[34rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-        Name this table, save it for later, or start a fresh mix. Your saved mixes stay on this device.
+      <div className="grid auto-cols-fr grid-flow-col gap-3">
+        <button type="button" onClick={onCreateNewMix} className={secondaryButtonClassName}>
+          New mix
+        </button>
+        <button type="button" onClick={onStartFromBeginning} className={secondaryButtonClassName}>
+          Restart
+        </button>
+        {isSavedMix ? null : (
+          <button type="button" onClick={onSaveMix} className={primaryButtonClassName}>
+            Save
+          </button>
+        )}
+      </div>
+
+      <p className={`text-sm ${mutedTextClassName}`} role="status">
+        {statusMessage ?? (isSavedMix ? "Changes save automatically." : "Save this mix to keep it in your library.")}
       </p>
-
-      <div className="mt-5 space-y-3">
-        <label className="block">
-          <span className={`mb-2 block text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>Mix name</span>
-          <input
-            type="text"
-            value={mixTitle}
-            onChange={event => onSetMixTitle(event.target.value)}
-            placeholder={generatedMixName}
-            className={`min-w-0 w-full rounded-2xl border px-4 py-3 text-sm font-medium outline-none transition placeholder:text-slate-400 ${
-              isDarkMode
-                ? "border-slate-700 bg-slate-950 text-slate-100 focus:border-sky-400 focus:bg-slate-950"
-                : "border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-300 focus:bg-white"
-            }`}
-          />
-        </label>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <button
-            type="button"
-            onClick={onCreateNewMix}
-            className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-              isDarkMode
-                ? "border-slate-700 bg-slate-800 text-slate-200 hover:border-sky-400 hover:text-sky-200"
-                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
-            }`}
-          >
-            New mix
-          </button>
-          <button
-            type="button"
-            onClick={onStartFromBeginning}
-            className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-              isDarkMode
-                ? "border-slate-700 bg-slate-800 text-slate-200 hover:border-sky-400 hover:text-sky-200"
-                : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-blue-700"
-            }`}
-          >
-            Restart from start
-          </button>
-          <button
-            type="button"
-            onClick={onSaveMix}
-            className={`rounded-2xl px-4 py-3 text-sm font-semibold text-white transition ${
-              isDarkMode ? "bg-sky-500 hover:bg-sky-400" : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {isSavedMix ? "Save changes" : "Save mix"}
-          </button>
-        </div>
-      </div>
-
-      {saveMessage ? (
-        <p className={`mt-3 text-sm ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}>{saveMessage}</p>
-      ) : null}
     </section>
   );
 }

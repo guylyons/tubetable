@@ -41,11 +41,16 @@ export type SavedMix = PersistedMix & {
   updatedAt: string;
 };
 
-export type MixStorage = {
+export type MixLibrary = {
   currentMixKey: string;
   draft: PersistedMix;
-  draftCache: Record<string, PersistedMix>;
   savedMixes: SavedMix[];
+};
+
+export type DeletedMix = {
+  mix: SavedMix;
+  index: number;
+  wasCurrent: boolean;
 };
 
 export const MAX_CHANNELS = 5;

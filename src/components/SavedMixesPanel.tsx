@@ -1,98 +1,101 @@
 import { deriveMixName } from "../lib/mixNaming";
-import type { SavedMix } from "../types";
+import type { DeletedMix, SavedMix } from "../types";
+import { headingClassName, mutedTextClassName, panelClassName } from "./ui";
 
 type SavedMixesPanelProps = {
-  isDarkMode: boolean;
   currentMixKey: string;
+  lastDeleted: DeletedMix | null;
   onDeleteMix: (mixKey: string) => void;
   onSelectMix: (mixKey: string) => void;
+  onUndoDelete: () => void;
   savedMixes: SavedMix[];
   transportPlaying: boolean;
 };
 
+function displayName(mix: SavedMix) {
+  return mix.name || deriveMixName(mix.channels);
+}
+
 export function SavedMixesPanel({
-  isDarkMode,
   currentMixKey,
+  lastDeleted,
   onDeleteMix,
   onSelectMix,
+  onUndoDelete,
   savedMixes,
   transportPlaying,
 }: SavedMixesPanelProps) {
   return (
-    <section
-      className={`rounded-[32px] border p-4 sm:p-5 ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-black/20" : "border-slate-200 bg-white text-slate-900 shadow-sm"}`}
-    >
-      <div className="space-y-3">
+    <section className={panelClassName}>
+      <h2 className={headingClassName}>Library</h2>
+
+      {lastDeleted ? (
         <p
-          className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
+          className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-sm dark:bg-slate-800"
+          role="status"
         >
-          Saved mixes
-        </p>
-        <h2 className={`text-2xl font-semibold ${isDarkMode ? "text-slate-50" : "text-slate-950"}`}>Library</h2>
-        <p className={`max-w-[32rem] text-sm leading-6 ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-          Return to mixes you saved. Each one remembers its videos, levels, and playback position.
-        </p>
-      </div>
-
-      <div className={`mt-5 space-y-3 ${savedMixes.length > 6 ? "max-h-[36rem] overflow-y-auto pr-2" : ""}`}>
-        {savedMixes.length > 0 ? (
-          savedMixes.map(savedMix => (
-            <article
-              key={savedMix.id}
-              className={`relative rounded-2xl border transition ${
-                savedMix.id === currentMixKey
-                  ? isDarkMode
-                    ? "border-sky-400/40 bg-slate-800"
-                    : "border-blue-200 bg-blue-50"
-                  : isDarkMode
-                    ? "border-slate-800 bg-slate-950/40 hover:border-sky-400/30 hover:bg-slate-800/70"
-                    : "border-slate-200 bg-slate-50 hover:border-blue-200 hover:bg-blue-50/60"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => onSelectMix(savedMix.id)}
-                className={`block w-full cursor-pointer rounded-2xl px-4 py-3 pr-16 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                  isDarkMode
-                    ? "focus-visible:ring-sky-400 focus-visible:ring-offset-slate-900"
-                    : "focus-visible:ring-blue-500 focus-visible:ring-offset-white"
-                }`}
-              >
-                <p className={`text-sm font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
-                  {savedMix.name || deriveMixName(savedMix.channels)}
-                </p>
-                <p className={`mt-1 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-                  {savedMix.channels.length} videos · {new Date(savedMix.updatedAt).toLocaleDateString()}
-                </p>
-              </button>
-
-              {savedMix.id === currentMixKey && transportPlaying ? (
-                <span className="absolute -top-[13px] right-0 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
-                  Now playing
-                </span>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={() => onDeleteMix(savedMix.id)}
-                className={`absolute bottom-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full border text-base font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                  isDarkMode
-                    ? "border-slate-700 bg-slate-900 text-slate-400 hover:border-red-400 hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-red-400 focus-visible:ring-offset-slate-900"
-                    : "border-slate-200 bg-white text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:ring-red-500 focus-visible:ring-offset-white"
-                }`}
-                aria-label={`Delete mix ${savedMix.name || deriveMixName(savedMix.channels)}`}
-                title="Delete mix"
-              >
-                ×
-              </button>
-            </article>
-          ))
-        ) : (
-          <div
-            className={`rounded-2xl border border-dashed px-4 py-6 text-sm ${isDarkMode ? "border-slate-700 bg-slate-950/40 text-slate-400" : "border-slate-200 bg-slate-50 text-slate-500"}`}
+          <span className="min-w-0 truncate">Deleted “{displayName(lastDeleted.mix)}”</span>
+          <button
+            type="button"
+            onClick={onUndoDelete}
+            className="shrink-0 cursor-pointer font-semibold text-blue-700 hover:underline dark:text-sky-300"
           >
-            No saved mixes yet. Save this table when it feels right.
-          </div>
+            Undo
+          </button>
+        </p>
+      ) : null}
+
+      <div className={`mt-4 space-y-3 ${savedMixes.length > 6 ? "max-h-[36rem] overflow-y-auto pr-2" : ""}`}>
+        {savedMixes.length > 0 ? (
+          savedMixes.map(savedMix => {
+            const isCurrent = savedMix.id === currentMixKey;
+
+            return (
+              <article
+                key={savedMix.id}
+                className={`relative rounded-2xl border transition ${
+                  isCurrent
+                    ? "border-blue-200 bg-blue-50 dark:border-sky-400/40 dark:bg-slate-800"
+                    : "border-slate-200 bg-slate-50 hover:border-blue-200 hover:bg-blue-50/60 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:border-sky-400/30 dark:hover:bg-slate-800/70"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => onSelectMix(savedMix.id)}
+                  aria-current={isCurrent ? "true" : undefined}
+                  className="block w-full cursor-pointer rounded-2xl px-4 py-3 pr-16 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-sky-400 dark:focus-visible:ring-offset-slate-900"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <span className="min-w-0 truncate">{displayName(savedMix)}</span>
+                    {isCurrent && transportPlaying ? (
+                      <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+                        Playing
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className={`mt-1 block text-xs ${mutedTextClassName}`}>
+                    {savedMix.channels.length} videos · {new Date(savedMix.updatedAt).toLocaleDateString()}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onDeleteMix(savedMix.id)}
+                  className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-base font-semibold text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300 dark:focus-visible:ring-red-400 dark:focus-visible:ring-offset-slate-900"
+                  aria-label={`Delete mix ${displayName(savedMix)}`}
+                  title="Delete mix"
+                >
+                  ×
+                </button>
+              </article>
+            );
+          })
+        ) : (
+          <p
+            className={`rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm dark:border-slate-700 ${mutedTextClassName}`}
+          >
+            No saved mixes yet.
+          </p>
         )}
       </div>
     </section>

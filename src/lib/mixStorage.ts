@@ -3,7 +3,7 @@ import {
   MAX_CHANNELS,
   STORAGE_KEY,
   type MixChannel,
-  type MixStorage,
+  type MixLibrary,
   type PersistedMix,
   type SavedMix,
 } from "../types";
@@ -76,18 +76,11 @@ function createExampleSavedMix(): SavedMix {
   };
 }
 
-function createDefaultMixState(): MixStorage {
-  const exampleMix = createExampleMix();
-  const exampleSavedMix = createExampleSavedMix();
-
+function createDefaultMixState(): MixLibrary {
   return {
     currentMixKey: EXAMPLE_MIX_ID,
-    draft: exampleMix,
-    draftCache: {
-      [DRAFT_MIX_KEY]: createEmptyMix(),
-      [EXAMPLE_MIX_ID]: exampleMix,
-    },
-    savedMixes: [exampleSavedMix],
+    draft: createEmptyMix(),
+    savedMixes: [createExampleSavedMix()],
   };
 }
 
@@ -177,7 +170,46 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
   };
 }
 
-export function readStoredMixState(): MixStorage {
+function sanitizeSavedMix(value: unknown): SavedMix | null {
+  const mix = sanitizePersistedMix(value);
+  if (!mix) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    ...mix,
+    id: typeof record.id === "string" ? record.id : createMixId(),
+    updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : new Date().toISOString(),
+  };
+}
+
+// Before autosave, edits to a saved mix lived in `draftCache` (and in `draft` for the
+// current mix) until the user pressed Save. Apply them so nothing is lost.
+function migrateDraftCache(record: Record<string, unknown>, draft: PersistedMix, savedMixes: SavedMix[]) {
+  const rawDraftCache =
+    record.draftCache && typeof record.draftCache === "object" ? (record.draftCache as Record<string, unknown>) : {};
+  const currentMixKey = typeof record.currentMixKey === "string" ? record.currentMixKey : DRAFT_MIX_KEY;
+  const editsByKey = new Map<string, PersistedMix>();
+
+  for (const [key, value] of Object.entries(rawDraftCache)) {
+    const mix = sanitizePersistedMix(value);
+    if (mix) {
+      editsByKey.set(key, mix);
+    }
+  }
+  editsByKey.set(currentMixKey, draft);
+
+  return {
+    draft: editsByKey.get(DRAFT_MIX_KEY) ?? createEmptyMix(),
+    savedMixes: savedMixes.map(mix => {
+      const edits = editsByKey.get(mix.id);
+      return edits ? { ...mix, ...edits } : mix;
+    }),
+  };
+}
+
+export function readStoredMixState(): MixLibrary {
   if (typeof window === "undefined") {
     return createDefaultMixState();
   }
@@ -190,64 +222,30 @@ export function readStoredMixState(): MixStorage {
 
     const parsed = JSON.parse(raw) as unknown;
     const record = parsed as Record<string, unknown>;
+    const storedDraft = sanitizePersistedMix(record?.draft);
 
-    const draft = sanitizePersistedMix(record?.draft);
-    const savedMixes = Array.isArray(record?.savedMixes)
-      ? record.savedMixes
-          .map(item => {
-            const mix = sanitizePersistedMix(item);
-            if (!mix || !item || typeof item !== "object") {
-              return null;
-            }
+    if (!storedDraft) {
+      const legacyMix = sanitizePersistedMix(parsed);
+      return legacyMix ? { currentMixKey: DRAFT_MIX_KEY, draft: legacyMix, savedMixes: [] } : createDefaultMixState();
+    }
 
-            const entry = item as Record<string, unknown>;
-            return {
-              ...mix,
-              id: typeof entry.id === "string" ? entry.id : createMixId(),
-              updatedAt: typeof entry.updatedAt === "string" ? entry.updatedAt : new Date().toISOString(),
-            } satisfies SavedMix;
-          })
-          .filter((item): item is SavedMix => item !== null)
-          .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    const storedSavedMixes = Array.isArray(record.savedMixes)
+      ? record.savedMixes.map(sanitizeSavedMix).filter((mix): mix is SavedMix => mix !== null)
       : [];
+    const { draft, savedMixes } =
+      "draftCache" in record
+        ? migrateDraftCache(record, storedDraft, storedSavedMixes)
+        : { draft: storedDraft, savedMixes: storedSavedMixes };
+    const currentMixKey =
+      typeof record.currentMixKey === "string" && savedMixes.some(mix => mix.id === record.currentMixKey)
+        ? record.currentMixKey
+        : DRAFT_MIX_KEY;
 
-    const rawDraftCache =
-      record?.draftCache && typeof record.draftCache === "object" ? (record.draftCache as Record<string, unknown>) : {};
-    const draftCache = Object.fromEntries(
-      Object.entries(rawDraftCache)
-        .map(([key, value]) => {
-          const mix = sanitizePersistedMix(value);
-          return mix ? ([key, mix] as const) : null;
-        })
-        .filter((entry): entry is readonly [string, PersistedMix] => entry !== null),
-    );
-
-    if (draft) {
-      const currentMixKey = typeof record.currentMixKey === "string" ? record.currentMixKey : DRAFT_MIX_KEY;
-
-      return {
-        currentMixKey,
-        draft,
-        draftCache: {
-          [DRAFT_MIX_KEY]: createEmptyMix(),
-          ...draftCache,
-          [currentMixKey]: draft,
-        },
-        savedMixes,
-      };
-    }
-
-    const legacyMix = sanitizePersistedMix(parsed);
-    if (legacyMix) {
-      return {
-        currentMixKey: DRAFT_MIX_KEY,
-        draft: legacyMix,
-        draftCache: { [DRAFT_MIX_KEY]: legacyMix },
-        savedMixes: [],
-      };
-    }
-
-    return createDefaultMixState();
+    return {
+      currentMixKey,
+      draft,
+      savedMixes: savedMixes.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+    };
   } catch {
     return createDefaultMixState();
   }

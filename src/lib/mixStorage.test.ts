@@ -89,7 +89,7 @@ describe("readStoredMixState", () => {
 
     expect(state.currentMixKey).toBe("example-mix");
     expect(state.savedMixes.map(mix => mix.id)).toEqual(["example-mix"]);
-    expect(state.draftCache[DRAFT_MIX_KEY]).toEqual(createEmptyMix());
+    expect(state.draft).toEqual(createEmptyMix());
   });
 
   test("returns the example mix when nothing is stored", () => {
@@ -102,12 +102,18 @@ describe("readStoredMixState", () => {
     expect(readStoredMixState().currentMixKey).toBe("example-mix");
   });
 
-  test("loads the current storage shape", () => {
+  test("dates the example mix to when it was first created, not a fixed day that shifts by time zone", () => {
+    const before = Date.now();
+    const [example] = readStoredMixState().savedMixes;
+
+    expect(Date.parse(example!.updatedAt)).toBeGreaterThanOrEqual(before);
+  });
+
+  test("loads the current storage shape, newest saved mix first", () => {
     withStoredValue(
       JSON.stringify({
         currentMixKey: "saved-1",
         draft: { name: "Working", channels: [rawChannel("a")], masterVolume: 80 },
-        draftCache: { other: { name: "Other", channels: [] }, broken: { name: "No channels" } },
         savedMixes: [
           { id: "saved-1", updatedAt: "2026-01-01T00:00:00.000Z", name: "Older", channels: [] },
           { id: "saved-2", updatedAt: "2026-03-01T00:00:00.000Z", name: "Newer", channels: [] },
@@ -120,10 +126,6 @@ describe("readStoredMixState", () => {
     expect(state.currentMixKey).toBe("saved-1");
     expect(state.draft.name).toBe("Working");
     expect(state.draft.masterVolume).toBe(80);
-    expect(state.draftCache["saved-1"]).toEqual(state.draft);
-    expect(state.draftCache.other?.name).toBe("Other");
-    expect(state.draftCache.broken).toBeUndefined();
-    expect(state.draftCache[DRAFT_MIX_KEY]).toEqual(createEmptyMix());
     expect(state.savedMixes.map(mix => mix.id)).toEqual(["saved-2", "saved-1"]);
   });
 
@@ -133,24 +135,39 @@ describe("readStoredMixState", () => {
     expect(readStoredMixState().savedMixes).toEqual([]);
   });
 
-  test("dates the example mix to when it was first created, not a fixed day that shifts by time zone", () => {
-    const before = Date.now();
-    const [example] = readStoredMixState().savedMixes;
+  test("falls back to the draft when the current saved mix is gone", () => {
+    withStoredValue(JSON.stringify({ currentMixKey: "gone", draft: { channels: [] }, savedMixes: [] }));
 
-    expect(Date.parse(example!.updatedAt)).toBeGreaterThanOrEqual(before);
+    expect(readStoredMixState().currentMixKey).toBe(DRAFT_MIX_KEY);
   });
 
-  test("does not duplicate the example mix when it was saved", () => {
+  test("keeps unsaved edits from the old draft cache by applying them to their saved mixes", () => {
     withStoredValue(
       JSON.stringify({
-        draft: { channels: [] },
-        savedMixes: [{ id: "example-mix", updatedAt: "2026-01-01T00:00:00.000Z", name: "Mine", channels: [] }],
+        currentMixKey: "saved-1",
+        draft: { name: "Active edits", channels: [rawChannel("a")], masterVolume: 60 },
+        draftCache: {
+          [DRAFT_MIX_KEY]: { name: "Scratch", channels: [rawChannel("b")] },
+          "saved-2": { name: "Cached edits", channels: [], masterVolume: 20 },
+        },
+        savedMixes: [
+          { id: "saved-1", updatedAt: "2026-01-01T00:00:00.000Z", name: "One", channels: [] },
+          { id: "saved-2", updatedAt: "2026-03-01T00:00:00.000Z", name: "Two", channels: [] },
+        ],
       }),
     );
     const state = readStoredMixState();
 
-    expect(state.currentMixKey).toBe(DRAFT_MIX_KEY);
-    expect(state.savedMixes.map(mix => mix.name)).toEqual(["Mine"]);
+    expect(state.currentMixKey).toBe("saved-1");
+    expect(state.draft.name).toBe("Scratch");
+    expect(state.savedMixes.find(mix => mix.id === "saved-1")).toMatchObject({
+      name: "Active edits",
+      masterVolume: 60,
+    });
+    expect(state.savedMixes.find(mix => mix.id === "saved-2")).toMatchObject({
+      name: "Cached edits",
+      masterVolume: 20,
+    });
   });
 
   test("loads the legacy single-mix shape as the draft", () => {
@@ -159,7 +176,6 @@ describe("readStoredMixState", () => {
 
     expect(state.currentMixKey).toBe(DRAFT_MIX_KEY);
     expect(state.draft.name).toBe("Legacy");
-    expect(state.draftCache[DRAFT_MIX_KEY]).toEqual(state.draft);
     expect(state.savedMixes).toEqual([]);
   });
 });

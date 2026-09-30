@@ -100,4 +100,18 @@ describe("UI interaction contracts", () => {
 
     expect(source).toContain("handledRestartTokenRef");
   });
+
+  test("does not ask to save changes to a saved mix, because edits save automatically", () => {
+    const source = readSource("src/components/MixControlPanel.tsx");
+
+    expect(source).not.toContain("Save changes");
+    expect(source).toContain("Changes save automatically");
+  });
+
+  test("offers Undo after deleting a saved mix", () => {
+    const source = readSource("src/components/SavedMixesPanel.tsx");
+
+    expect(source).toContain("onUndoDelete");
+    expect(source).toMatch(/>\s*Undo\s*</);
+  });
 });

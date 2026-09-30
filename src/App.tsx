@@ -1,22 +1,22 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import "./index.css";
-import { MasterBusPanel } from "./components/MasterBusPanel";
 import { MixControlPanel } from "./components/MixControlPanel";
 import { MixHeader } from "./components/MixHeader";
 import { SavedMixesPanel } from "./components/SavedMixesPanel";
 import { TableSection } from "./components/TableSection";
-import { deriveMixName } from "./lib/mixNaming";
 import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
+import { deleteMix, getCurrentMix, restoreMix, saveDraft, selectMix, updateMix } from "./lib/mixLibrary";
+import { deriveMixName } from "./lib/mixNaming";
 import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
 import { parseYouTubeVideoId } from "./lib/youtube";
 import {
   DRAFT_MIX_KEY,
   MAX_CHANNELS,
   STORAGE_KEY,
+  type DeletedMix,
   type MixChannel,
-  type MixStorage,
+  type MixLibrary,
   type PersistedMix,
-  type SavedMix,
   type YouTubeSearchPayload,
   type YouTubeSearchResult,
 } from "./types";
@@ -24,33 +24,25 @@ import {
 const THEME_STORAGE_KEY = "tubetable.theme.v1";
 type ThemeMode = "light" | "dark";
 
+function readStoredTheme(): ThemeMode {
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme === "light" || storedTheme === "dark") {
+      return storedTheme;
+    }
+  } catch {
+    // Ignore storage access issues and fall back to system preference.
+  }
+
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export function App() {
-  const storedMixState = useMemo(() => readStoredMixState(), []);
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-
-    try {
-      const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-      if (storedTheme === "light" || storedTheme === "dark") {
-        return storedTheme;
-      }
-    } catch {
-      // Ignore storage access issues and fall back to system preference.
-    }
-
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  });
-  const [channels, setChannels] = useState<MixChannel[]>(() => storedMixState.draft.channels);
-  const [masterVolume, setMasterVolume] = useState<number>(() => storedMixState.draft.masterVolume);
-  const [transportPlaying, setTransportPlaying] = useState<boolean>(() => storedMixState.draft.transportPlaying);
-  const [focusedChannelId, setFocusedChannelId] = useState<string | null>(() => storedMixState.draft.focusedChannelId);
-  const [mixTitle, setMixTitle] = useState<string>(() => storedMixState.draft.name);
-  const [currentMixKey, setCurrentMixKey] = useState<string>(() => storedMixState.currentMixKey);
-  const [draftCache, setDraftCache] = useState<Record<string, PersistedMix>>(() => storedMixState.draftCache);
-  const [savedMixes, setSavedMixes] = useState<SavedMix[]>(() => storedMixState.savedMixes);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(readStoredTheme);
+  const [library, setLibrary] = useState<MixLibrary>(readStoredMixState);
+  const [lastDeleted, setLastDeleted] = useState<DeletedMix | null>(null);
   const [restartToken, setRestartToken] = useState(0);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery.trim());
   const [searchResults, setSearchResults] = useState<YouTubeSearchResult[]>([]);
@@ -60,34 +52,13 @@ export function App() {
   const [addError, setAddError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [isResolvingInput, setIsResolvingInput] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  const { currentMixKey, savedMixes } = library;
+  const { channels, focusedChannelId, masterVolume, name: mixTitle, transportPlaying } = getCurrentMix(library);
   const existingVideoIds = useMemo(() => new Set(channels.map(channel => channel.video.videoId)), [channels]);
   const canAddMore = channels.length < MAX_CHANNELS;
   const generatedMixName = useMemo(() => deriveMixName(channels), [channels]);
-  const mixName = mixTitle.trim() || generatedMixName;
   const isSavedMix = currentMixKey !== DRAFT_MIX_KEY;
-  const activeDraft = useMemo(
-    () =>
-      ({
-        name: mixTitle,
-        channels,
-        masterVolume,
-        transportPlaying,
-        focusedChannelId,
-      }) satisfies PersistedMix,
-    [channels, focusedChannelId, masterVolume, mixTitle, transportPlaying],
-  );
-  useEffect(() => {
-    setDraftCache(currentCache => ({
-      ...currentCache,
-      [currentMixKey]: activeDraft,
-    }));
-  }, [activeDraft, currentMixKey]);
-  const effectiveDraftCache = useMemo(
-    () => ({ ...draftCache, [currentMixKey]: activeDraft }),
-    [activeDraft, currentMixKey, draftCache],
-  );
   const channelStates = useMemo(() => buildChannelStates(channels, masterVolume), [channels, masterVolume]);
   const isDarkMode = themeMode === "dark";
 
@@ -99,16 +70,8 @@ export function App() {
   }, [themeMode]);
 
   useEffect(() => {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        currentMixKey,
-        draft: activeDraft,
-        draftCache: effectiveDraftCache,
-        savedMixes,
-      } satisfies MixStorage),
-    );
-  }, [activeDraft, currentMixKey, effectiveDraftCache, savedMixes]);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
+  }, [library]);
 
   useEffect(() => {
     const query = deferredQuery;
@@ -161,71 +124,46 @@ export function App() {
   }, [deferredQuery]);
 
   useEffect(() => {
-    if (!saveMessage) {
+    if (!statusMessage) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => setSaveMessage(null), 2200);
+    const timeoutId = window.setTimeout(() => setStatusMessage(null), 2200);
     return () => window.clearTimeout(timeoutId);
-  }, [saveMessage]);
+  }, [statusMessage]);
 
   useEffect(() => {
-    if (!focusedChannelId) {
+    if (!lastDeleted) {
       return;
     }
 
-    if (channels.some(channel => channel.id === focusedChannelId)) {
-      return;
-    }
+    const timeoutId = window.setTimeout(() => setLastDeleted(null), 8000);
+    return () => window.clearTimeout(timeoutId);
+  }, [lastDeleted]);
 
-    setFocusedChannelId(channels[0]?.id ?? null);
-  }, [channels, focusedChannelId]);
+  // An edit the user made, so it bumps the saved mix's date.
+  function editCurrentMix(updater: (mix: PersistedMix) => PersistedMix) {
+    setLibrary(current => updateMix(current, current.currentMixKey, updater, new Date().toISOString()));
+  }
+
+  // Playback and layout state that should not count as an edit.
+  function setCurrentMixPlayback(updater: (mix: PersistedMix) => PersistedMix) {
+    setLibrary(current => updateMix(current, current.currentMixKey, updater));
+  }
 
   function updateChannel(channelId: string, updater: (channel: MixChannel) => MixChannel) {
-    setChannels(currentChannels =>
-      currentChannels.map(channel => (channel.id === channelId ? updater(channel) : channel)),
-    );
+    editCurrentMix(mix => ({
+      ...mix,
+      channels: mix.channels.map(channel => (channel.id === channelId ? updater(channel) : channel)),
+    }));
   }
 
   function updateChannelProgress(mixKey: string, channelId: string, progressSeconds: number) {
-    const nextProgressSeconds = Math.max(0, progressSeconds);
-
-    if (mixKey === currentMixKey) {
-      setChannels(currentChannels =>
-        currentChannels.map(channel =>
-          channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
-        ),
-      );
-    }
-
-    setDraftCache(currentCache => {
-      const targetMix = currentCache[mixKey];
-      if (!targetMix) {
-        return currentCache;
-      }
-
-      return {
-        ...currentCache,
-        [mixKey]: {
-          ...targetMix,
-          channels: targetMix.channels.map(channel =>
-            channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
-          ),
-        },
-      };
-    });
-
-    setSavedMixes(currentMixes =>
-      currentMixes.map(savedMix =>
-        savedMix.id === mixKey
-          ? {
-              ...savedMix,
-              channels: savedMix.channels.map(channel =>
-                channel.id === channelId ? { ...channel, progressSeconds: nextProgressSeconds } : channel,
-              ),
-            }
-          : savedMix,
-      ),
+    setLibrary(current =>
+      updateMix(current, mixKey, mix => ({
+        ...mix,
+        channels: mix.channels.map(channel => (channel.id === channelId ? { ...channel, progressSeconds } : channel)),
+      })),
     );
   }
 
@@ -240,142 +178,53 @@ export function App() {
     setShowResults(false);
   }
 
-  function loadMix(mix: PersistedMix, mixKey: string, nextTransportPlaying = mix.transportPlaying) {
-    setDraftCache(currentCache => ({
-      ...currentCache,
-      [currentMixKey]: activeDraft,
-    }));
-    setChannels(mix.channels);
-    setMasterVolume(mix.masterVolume);
-    setTransportPlaying(nextTransportPlaying);
-    setFocusedChannelId(mix.focusedChannelId);
-    setMixTitle(mix.name);
-    setCurrentMixKey(mixKey);
+  function handleSelectMix(mixKey: string) {
+    setLibrary(current => selectMix(current, mixKey));
     resetSearchUi(true);
   }
 
   function saveCurrentMix() {
-    const timestamp = new Date().toISOString();
-    const nextMixId = isSavedMix ? currentMixKey : createMixId();
-    const mixToSave: SavedMix = {
-      id: nextMixId,
-      name: mixName,
-      channels,
-      masterVolume,
-      transportPlaying,
-      focusedChannelId,
-      updatedAt: timestamp,
-    };
-
-    setSavedMixes(currentMixes =>
-      [mixToSave, ...currentMixes.filter(existingMix => existingMix.id !== mixToSave.id)].sort((left, right) =>
-        right.updatedAt.localeCompare(left.updatedAt),
-      ),
+    setLibrary(current =>
+      saveDraft(current, {
+        id: createMixId(),
+        name: mixTitle.trim() || generatedMixName,
+        updatedAt: new Date().toISOString(),
+      }),
     );
-    setDraftCache(currentCache => ({
-      ...currentCache,
-      [mixToSave.id]: {
-        name: mixToSave.name,
-        channels: mixToSave.channels,
-        masterVolume: mixToSave.masterVolume,
-        transportPlaying: mixToSave.transportPlaying,
-        focusedChannelId: mixToSave.focusedChannelId,
-      },
-    }));
-    setCurrentMixKey(mixToSave.id);
-    setMixTitle(mixToSave.name);
-    setSaveMessage(isSavedMix ? "Saved changes" : "Saved to your library");
+    setStatusMessage("Saved to your library.");
   }
 
   function createNewMix() {
-    setDraftCache(currentCache => ({
-      ...currentCache,
-      [DRAFT_MIX_KEY]: createEmptyMix(""),
-    }));
-    loadMix(createEmptyMix(""), DRAFT_MIX_KEY);
-    setSaveMessage("Fresh table ready");
+    setLibrary(current => ({ ...current, currentMixKey: DRAFT_MIX_KEY, draft: createEmptyMix() }));
+    resetSearchUi(true);
   }
 
   function startCurrentMixFromBeginning() {
-    setChannels(currentChannels =>
-      currentChannels.map(channel => ({
-        ...channel,
-        progressSeconds: 0,
-      })),
-    );
-    setDraftCache(currentCache => {
-      const currentMix = currentCache[currentMixKey];
-      if (!currentMix) {
-        return currentCache;
-      }
-
-      return {
-        ...currentCache,
-        [currentMixKey]: {
-          ...currentMix,
-          channels: currentMix.channels.map(channel => ({
-            ...channel,
-            progressSeconds: 0,
-          })),
-        },
-      };
-    });
-    setSavedMixes(currentMixes =>
-      currentMixes.map(savedMix =>
-        savedMix.id === currentMixKey
-          ? {
-              ...savedMix,
-              channels: savedMix.channels.map(channel => ({
-                ...channel,
-                progressSeconds: 0,
-              })),
-            }
-          : savedMix,
-      ),
-    );
+    setCurrentMixPlayback(mix => ({
+      ...mix,
+      channels: mix.channels.map(channel => ({ ...channel, progressSeconds: 0 })),
+    }));
     setRestartToken(currentValue => currentValue + 1);
-    setSaveMessage("Restarted from the beginning");
+    setStatusMessage("Restarted from the beginning.");
   }
 
-  function selectMix(targetMixKey: string) {
-    const targetDraft = effectiveDraftCache[targetMixKey];
-    const savedMix = savedMixes.find(mix => mix.id === targetMixKey);
-    const shouldKeepPlaying = transportPlaying && Boolean((targetDraft ?? savedMix)?.channels.length);
-
-    if (targetDraft) {
-      loadMix(targetDraft, targetMixKey, shouldKeepPlaying || targetDraft.transportPlaying);
-      setSaveMessage(targetMixKey === DRAFT_MIX_KEY ? "Draft loaded" : "Loaded mix");
+  function handleDeleteMix(mixKey: string) {
+    const index = savedMixes.findIndex(mix => mix.id === mixKey);
+    if (index === -1) {
       return;
     }
 
-    if (savedMix) {
-      loadMix(savedMix, savedMix.id, shouldKeepPlaying || savedMix.transportPlaying);
-      setSaveMessage("Loaded mix");
-    }
+    setLastDeleted({ mix: savedMixes[index]!, index, wasCurrent: mixKey === currentMixKey });
+    setLibrary(current => deleteMix(current, mixKey));
   }
 
-  function deleteMix(targetMixKey: string) {
-    const deletingCurrentMix = currentMixKey === targetMixKey;
-
-    setSavedMixes(currentMixes => currentMixes.filter(mix => mix.id !== targetMixKey));
-    setDraftCache(currentCache => {
-      const nextCache = { ...currentCache };
-      delete nextCache[targetMixKey];
-
-      if (deletingCurrentMix) {
-        nextCache[DRAFT_MIX_KEY] = activeDraft;
-      }
-
-      return nextCache;
-    });
-
-    if (deletingCurrentMix) {
-      setCurrentMixKey(DRAFT_MIX_KEY);
-      setSaveMessage("Deleted mix");
+  function undoDelete() {
+    if (!lastDeleted) {
       return;
     }
 
-    setSaveMessage("Deleted mix");
+    setLibrary(current => restoreMix(current, lastDeleted));
+    setLastDeleted(null);
   }
 
   function addResultToMix(video: YouTubeSearchResult) {
@@ -390,9 +239,12 @@ export function App() {
     }
 
     const nextChannel = createChannel(video);
-    setChannels(currentChannels => [...currentChannels, nextChannel]);
-    setFocusedChannelId(currentFocusedChannelId => (channels.length === 0 ? nextChannel.id : currentFocusedChannelId));
-    setTransportPlaying(true);
+    editCurrentMix(mix => ({
+      ...mix,
+      channels: [...mix.channels, nextChannel],
+      focusedChannelId: mix.channels.length === 0 ? nextChannel.id : mix.focusedChannelId,
+      transportPlaying: true,
+    }));
     resetSearchUi(true);
   }
 
@@ -434,13 +286,7 @@ export function App() {
   }
 
   return (
-    <div
-      className={`min-h-screen transition-colors ${
-        isDarkMode
-          ? "bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.16),_transparent_36%),linear-gradient(180deg,_#020617,_#0f172a_55%,_#111827)] text-slate-100"
-          : "bg-slate-50 text-slate-900"
-      }`}
-    >
+    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.16),_transparent_36%),linear-gradient(180deg,_#020617,_#0f172a_55%,_#111827)] dark:text-slate-100">
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col gap-8 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <MixHeader
           addError={addError}
@@ -475,96 +321,76 @@ export function App() {
         />
 
         <main className="grid flex-1 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="space-y-6">
-            <TableSection
-              channelStates={channelStates}
-              onChangeChannelVolume={(channelId, volume) =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  volume,
-                }))
-              }
-              focusedChannelId={focusedChannelId}
-              mixKey={currentMixKey}
-              onFocusChannel={channelId =>
-                setFocusedChannelId(currentFocusedChannelId =>
-                  currentFocusedChannelId === channelId ? null : channelId,
-                )
-              }
-              onReorderChannel={(draggedChannelId, targetChannelId) =>
-                setChannels(currentChannels => reorderChannels(currentChannels, draggedChannelId, targetChannelId))
-              }
-              onRemoveChannel={channelId =>
-                setChannels(currentChannels => currentChannels.filter(item => item.id !== channelId))
-              }
-              onToggleLoop={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  looped: !currentChannel.looped,
-                }))
-              }
-              onToggleMute={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  muted: !currentChannel.muted,
-                }))
-              }
-              onTogglePause={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  paused: !currentChannel.paused,
-                }))
-              }
-              onToggleSolo={channelId =>
-                updateChannel(channelId, currentChannel => ({
-                  ...currentChannel,
-                  solo: !currentChannel.solo,
-                }))
-              }
-              onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
-              onProgress={updateChannelProgress}
-              restartToken={restartToken}
-              transportPlaying={transportPlaying}
-            />
-          </div>
+          <TableSection
+            channelStates={channelStates}
+            focusedChannelId={focusedChannelId}
+            mixKey={currentMixKey}
+            onChangeChannelVolume={(channelId, volume) => updateChannel(channelId, channel => ({ ...channel, volume }))}
+            onFocusChannel={channelId =>
+              setCurrentMixPlayback(mix => ({
+                ...mix,
+                focusedChannelId: mix.focusedChannelId === channelId ? null : channelId,
+              }))
+            }
+            onProgress={updateChannelProgress}
+            onRemoveChannel={channelId =>
+              editCurrentMix(mix => ({
+                ...mix,
+                channels: mix.channels.filter(channel => channel.id !== channelId),
+                focusedChannelId: mix.focusedChannelId === channelId ? null : mix.focusedChannelId,
+              }))
+            }
+            onReorderChannel={(draggedChannelId, targetChannelId) =>
+              editCurrentMix(mix => ({
+                ...mix,
+                channels: reorderChannels(mix.channels, draggedChannelId, targetChannelId),
+              }))
+            }
+            onToggleLoop={channelId => updateChannel(channelId, channel => ({ ...channel, looped: !channel.looped }))}
+            onToggleMute={channelId => updateChannel(channelId, channel => ({ ...channel, muted: !channel.muted }))}
+            onTogglePause={channelId => updateChannel(channelId, channel => ({ ...channel, paused: !channel.paused }))}
+            onToggleSolo={channelId => updateChannel(channelId, channel => ({ ...channel, solo: !channel.solo }))}
+            onToggleTransport={() =>
+              setCurrentMixPlayback(mix => ({ ...mix, transportPlaying: !mix.transportPlaying }))
+            }
+            restartToken={restartToken}
+            transportPlaying={transportPlaying}
+          />
 
           <aside className="space-y-6">
             <MixControlPanel
-              isDarkMode={isDarkMode}
               generatedMixName={generatedMixName}
               isSavedMix={isSavedMix}
-              mixTitle={mixTitle}
-              onCreateNewMix={createNewMix}
-              onStartFromBeginning={startCurrentMixFromBeginning}
-              onSaveMix={saveCurrentMix}
-              onSetMixTitle={setMixTitle}
-              saveMessage={saveMessage}
-            />
-
-            <SavedMixesPanel
-              isDarkMode={isDarkMode}
-              currentMixKey={currentMixKey}
-              onDeleteMix={deleteMix}
-              onSelectMix={selectMix}
-              savedMixes={savedMixes}
-              transportPlaying={transportPlaying}
-            />
-
-            <MasterBusPanel
-              isDarkMode={isDarkMode}
               masterVolume={masterVolume}
-              onChangeMasterVolume={setMasterVolume}
+              mixTitle={mixTitle}
+              onChangeMasterVolume={value => editCurrentMix(mix => ({ ...mix, masterVolume: value }))}
+              onCreateNewMix={createNewMix}
               onResetChannelBalances={() =>
-                setChannels(currentChannels =>
-                  currentChannels.map(channel => ({
+                editCurrentMix(mix => ({
+                  ...mix,
+                  channels: mix.channels.map(channel => ({
                     ...channel,
                     muted: false,
                     paused: false,
                     solo: false,
                     volume: 76,
                   })),
-                )
+                }))
               }
+              onSaveMix={saveCurrentMix}
+              onSetMixTitle={value => editCurrentMix(mix => ({ ...mix, name: value }))}
+              onStartFromBeginning={startCurrentMixFromBeginning}
+              statusMessage={statusMessage}
+            />
+
+            <SavedMixesPanel
+              currentMixKey={currentMixKey}
+              lastDeleted={lastDeleted}
+              onDeleteMix={handleDeleteMix}
+              onSelectMix={handleSelectMix}
+              onUndoDelete={undoDelete}
+              savedMixes={savedMixes}
+              transportPlaying={transportPlaying}
             />
           </aside>
         </main>
