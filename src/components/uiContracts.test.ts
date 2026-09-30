@@ -63,6 +63,12 @@ describe("UI interaction contracts", () => {
     expect(source).not.toContain("tubetable-logo-letter-e");
   });
 
+  test("shows no logo mark until a new one is made", () => {
+    expect(readSource("src/components/MixHeader.tsx")).not.toContain("from-sky-400 to-blue-700");
+    expect(existsSync(join(repoRoot, "src/logo.svg"))).toBe(false);
+    expect(readSource("src/index.html")).not.toContain("logo.svg");
+  });
+
   test("does not show a simulated visualizer, since the iframes expose no audio to measure", () => {
     expect(existsSync(join(repoRoot, "src/components/TransportVisualizer.tsx"))).toBe(false);
     expect(existsSync(join(repoRoot, "src/lib/transportVisualizer.ts"))).toBe(false);
