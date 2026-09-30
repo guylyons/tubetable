@@ -73,6 +73,22 @@ describe("sanitizePersistedMix", () => {
     expect(sanitizePersistedMix({ channels, focusedChannelId: "gone" })?.focusedChannelId).toBeNull();
   });
 
+  test("fills in a channel duration from its duration text for mixes saved before durations were stored", () => {
+    const channel = rawChannel("a");
+    const mix = sanitizePersistedMix({ channels: [{ ...channel, video: { ...channel.video, durationText: "3:21" } }] });
+
+    expect(mix?.channels[0]?.durationSeconds).toBe(201);
+    expect(
+      sanitizePersistedMix({ channels: [rawChannel("b", { durationSeconds: 90 })] })?.channels[0]?.durationSeconds,
+    ).toBe(90);
+  });
+
+  test("drops the old transport flag", () => {
+    const mix = sanitizePersistedMix({ channels: [rawChannel("a")], transportPlaying: true });
+
+    expect(mix && "transportPlaying" in mix).toBe(false);
+  });
+
   test("keeps optional video text only when it is a string", () => {
     const channel = rawChannel("a");
     const video = { ...channel.video, durationText: "3:21", viewCountText: 42 };
@@ -177,5 +193,19 @@ describe("readStoredMixState", () => {
     expect(state.currentMixKey).toBe(DRAFT_MIX_KEY);
     expect(state.draft.name).toBe("Legacy");
     expect(state.savedMixes).toEqual([]);
+  });
+
+  test("loads every channel paused, because browsers block sound until the user presses play", () => {
+    withStoredValue(
+      JSON.stringify({
+        currentMixKey: DRAFT_MIX_KEY,
+        draft: { channels: [rawChannel("a")] },
+        savedMixes: [{ id: "s1", updatedAt: "2026-01-01T00:00:00.000Z", channels: [rawChannel("b")] }],
+      }),
+    );
+    const state = readStoredMixState();
+
+    expect(state.draft.channels[0]?.paused).toBe(true);
+    expect(state.savedMixes[0]?.channels[0]?.paused).toBe(true);
   });
 });

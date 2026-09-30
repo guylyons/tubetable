@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { DRAFT_MIX_KEY, type MixChannel, type MixLibrary, type SavedMix } from "../types";
 import { createEmptyMix } from "./mixStorage";
-import { deleteMix, getCurrentMix, restoreMix, saveDraft, selectMix, updateMix } from "./mixLibrary";
+import { deleteMix, duplicateMix, getCurrentMix, restoreMix, saveDraft, selectMix, updateMix } from "./mixLibrary";
 
 function channel(id: string, overrides: Partial<MixChannel> = {}): MixChannel {
   return {
@@ -13,6 +13,7 @@ function channel(id: string, overrides: Partial<MixChannel> = {}): MixChannel {
     paused: false,
     looped: true,
     progressSeconds: 0,
+    durationSeconds: 0,
     ...overrides,
   };
 }
@@ -86,21 +87,40 @@ describe("saveDraft", () => {
 });
 
 describe("selectMix", () => {
-  test("keeps playback going when switching away from a playing mix", () => {
+  test("keeps the music going when switching away from a playing session", () => {
     const state = library({
-      draft: { ...createEmptyMix(), transportPlaying: true },
-      savedMixes: [savedMix("s1", { channels: [channel("a")] })],
+      savedMixes: [savedMix("s1", { channels: [channel("a", { paused: true }), channel("b")] })],
     });
-    const next = selectMix(state, "s1");
+    const next = selectMix(state, "s1", true);
 
     expect(next.currentMixKey).toBe("s1");
-    expect(next.savedMixes[0]?.transportPlaying).toBe(true);
+    expect(next.savedMixes[0]?.channels.map(item => item.paused)).toEqual([false, false]);
   });
 
-  test("does not start an empty mix", () => {
-    const state = library({ draft: { ...createEmptyMix(), transportPlaying: true }, savedMixes: [savedMix("s1")] });
+  test("loads a session paused when nothing was playing", () => {
+    const state = library({ savedMixes: [savedMix("s1", { channels: [channel("a")] })] });
 
-    expect(selectMix(state, "s1").savedMixes[0]?.transportPlaying).toBe(false);
+    expect(selectMix(state, "s1", false).savedMixes[0]?.channels[0]?.paused).toBe(true);
+  });
+});
+
+describe("duplicateMix", () => {
+  test("adds a copy right after the original without switching to it", () => {
+    const state = library({
+      currentMixKey: "s1",
+      savedMixes: [savedMix("s1", { name: "Rain", channels: [channel("a")] }), savedMix("s2")],
+    });
+    const next = duplicateMix(state, "s1", { id: "copy", updatedAt: "2026-04-04T00:00:00.000Z" });
+
+    expect(next.currentMixKey).toBe("s1");
+    expect(next.savedMixes.map(mix => mix.id)).toEqual(["s1", "copy", "s2"]);
+    expect(next.savedMixes[1]).toMatchObject({ name: "Rain copy", channels: state.savedMixes[0]!.channels });
+  });
+
+  test("ignores an unknown session", () => {
+    const state = library();
+
+    expect(duplicateMix(state, "gone", { id: "copy", updatedAt: "" })).toBe(state);
   });
 });
 

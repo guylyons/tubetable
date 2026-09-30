@@ -21,6 +21,7 @@ export type MixChannel = {
   paused: boolean;
   looped: boolean;
   progressSeconds: number;
+  durationSeconds: number;
 };
 
 export type MixChannelState = MixChannel & {
@@ -32,7 +33,6 @@ export type PersistedMix = {
   name: string;
   channels: MixChannel[];
   masterVolume: number;
-  transportPlaying: boolean;
   focusedChannelId: string | null;
 };
 
@@ -52,6 +52,8 @@ export type DeletedMix = {
   index: number;
   wasCurrent: boolean;
 };
+
+export type PlayerStatus = "loading" | "playing" | "paused" | "buffering" | "ended" | "error";
 
 export const MAX_CHANNELS = 5;
 export const DRAFT_MIX_KEY = "__draft__";

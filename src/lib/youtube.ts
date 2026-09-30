@@ -1,3 +1,5 @@
+import type { PlayerStatus } from "../types";
+
 export type YouTubePlayer = {
   destroy: () => void;
   getCurrentTime?: () => number;
@@ -15,6 +17,7 @@ type YouTubePlayerOptions = {
   events?: {
     onReady?: (event: { target: YouTubePlayer }) => void;
     onStateChange?: (event: { data: number; target: YouTubePlayer }) => void;
+    onError?: (event: { data: number; target: YouTubePlayer }) => void;
   };
   height?: string;
   playerVars?: Record<string, number | string>;
@@ -36,7 +39,7 @@ declare global {
 const YT_PLAYER_STATE_UNSTARTED = -1;
 export const YT_PLAYER_STATE_ENDED = 0;
 export const YT_PLAYER_STATE_PAUSED = 2;
-const YT_PLAYER_STATE_PLAYING = 1;
+export const YT_PLAYER_STATE_PLAYING = 1;
 const YT_PLAYER_STATE_BUFFERING = 3;
 const YT_PLAYER_STATE_CUED = 5;
 
@@ -56,6 +59,30 @@ export function createYouTubePlayerVars(startSeconds: number) {
     rel: 0,
     start: Math.floor(Math.max(0, startSeconds)),
   };
+}
+
+export function parseDurationText(text: string | undefined) {
+  if (!text || !/^\d+(:\d{1,2}){1,2}$/.test(text.trim())) {
+    return 0;
+  }
+
+  return text
+    .trim()
+    .split(":")
+    .reduce((total, part) => total * 60 + Number(part), 0);
+}
+
+export function getPlayerStatus(youTubeState: number): PlayerStatus {
+  switch (youTubeState) {
+    case YT_PLAYER_STATE_PLAYING:
+      return "playing";
+    case YT_PLAYER_STATE_BUFFERING:
+      return "buffering";
+    case YT_PLAYER_STATE_ENDED:
+      return "ended";
+    default:
+      return "paused";
+  }
 }
 
 export function formatPlaybackTime(totalSeconds: number) {
@@ -169,6 +196,18 @@ export function applyPlayerVolume(player: YouTubePlayer, volume: number) {
   }
 
   player.unMute();
+}
+
+// seekTo starts a cued or paused video, so pause again when the channel should stay paused.
+export function seekPlayer(player: YouTubePlayer, seconds: number, shouldPlay: boolean) {
+  try {
+    player.seekTo(Math.max(0, seconds), true);
+    if (!shouldPlay) {
+      player.pauseVideo();
+    }
+  } catch {
+    // The YouTube iframe can briefly reject seek commands during state transitions.
+  }
 }
 
 export function syncPlayerPlayback(player: YouTubePlayer, shouldPlay: boolean) {

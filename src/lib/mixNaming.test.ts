@@ -12,6 +12,7 @@ function channelTitled(title: string): MixChannel {
     paused: false,
     looped: true,
     progressSeconds: 0,
+    durationSeconds: 0,
   };
 }
 

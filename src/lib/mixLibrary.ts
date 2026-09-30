@@ -1,14 +1,9 @@
 import { DRAFT_MIX_KEY, type DeletedMix, type MixLibrary, type PersistedMix, type SavedMix } from "../types";
+import { setAllPaused } from "./mixChannels";
 import { createEmptyMix } from "./mixStorage";
 
-function toPersistedMix({
-  name,
-  channels,
-  masterVolume,
-  transportPlaying,
-  focusedChannelId,
-}: PersistedMix): PersistedMix {
-  return { name, channels, masterVolume, transportPlaying, focusedChannelId };
+function toPersistedMix({ name, channels, masterVolume, focusedChannelId }: PersistedMix): PersistedMix {
+  return { name, channels, masterVolume, focusedChannelId };
 }
 
 export function getCurrentMix(library: MixLibrary): PersistedMix {
@@ -49,14 +44,28 @@ export function saveDraft(library: MixLibrary, { id, name, updatedAt }: Pick<Sav
   } satisfies MixLibrary;
 }
 
-export function selectMix(library: MixLibrary, mixKey: string): MixLibrary {
-  const keepPlaying = getCurrentMix(library).transportPlaying;
-  const selected = { ...library, currentMixKey: mixKey };
-
-  return updateMix(selected, mixKey, mix => ({
+// Switching sessions carries the transport over: if music was playing, the new session starts playing.
+export function selectMix(library: MixLibrary, mixKey: string, keepPlaying: boolean): MixLibrary {
+  return updateMix({ ...library, currentMixKey: mixKey }, mixKey, mix => ({
     ...mix,
-    transportPlaying: mix.channels.length > 0 && (keepPlaying || mix.transportPlaying),
+    channels: setAllPaused(mix.channels, !keepPlaying),
   }));
+}
+
+export function duplicateMix(
+  library: MixLibrary,
+  mixKey: string,
+  { id, updatedAt }: Pick<SavedMix, "id" | "updatedAt">,
+): MixLibrary {
+  const index = library.savedMixes.findIndex(mix => mix.id === mixKey);
+  const source = library.savedMixes[index];
+  if (!source) {
+    return library;
+  }
+
+  const savedMixes = [...library.savedMixes];
+  savedMixes.splice(index + 1, 0, { ...source, id, name: `${source.name} copy`, updatedAt });
+  return { ...library, savedMixes };
 }
 
 export function deleteMix(library: MixLibrary, mixKey: string): MixLibrary {

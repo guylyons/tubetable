@@ -8,151 +8,101 @@ function readSource(relativePath: string) {
   return readFileSync(join(repoRoot, relativePath), "utf8");
 }
 
+const componentFiles = readdirSync(join(repoRoot, "src/components")).filter(name => name.endsWith(".tsx"));
+
 describe("UI interaction contracts", () => {
-  test("keeps the focused video's Focus control clickable and visible so users can exit focus mode", () => {
-    const source = readSource("src/components/VideoTile.tsx");
+  test("keeps every YouTube iframe in one layer and moves it over its slot, so focus changes never reload a video", () => {
+    const layer = readSource("src/components/PlayerLayer.tsx");
 
-    expect(source).toContain('isFocused ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"');
+    expect(layer).toContain('export const PLAYER_SLOT_ATTRIBUTE = "data-player-slot"');
+    expect(readSource("src/components/Stage.tsx")).toContain("[PLAYER_SLOT_ATTRIBUTE]: channel.id");
+    expect(readSource("src/components/ChannelTray.tsx")).toContain("[PLAYER_SLOT_ATTRIBUTE]: channel.id");
+    for (const name of componentFiles.filter(name => name !== "PlayerLayer.tsx")) {
+      expect(`${name}: ${readSource(`src/components/${name}`).includes("new YT.Player")}`).toBe(`${name}: false`);
+    }
   });
 
-  test("always shows the Remove and Focus controls on touch screens, which have no hover", () => {
-    const source = readSource("src/components/VideoTile.tsx");
-    const touchVisible = "[@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
-
-    expect(source.split(touchVisible).length - 1).toBe(2);
+  test("renders players in a fixed order, since React moving an iframe to follow a channel reorder reloads it", () => {
+    expect(readSource("src/components/PlayerLayer.tsx")).toContain(
+      "[...channels].sort((left, right) => left.id.localeCompare(right.id))",
+    );
   });
 
-  test("positions the Focus control above the scrubber hit target", () => {
-    const source = readSource("src/components/VideoTile.tsx");
-
-    expect(source).toContain("absolute top-3 right-16");
-    expect(source).not.toContain("absolute bottom-3 right-3 z-20 inline-flex cursor-pointer");
+  test("keeps the YouTube iframe's own buttons away from the keyboard and screen readers", () => {
+    expect(readSource("src/components/PlayerLayer.tsx")).toMatch(/<div inert[^>]*>\s*<div ref=\{containerRef\}/);
   });
 
-  test("scrolls the Library list after roughly six saved mixes", () => {
-    const source = readSource("src/components/SavedMixesPanel.tsx");
+  test("renders stage controls as a sibling of the video slot so they stack above the video layer", () => {
+    const stage = readSource("src/components/Stage.tsx");
 
-    expect(source).toContain("max-h-[36rem]");
-    expect(source).toContain("overflow-y-auto");
-    expect(source).toContain("pr-2");
+    expect(stage).toContain("A sibling of the slot so it stacks above the video layer");
+    expect(stage).toContain('expanded ? "fixed inset-0 z-50" : "absolute inset-0 z-20"');
+  });
+
+  test("uses a range input with a spoken time for the stage scrubber", () => {
+    const stage = readSource("src/components/Stage.tsx");
+
+    expect(stage).toContain("aria-label={`Seek ${channel.video.title}`}");
+    expect(stage).toContain("aria-valuetext={");
+  });
+
+  test("starts and stops players inside click handlers so browsers allow the sound", () => {
+    const app = readSource("src/App.tsx");
+
+    expect(app).toContain("player?.playVideo()");
+    expect(app).toContain("players.get(channel.id)?.playVideo()");
   });
 
   test("uses a single-line search input so Enter submits the add form", () => {
-    const source = readSource("src/components/SearchPanel.tsx");
+    const source = readSource("src/components/SearchBar.tsx");
 
     expect(source).not.toContain("<textarea");
     expect(source).toContain('type="search"');
     expect(source).toContain('enterKeyHint="go"');
   });
 
-  test("uses a pointer cursor for the light/dark mode toggle", () => {
-    const source = readSource("src/components/MixHeader.tsx");
-
-    expect(source).toContain("cursor-pointer");
-  });
-
-  test("does not reopen search results when a search finishes after the input lost focus", () => {
-    const source = readSource("src/App.tsx");
-
-    expect(source).not.toMatch(/setSearchSuggestions\(data\.suggestions\);\s*setShowResults\(true\)/);
-  });
-
-  test("keeps every logo letter on the baseline grid so the wordmark reads as one word", () => {
-    const source = readSource("src/index.css");
-
-    expect(source).not.toContain("tubetable-logo-letter-e");
-  });
-
-  test("shows no logo mark until a new one is made", () => {
-    expect(readSource("src/components/MixHeader.tsx")).not.toContain("from-sky-400 to-blue-700");
-    expect(existsSync(join(repoRoot, "src/logo.svg"))).toBe(false);
-    expect(readSource("src/index.html")).not.toContain("logo.svg");
-  });
-
-  test("does not show a simulated visualizer, since the iframes expose no audio to measure", () => {
-    expect(existsSync(join(repoRoot, "src/components/TransportVisualizer.tsx"))).toBe(false);
-    expect(existsSync(join(repoRoot, "src/lib/transportVisualizer.ts"))).toBe(false);
-  });
-
-  test("keeps Play all next to the videos it controls", () => {
-    expect(readSource("src/components/TableSection.tsx")).toContain("onToggleTransport");
-    expect(readSource("src/components/MixHeader.tsx")).not.toContain("onToggleTransport");
-  });
-
-  test("renders the table before the sidebar so phones reach the videos first", () => {
-    const source = readSource("src/App.tsx");
-
-    expect(source.indexOf("<TableSection")).toBeLessThan(source.indexOf("<MixControlPanel"));
-  });
-
-  test("puts each track's volume on its video tile instead of a separate mixer", () => {
-    const source = readSource("src/components/VideoTile.tsx");
-
-    expect(existsSync(join(repoRoot, "src/components/MixerSection.tsx"))).toBe(false);
-    expect(source).toContain("aria-label={`${trackLabel} volume`}");
-    expect(source).toContain("getStripStatus(channel)");
-  });
-
-  test("uses a range input for the scrubber so it works from the keyboard and screen readers", () => {
-    const source = readSource("src/components/VideoTile.tsx");
-
-    expect(source).toContain("aria-label={`Seek ${channel.video.title}`}");
-    expect(source).toContain("aria-valuetext={");
-    expect(source).not.toContain("onPointerDown");
-  });
-
-  test("only seeks on load when the user pressed restart, because seekTo starts a cued video", () => {
-    const source = readSource("src/components/VideoTile.tsx");
-
-    expect(source).toContain("handledRestartTokenRef");
-  });
-
-  test("does not ask to save changes to a saved mix, because edits save automatically", () => {
-    const source = readSource("src/components/MixControlPanel.tsx");
-
-    expect(source).not.toContain("Save changes");
-    expect(source).toContain("Changes save automatically");
-  });
-
-  test("offers Undo after deleting a saved mix", () => {
-    const source = readSource("src/components/SavedMixesPanel.tsx");
-
-    expect(source).toContain("onUndoDelete");
-    expect(source).toMatch(/>\s*Undo\s*</);
-  });
-
-  test("styles dark mode with the dark: variant, passing the theme only to the toggle that names it", () => {
-    const componentFiles = readdirSync(join(repoRoot, "src/components")).filter(name => name.endsWith(".tsx"));
-
-    for (const name of componentFiles.filter(name => name !== "MixHeader.tsx")) {
-      expect(`${name}: ${readSource(`src/components/${name}`).includes("isDarkMode")}`).toBe(`${name}: false`);
-    }
-    expect(readSource("src/components/MixHeader.tsx")).not.toMatch(/className=\{[^}]*isDarkMode/);
-  });
-
-  test("shows the theme toggle as a sun or moon icon instead of text", () => {
-    const source = readSource("src/components/MixHeader.tsx");
-
-    expect(source).toContain("<SunIcon");
-    expect(source).toContain("<MoonIcon");
-    expect(source).not.toContain(`isDarkMode ? "Light" : "Dark"`);
-    expect(source).toContain('aria-label={`Switch to ${isDarkMode ? "light" : "dark"} mode`}');
-  });
-
   test("lets the keyboard move through, pick and dismiss search results", () => {
-    const source = readSource("src/components/SearchPanel.tsx");
+    const source = readSource("src/components/SearchBar.tsx");
 
     expect(source).toContain('role="combobox"');
     expect(source).toContain("aria-activedescendant");
     expect(source).toContain('"ArrowDown"');
     expect(source).toContain('"Escape"');
+    expect(source).toContain("Add top result");
   });
 
-  test("says the add button adds the top result when the input is a search", () => {
-    expect(readSource("src/components/SearchPanel.tsx")).toContain("Add top result");
+  test("themes through CSS tokens, so no component branches on the theme", () => {
+    const css = readSource("src/index.css");
+
+    expect(css).toContain(':root[data-theme="dark"]');
+    expect(css).toContain(':root[data-theme="light"]');
+    for (const name of componentFiles) {
+      const source = readSource(`src/components/${name}`);
+      expect(`${name}: ${source.includes("isDarkMode") || source.includes("dark:")}`).toBe(`${name}: false`);
+    }
   });
 
-  test("keeps the YouTube iframe's own buttons away from the keyboard and screen readers", () => {
-    expect(readSource("src/components/VideoTile.tsx")).toMatch(/<div inert[^>]*>\s*<div ref=\{playerContainerRef\}/);
+  test("places menus with fixed positioning so scrolling lists cannot clip them", () => {
+    expect(readSource("src/components/Menu.tsx")).toContain('className="fixed z-50');
+  });
+
+  test("renders the stage, then the channels, then the sidebar, so phones reach the music first", () => {
+    const app = readSource("src/App.tsx");
+
+    expect(app.indexOf("<Stage")).toBeLessThan(app.indexOf("<ChannelTray"));
+    expect(app.indexOf("<ChannelTray")).toBeLessThan(app.indexOf("<MasterPanel"));
+  });
+
+  test("offers Undo for removing a channel, deleting a session and clearing an unsaved one", () => {
+    const app = readSource("src/App.tsx");
+
+    expect(app).toMatch(/showToast\(`Removed “\$\{removed\.video\.title\}”\.`, \(\) =>/);
+    expect(app).toMatch(/showToast\(`Deleted “\$\{sessionDisplayName\(mix\)\}”\.`, \(\) =>/);
+    expect(app).toContain('showToast("Started a new session. The unsaved one was cleared.", () =>');
+  });
+
+  test("shows no old logo art", () => {
+    expect(existsSync(join(repoRoot, "src/logo.svg"))).toBe(false);
+    expect(readSource("src/index.html")).not.toContain("logo.svg");
   });
 });

@@ -7,7 +7,8 @@ import {
   type PersistedMix,
   type SavedMix,
 } from "../types";
-import { createChannel } from "./mixChannels";
+import { createChannel, setAllPaused } from "./mixChannels";
+import { parseDurationText } from "./youtube";
 
 const EXAMPLE_MIX_NAME = "Example Mix";
 const EXAMPLE_MIX_ID = "example-mix";
@@ -30,7 +31,6 @@ function createExampleMix(): PersistedMix {
     name: EXAMPLE_MIX_NAME,
     channels: EXAMPLE_CHANNELS,
     masterVolume: 100,
-    transportPlaying: false,
     focusedChannelId: null,
   };
 }
@@ -60,7 +60,6 @@ export function createEmptyMix(name = ""): PersistedMix {
     name,
     channels: [],
     masterVolume: 100,
-    transportPlaying: false,
     focusedChannelId: null,
   };
 }
@@ -84,7 +83,6 @@ export function sanitizePersistedMix(value: unknown): PersistedMix | null {
     name: typeof record.name === "string" ? record.name : "",
     channels,
     masterVolume: typeof record.masterVolume === "number" ? record.masterVolume : 100,
-    transportPlaying: Boolean(record.transportPlaying),
     focusedChannelId:
       typeof record.focusedChannelId === "string" && channels.some(channel => channel.id === record.focusedChannelId)
         ? record.focusedChannelId
@@ -134,6 +132,10 @@ function sanitizeMixChannel(value: unknown): MixChannel | null {
     paused: record.paused,
     looped: typeof record.looped === "boolean" ? record.looped : true,
     progressSeconds: typeof record.progressSeconds === "number" ? Math.max(0, record.progressSeconds) : 0,
+    durationSeconds:
+      typeof record.durationSeconds === "number" && record.durationSeconds > 0
+        ? record.durationSeconds
+        : parseDurationText(typeof videoRecord.durationText === "string" ? videoRecord.durationText : undefined),
   };
 }
 
@@ -176,7 +178,18 @@ function migrateDraftCache(record: Record<string, unknown>, draft: PersistedMix,
   };
 }
 
+function pauseEverything(library: MixLibrary): MixLibrary {
+  const pause = <T extends PersistedMix>(mix: T): T => ({ ...mix, channels: setAllPaused(mix.channels, true) });
+
+  return { ...library, draft: pause(library.draft), savedMixes: library.savedMixes.map(pause) };
+}
+
+// Everything loads paused: browsers block sound until the user presses play.
 export function readStoredMixState(): MixLibrary {
+  return pauseEverything(readStoredLibrary());
+}
+
+function readStoredLibrary(): MixLibrary {
   if (typeof window === "undefined") {
     return createDefaultMixState();
   }
