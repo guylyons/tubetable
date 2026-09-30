@@ -25,10 +25,6 @@
     --tubetable-scrollbar-thumb-end: #2563eb;
   }
 
-  * {
-    box-sizing: border-box;
-  }
-
   @media (prefers-reduced-motion: no-preference) {
     html {
       scroll-behavior: smooth;
@@ -48,12 +44,6 @@
       BlinkMacSystemFont,
       "Segoe UI",
       sans-serif;
-  }
-
-  button,
-  input,
-  textarea {
-    font: inherit;
   }
 
   ::selection {
@@ -77,13 +67,6 @@
 
   .tubetable-slider {
     accent-color: #2563eb;
-  }
-
-  .tubetable-slider-vertical {
-    width: 1rem;
-    height: 15rem;
-    writing-mode: vertical-lr;
-    direction: rtl;
   }
 
   .tubetable-slider::-webkit-slider-runnable-track {

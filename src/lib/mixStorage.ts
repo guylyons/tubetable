@@ -7,56 +7,23 @@ import {
   type PersistedMix,
   type SavedMix,
 } from "../types";
+import { createChannel } from "./mixChannels";
 
 const EXAMPLE_MIX_NAME = "Example Mix";
 const EXAMPLE_MIX_ID = "example-mix";
-const EXAMPLE_CHANNELS: MixChannel[] = [
-  {
-    id: "example-channel-1",
-    video: {
-      videoId: "CxHa5KaMBcM",
-      title: "5 Hours of The Shipping Forecast on BBC Radio 4!",
-      channelTitle: "BBC Radio 4",
-      thumbnail: "https://i.ytimg.com/vi/CxHa5KaMBcM/hqdefault.jpg",
-    },
-    volume: 76,
-    muted: false,
-    solo: false,
-    paused: false,
-    looped: true,
-    progressSeconds: 0,
-  },
-  {
-    id: "example-channel-2",
-    video: {
-      videoId: "vNwYtllyt3Q",
-      title: "Brian Eno - Ambient 1: Music for Airports [Full Album]",
-      channelTitle: "Brian Eno",
-      thumbnail: "https://i.ytimg.com/vi/vNwYtllyt3Q/hqdefault.jpg",
-    },
-    volume: 76,
-    muted: false,
-    solo: false,
-    paused: false,
-    looped: true,
-    progressSeconds: 0,
-  },
-  {
-    id: "example-channel-3",
-    video: {
-      videoId: "mPZkdNFkNps",
-      title: "Rain Sound On Window with Thunder Sounds | Heavy Rain for Sleep, Study and Relaxation, Meditation",
-      channelTitle: "BIRDZ",
-      thumbnail: "https://i.ytimg.com/vi/mPZkdNFkNps/hqdefault.jpg",
-    },
-    volume: 76,
-    muted: false,
-    solo: false,
-    paused: false,
-    looped: true,
-    progressSeconds: 0,
-  },
-];
+const EXAMPLE_VIDEOS = [
+  ["CxHa5KaMBcM", "5 Hours of The Shipping Forecast on BBC Radio 4!", "BBC Radio 4"],
+  ["vNwYtllyt3Q", "Brian Eno - Ambient 1: Music for Airports [Full Album]", "Brian Eno"],
+  [
+    "mPZkdNFkNps",
+    "Rain Sound On Window with Thunder Sounds | Heavy Rain for Sleep, Study and Relaxation, Meditation",
+    "BIRDZ",
+  ],
+] as const;
+const EXAMPLE_CHANNELS: MixChannel[] = EXAMPLE_VIDEOS.map(([videoId, title, channelTitle], index) => ({
+  ...createChannel({ videoId, title, channelTitle, thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` }),
+  id: `example-channel-${index + 1}`,
+}));
 
 function createExampleMix(): PersistedMix {
   return {

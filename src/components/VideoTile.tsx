@@ -6,7 +6,6 @@ import {
   createYouTubePlayerVars,
   formatPlaybackTime,
   loadIframeApi,
-  lockPlayerInteraction,
   syncPlayerPlayback,
   YT_PLAYER_STATE_ENDED,
   YT_PLAYER_STATE_PAUSED,
@@ -141,7 +140,6 @@ export function VideoTile({
               setReady(true);
               setLoadError(null);
               applyPlayerVolume(event.target, effectiveVolume);
-              lockPlayerInteraction(event.target);
               syncPlayerPlayback(event.target, transportPlaying && !channel.paused);
               reportProgress();
             },
@@ -259,7 +257,10 @@ export function VideoTile({
           isFocusPresentation ? "aspect-video md:aspect-[21/9]" : "aspect-video"
         }`}
       >
-        <div ref={playerContainerRef} className="h-full w-full [&_iframe]:pointer-events-none" />
+        {/* The tile's own controls drive playback, so the iframe's buttons stay out of reach. */}
+        <div inert className="h-full w-full">
+          <div ref={playerContainerRef} />
+        </div>
         <button
           type="button"
           draggable

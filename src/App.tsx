@@ -4,7 +4,7 @@ import { MixControlPanel } from "./components/MixControlPanel";
 import { MixHeader } from "./components/MixHeader";
 import { SavedMixesPanel } from "./components/SavedMixesPanel";
 import { TableSection } from "./components/TableSection";
-import { buildChannelStates, createChannel, reorderChannels } from "./lib/mixChannels";
+import { buildChannelStates, createChannel, DEFAULT_CHANNEL_VOLUME, reorderChannels } from "./lib/mixChannels";
 import { deleteMix, getCurrentMix, restoreMix, saveDraft, selectMix, updateMix } from "./lib/mixLibrary";
 import { deriveMixName } from "./lib/mixNaming";
 import { createEmptyMix, createMixId, readStoredMixState } from "./lib/mixStorage";
@@ -313,7 +313,7 @@ export function App() {
                     muted: false,
                     paused: false,
                     solo: false,
-                    volume: 76,
+                    volume: DEFAULT_CHANNEL_VOLUME,
                   })),
                 }))
               }

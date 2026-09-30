@@ -2,7 +2,6 @@ export type YouTubePlayer = {
   destroy: () => void;
   getCurrentTime?: () => number;
   getDuration?: () => number;
-  getIframe?: () => HTMLIFrameElement;
   getPlayerState?: () => number;
   mute: () => void;
   pauseVideo: () => void;
@@ -170,18 +169,6 @@ export function applyPlayerVolume(player: YouTubePlayer, volume: number) {
   }
 
   player.unMute();
-}
-
-export function lockPlayerInteraction(player: YouTubePlayer) {
-  const iframe = player.getIframe?.();
-
-  if (!iframe) {
-    return;
-  }
-
-  iframe.tabIndex = -1;
-  iframe.setAttribute("title", "YouTube video preview controlled by TubeTable");
-  iframe.style.pointerEvents = "none";
 }
 
 export function syncPlayerPlayback(player: YouTubePlayer, shouldPlay: boolean) {

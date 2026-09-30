@@ -1,5 +1,7 @@
 import type { MixChannel, MixChannelState, YouTubeSearchResult } from "../types";
 
+export const DEFAULT_CHANNEL_VOLUME = 76;
+
 export function createChannel(video: YouTubeSearchResult): MixChannel {
   const fallbackId = `${video.videoId}-${Date.now()}`;
   const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : fallbackId;
@@ -7,7 +9,7 @@ export function createChannel(video: YouTubeSearchResult): MixChannel {
   return {
     id,
     video,
-    volume: 76,
+    volume: DEFAULT_CHANNEL_VOLUME,
     muted: false,
     solo: false,
     paused: false,

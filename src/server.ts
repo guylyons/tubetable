@@ -1,18 +1,7 @@
 import { serve } from "bun";
 import index from "./index.html";
 import { fetchYouTubeSearchPayload, resolveVideoMetadata } from "./lib/youtubeApi";
-
-type YouTubeSearchPayload = {
-  results: Array<{
-    videoId: string;
-    title: string;
-    channelTitle: string;
-    durationText?: string;
-    viewCountText?: string;
-    thumbnail: string;
-  }>;
-  suggestions: string[];
-};
+import type { YouTubeSearchPayload } from "./types";
 
 function json(data: unknown, init?: ResponseInit) {
   return Response.json(data, {

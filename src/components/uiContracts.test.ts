@@ -136,4 +136,8 @@ describe("UI interaction contracts", () => {
   test("says the add button adds the top result when the input is a search", () => {
     expect(readSource("src/components/SearchPanel.tsx")).toContain("Add top result");
   });
+
+  test("keeps the YouTube iframe's own buttons away from the keyboard and screen readers", () => {
+    expect(readSource("src/components/VideoTile.tsx")).toMatch(/<div inert[^>]*>\s*<div ref=\{playerContainerRef\}/);
+  });
 });
