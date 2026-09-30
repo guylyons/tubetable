@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "..", "..");
@@ -61,5 +61,21 @@ describe("UI interaction contracts", () => {
     const source = readSource("src/index.css");
 
     expect(source).not.toContain("tubetable-logo-letter-e");
+  });
+
+  test("does not show a simulated visualizer, since the iframes expose no audio to measure", () => {
+    expect(existsSync(join(repoRoot, "src/components/TransportVisualizer.tsx"))).toBe(false);
+    expect(existsSync(join(repoRoot, "src/lib/transportVisualizer.ts"))).toBe(false);
+  });
+
+  test("keeps Play all next to the videos it controls", () => {
+    expect(readSource("src/components/TableSection.tsx")).toContain("onToggleTransport");
+    expect(readSource("src/components/MixHeader.tsx")).not.toContain("onToggleTransport");
+  });
+
+  test("renders the table before the sidebar so phones reach the videos first", () => {
+    const source = readSource("src/App.tsx");
+
+    expect(source.indexOf("<TableSection")).toBeLessThan(source.indexOf("<MixControlPanel"));
   });
 });

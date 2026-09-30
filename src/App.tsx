@@ -446,11 +446,8 @@ export function App() {
         <MixHeader
           addError={addError}
           canAddMore={canAddMore}
-          channelStates={channelStates}
-          channelsCount={channels.length}
           deferredQuery={deferredQuery}
           existingVideoIds={existingVideoIds}
-          isSavedMix={isSavedMix}
           isResolvingInput={isResolvingInput}
           isSearching={isSearching}
           isDarkMode={isDarkMode}
@@ -471,56 +468,14 @@ export function App() {
             void resolveInputToVideo();
           }}
           onToggleTheme={() => setThemeMode(currentMode => (currentMode === "dark" ? "light" : "dark"))}
-          onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
           searchError={searchError}
           searchQuery={searchQuery}
           searchResults={searchResults}
           searchSuggestions={searchSuggestions}
           showResults={showResults}
-          transportPlaying={transportPlaying}
         />
 
-        <main className="grid flex-1 grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-          <aside className="space-y-6">
-            <MixControlPanel
-              isDarkMode={isDarkMode}
-              generatedMixName={generatedMixName}
-              isSavedMix={isSavedMix}
-              mixTitle={mixTitle}
-              onCreateNewMix={createNewMix}
-              onStartFromBeginning={startCurrentMixFromBeginning}
-              onSaveMix={saveCurrentMix}
-              onSetMixTitle={setMixTitle}
-              saveMessage={saveMessage}
-            />
-
-            <SavedMixesPanel
-              isDarkMode={isDarkMode}
-              currentMixKey={currentMixKey}
-              onDeleteMix={deleteMix}
-              onSelectMix={selectMix}
-              savedMixes={savedMixes}
-              transportPlaying={transportPlaying}
-            />
-
-            <MasterBusPanel
-              isDarkMode={isDarkMode}
-              masterVolume={masterVolume}
-              onChangeMasterVolume={setMasterVolume}
-              onResetChannelBalances={() =>
-                setChannels(currentChannels =>
-                  currentChannels.map(channel => ({
-                    ...channel,
-                    muted: false,
-                    paused: false,
-                    solo: false,
-                    volume: 76,
-                  })),
-                )
-              }
-            />
-          </aside>
-
+        <main className="grid flex-1 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="space-y-6">
             <TableSection
               isDarkMode={isDarkMode}
@@ -562,6 +517,7 @@ export function App() {
                   solo: !currentChannel.solo,
                 }))
               }
+              onToggleTransport={() => setTransportPlaying(currentValue => !currentValue)}
               onProgress={updateChannelProgress}
               restartToken={restartToken}
               transportPlaying={transportPlaying}
@@ -590,6 +546,46 @@ export function App() {
               }
             />
           </div>
+
+          <aside className="space-y-6">
+            <MixControlPanel
+              isDarkMode={isDarkMode}
+              generatedMixName={generatedMixName}
+              isSavedMix={isSavedMix}
+              mixTitle={mixTitle}
+              onCreateNewMix={createNewMix}
+              onStartFromBeginning={startCurrentMixFromBeginning}
+              onSaveMix={saveCurrentMix}
+              onSetMixTitle={setMixTitle}
+              saveMessage={saveMessage}
+            />
+
+            <SavedMixesPanel
+              isDarkMode={isDarkMode}
+              currentMixKey={currentMixKey}
+              onDeleteMix={deleteMix}
+              onSelectMix={selectMix}
+              savedMixes={savedMixes}
+              transportPlaying={transportPlaying}
+            />
+
+            <MasterBusPanel
+              isDarkMode={isDarkMode}
+              masterVolume={masterVolume}
+              onChangeMasterVolume={setMasterVolume}
+              onResetChannelBalances={() =>
+                setChannels(currentChannels =>
+                  currentChannels.map(channel => ({
+                    ...channel,
+                    muted: false,
+                    paused: false,
+                    solo: false,
+                    volume: 76,
+                  })),
+                )
+              }
+            />
+          </aside>
         </main>
       </div>
     </div>

@@ -16,10 +16,6 @@ export function createChannel(video: YouTubeSearchResult): MixChannel {
   };
 }
 
-export function getTransportLabel(playing: boolean) {
-  return playing ? "Pause all" : "Play all";
-}
-
 export function buildChannelStates(channels: MixChannel[], masterVolume: number): MixChannelState[] {
   const hasSoloChannel = channels.some(channel => channel.solo);
 

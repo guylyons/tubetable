@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { VideoTile } from "./VideoTile";
-import type { MixChannelState } from "../types";
+import { MAX_CHANNELS, type MixChannelState } from "../types";
 
 type TableSectionProps = {
   isDarkMode: boolean;
@@ -13,6 +13,7 @@ type TableSectionProps = {
   onToggleMute: (channelId: string) => void;
   onTogglePause: (channelId: string) => void;
   onToggleSolo: (channelId: string) => void;
+  onToggleTransport: () => void;
   onProgress: (mixKey: string, channelId: string, progressSeconds: number) => void;
   mixKey: string;
   restartToken: number;
@@ -30,6 +31,7 @@ export function TableSection({
   onToggleMute,
   onTogglePause,
   onToggleSolo,
+  onToggleTransport,
   onProgress,
   mixKey,
   restartToken,
@@ -115,14 +117,21 @@ export function TableSection({
       <div
         className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${isDarkMode ? "from-sky-400 via-blue-500 to-transparent" : "from-blue-500 via-sky-400 to-transparent"}`}
       />
-      <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div className="min-w-0">
-          <p
-            className={`text-xs font-semibold uppercase tracking-[0.18em] ${isDarkMode ? "text-sky-300" : "text-blue-700"}`}
-          >
-            Your table
-          </p>
-        </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-semibold text-slate-950 dark:text-slate-50">
+          Your table{" "}
+          <span className="text-base font-medium text-slate-400 tabular-nums">
+            {channelStates.length} / {MAX_CHANNELS}
+          </span>
+        </h2>
+        <button
+          type="button"
+          onClick={onToggleTransport}
+          disabled={channelStates.length === 0}
+          className="inline-flex min-w-32 cursor-pointer items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-sky-500 dark:hover:bg-sky-400"
+        >
+          {transportPlaying ? "Pause all" : "Play all"}
+        </button>
       </div>
 
       {channelStates.length > 0 ? (
