@@ -110,7 +110,7 @@ export function SearchPanel({
               window.setTimeout(onCloseResults, 120);
             }}
             placeholder={canAddMore ? "Search a song, channel, or mood — or paste a YouTube link" : "The table is full"}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-400"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:bg-slate-950"
             disabled={!canAddMore}
           />
         </label>
