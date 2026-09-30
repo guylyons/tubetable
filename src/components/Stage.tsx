@@ -53,7 +53,7 @@ export function Stage({
 }: StageProps) {
   const boxClassName = expanded
     ? "fixed inset-0 z-[5] bg-black"
-    : "relative aspect-video max-h-[max(16rem,calc(100vh-34.5rem))] w-full overflow-hidden rounded-xl bg-black shadow-lg";
+    : "relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg";
 
   if (!channel) {
     return (

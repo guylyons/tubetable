@@ -27,7 +27,7 @@ export function SessionsPanel({
   savedMixes,
 }: SessionsPanelProps) {
   return (
-    <section aria-labelledby="sessions-heading" className={`${panelClassName} flex min-h-0 flex-col p-3 sm:p-4`}>
+    <section aria-labelledby="sessions-heading" className={`${panelClassName} p-3 sm:p-4`}>
       <div className="flex items-center justify-between gap-3 px-1">
         <h2 id="sessions-heading" className={`${eyebrowClassName} text-sm text-ink-muted`}>
           Saved sessions
@@ -38,7 +38,7 @@ export function SessionsPanel({
       </div>
 
       {savedMixes.length > 0 ? (
-        <ul className="mt-3 max-h-[26rem] min-h-0 space-y-2 overflow-y-auto pr-0.5 xl:max-h-none">
+        <ul className="mt-3 space-y-2">
           {savedMixes.map(mix => {
             const isCurrent = mix.id === currentMixKey;
             const name = sessionDisplayName(mix);

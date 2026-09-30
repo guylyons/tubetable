@@ -575,8 +575,8 @@ export function App() {
         />
       </div>
 
-      <main className="mx-auto grid w-full max-w-[1760px] flex-1 grid-cols-1 content-start gap-4 px-3 py-4 sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,27rem)] xl:gap-5">
-        <div className="min-w-0 space-y-3 xl:col-start-1 xl:row-start-1">
+      <main className="mx-auto grid w-full max-w-[1760px] flex-1 grid-cols-1 content-start items-start gap-4 px-3 py-4 sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,27rem)] xl:gap-5">
+        <div className="min-w-0 space-y-3">
           <div className={hiddenWhileExpanded}>
             <SessionHeader
               channelCount={channels.length}
@@ -604,23 +604,20 @@ export function App() {
             onTogglePlay={() => stageChannel && toggleChannelPlay(stageChannel.id)}
             status={stageChannel ? playerStatuses[stageChannel.id] : undefined}
           />
+          <div className={`pt-2 ${hiddenWhileExpanded}`}>
+            <ChannelTray
+              cards={cards}
+              onAddChannel={focusSearch}
+              onChangeVolume={(channelId, volume) => updateChannel(channelId, channel => ({ ...channel, volume }))}
+              onFocus={focusChannel}
+              onToggleMute={channelId => updateChannel(channelId, channel => ({ ...channel, muted: !channel.muted }))}
+              onTogglePlay={toggleChannelPlay}
+              onToggleSolo={channelId => updateChannel(channelId, channel => ({ ...channel, solo: !channel.solo }))}
+            />
+          </div>
         </div>
 
-        <div className={`min-w-0 xl:col-span-2 xl:row-start-2 ${hiddenWhileExpanded}`}>
-          <ChannelTray
-            cards={cards}
-            onAddChannel={focusSearch}
-            onChangeVolume={(channelId, volume) => updateChannel(channelId, channel => ({ ...channel, volume }))}
-            onFocus={focusChannel}
-            onToggleMute={channelId => updateChannel(channelId, channel => ({ ...channel, muted: !channel.muted }))}
-            onTogglePlay={toggleChannelPlay}
-            onToggleSolo={channelId => updateChannel(channelId, channel => ({ ...channel, solo: !channel.solo }))}
-          />
-        </div>
-
-        <aside
-          className={`flex min-w-0 flex-col gap-4 xl:col-start-2 xl:row-start-1 xl:gap-5 xl:pt-[3.75rem] xl:[contain:size] ${hiddenWhileExpanded}`}
-        >
+        <aside className={`flex min-w-0 flex-col gap-4 xl:gap-5 xl:pt-[3.75rem] ${hiddenWhileExpanded}`}>
           <MasterPanel
             anyPlaying={anyPlaying}
             hasChannels={channels.length > 0}

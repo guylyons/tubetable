@@ -19,6 +19,9 @@
   --color-live: var(--tt-live);
   --color-danger: var(--tt-danger);
   --color-focus: var(--tt-focus);
+  --color-field: var(--tt-field);
+  --color-field-ink: var(--tt-field-ink);
+  --color-field-muted: var(--tt-field-muted);
 }
 
 @layer base {
@@ -43,6 +46,10 @@
     --tt-danger: #b3261e;
     --tt-focus: #8ec8ff;
     --tt-thumb: #f3eee7;
+    /* Text fields: a near-white well with dark text, in every theme. */
+    --tt-field: #ecebe8;
+    --tt-field-ink: #1e2023;
+    --tt-field-muted: #6b6e73;
   }
 
   :root[data-theme="dark"] {
@@ -78,6 +85,7 @@
     --tt-accent-ink: #f7e6d1;
     --tt-focus: #2f7de1;
     --tt-thumb: #ffffff;
+    --tt-field: #ffffff;
   }
 
   body {

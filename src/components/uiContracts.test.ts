@@ -39,6 +39,20 @@ describe("UI interaction contracts", () => {
     expect(stage).toContain('expanded ? "fixed inset-0 z-50" : "absolute inset-0 z-20"');
   });
 
+  test("keeps the stage at the video's own 16:9 shape instead of capping its height", () => {
+    const stage = readSource("src/components/Stage.tsx");
+
+    expect(stage).toContain('"relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg"');
+    expect(stage).not.toContain("max-h-");
+  });
+
+  test("lets the sidebar take its natural height beside both the stage and the channels", () => {
+    const app = readSource("src/App.tsx");
+
+    expect(app).not.toContain("contain:size");
+    expect(readSource("src/components/SessionsPanel.tsx")).not.toContain("max-h-");
+  });
+
   test("uses a range input with a spoken time for the stage scrubber", () => {
     const stage = readSource("src/components/Stage.tsx");
 

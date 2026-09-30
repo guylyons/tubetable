@@ -110,13 +110,13 @@ export function SearchBar({
             <Loader2
               size={18}
               aria-hidden="true"
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 animate-spin text-fg-muted"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 animate-spin text-field-muted"
             />
           ) : (
             <Search
               size={18}
               aria-hidden="true"
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-muted"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-field-muted"
             />
           )}
           <input
@@ -137,7 +137,7 @@ export function SearchBar({
             }}
             placeholder={canAddMore ? "Search YouTube or paste a link" : "All five channels are in use"}
             disabled={!canAddMore}
-            className="h-11 w-full rounded-lg border border-fg/20 bg-black/10 pl-11 pr-3 text-[0.95rem] text-fg outline-none transition placeholder:text-fg-muted hover:border-fg/35 focus:border-focus focus:bg-black/15 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-lg border border-line bg-field pl-11 pr-3 text-[0.95rem] text-field-ink shadow-inner outline-none transition placeholder:text-field-muted hover:bg-white focus:border-focus focus:bg-white focus:ring-2 focus:ring-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
 
