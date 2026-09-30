@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import type { MixChannelState, PlayerStatus } from "../types";
 import {
   applyPlayerVolume,
@@ -68,9 +69,11 @@ export function PlayerLayer({
 }: PlayerLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<Record<string, SlotRect>>({});
-  const measureRef = useRef<() => void>(() => undefined);
+  const measureRef = useRef<(sync: boolean) => void>(() => undefined);
 
-  measureRef.current = () => {
+  // `sync` applies the new rects before the browser paints, so during a window resize the video
+  // stays glued to its slot instead of trailing a frame behind.
+  measureRef.current = sync => {
     const layer = layerRef.current;
     if (!layer) {
       return;
@@ -86,24 +89,29 @@ export function PlayerLayer({
       }
 
       next[channelId] = {
-        top: Math.round(box.top - origin.top),
-        left: Math.round(box.left - origin.left),
-        width: Math.round(box.width),
-        height: Math.round(box.height),
+        top: box.top - origin.top,
+        left: box.left - origin.left,
+        width: box.width,
+        height: box.height,
         radius: getComputedStyle(slot).borderRadius,
       };
     }
 
-    setRects(current => (sameRects(current, next) ? current : next));
+    const update = () => setRects(current => (sameRects(current, next) ? current : next));
+    if (sync) {
+      flushSync(update);
+    } else {
+      update();
+    }
   };
 
   // Re-measure after every render, since focus changes, new channels and panel edits all move slots.
   useLayoutEffect(() => {
-    measureRef.current();
+    measureRef.current(false);
   });
 
   useEffect(() => {
-    const measure = () => measureRef.current();
+    const measure = () => measureRef.current(true);
     const observer = new ResizeObserver(measure);
     observer.observe(document.body);
     const slotObserver = new MutationObserver(() => {
@@ -331,7 +339,7 @@ function ChannelPlayer({
 
   return (
     <div
-      className="absolute overflow-hidden transition-[top,left,width,height,opacity] duration-200 ease-out motion-reduce:transition-none"
+      className="absolute overflow-hidden transition-opacity duration-200 motion-reduce:transition-none"
       style={style}
       data-channel-player={channel.id}
     >

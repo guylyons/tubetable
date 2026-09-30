@@ -88,7 +88,11 @@ export function App() {
   const anyPlaying = playingIds.size > 0;
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", getComputedStyle(root).getPropertyValue("--tt-bar").trim());
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {

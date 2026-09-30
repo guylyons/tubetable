@@ -36,7 +36,7 @@ export function SessionHeader({ channelCount, generatedName, isSaved, name, onRe
             placeholder={generatedName}
             aria-label="Session name"
             spellCheck={false}
-            className="-mx-1.5 min-w-0 max-w-full rounded-md bg-transparent px-1.5 text-2xl font-semibold text-fg outline-none transition placeholder:text-fg/70 hover:bg-white/8 focus:bg-black/15 focus-visible:outline-2 focus-visible:outline-focus"
+            className="-mx-1.5 min-w-0 max-w-full rounded-md bg-transparent px-1.5 text-2xl font-bold tracking-tight text-fg outline-none transition placeholder:text-fg-muted hover:bg-white/8 focus:bg-black/15 focus-visible:outline-2 focus-visible:outline-focus"
           />
           {isSaved ? (
             <span className="inline-flex items-center gap-2 text-sm text-fg-muted" title="Changes save automatically">

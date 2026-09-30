@@ -11,7 +11,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import type { CSSProperties } from "react";
-import { formatPlaybackTime } from "../lib/youtube";
+import { formatPlaybackTime, formatPlaybackTimeLike } from "../lib/youtube";
 import type { MixChannelState, PlayerStatus } from "../types";
 import { Menu, type MenuItem } from "./Menu";
 import { PLAYER_SLOT_ATTRIBUTE } from "./PlayerLayer";
@@ -61,7 +61,7 @@ export function Stage({
         <div className={`${boxClassName} grid place-items-center border border-line bg-black/25! shadow-none`}>
           <div className="max-w-md px-6 text-center text-fg">
             <Music2 size={40} aria-hidden="true" className="mx-auto text-fg-muted" />
-            <h2 className="mt-4 text-2xl font-semibold">Start your session</h2>
+            <h2 className="mt-4 text-2xl font-bold tracking-tight">Start your session</h2>
             <p className="mt-2 text-fg-muted">
               Search YouTube or paste a link. Each video becomes a channel you can play, mute, solo and mix — up to five
               at once.
@@ -95,7 +95,7 @@ export function Stage({
         <div className={`pointer-events-none flex flex-col justify-between ${overlayClassName}`}>
           <div className="flex items-start justify-between p-3 sm:p-4">
             <span
-              className="rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-[#1b1b1c] shadow"
+              className="rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-[#1b1b1c] shadow"
               style={{ backgroundColor: color }}
             >
               {channelNumber} • Focused
@@ -117,7 +117,7 @@ export function Stage({
               className="pointer-events-auto mx-auto max-w-sm rounded-xl bg-black/80 p-5 text-center text-white"
             >
               <TriangleAlert size={28} aria-hidden="true" className="mx-auto text-amber-300" />
-              <p className="mt-2 font-semibold">This video can’t play here</p>
+              <p className="mt-2 font-bold">This video can’t play here</p>
               <p className="mt-1 text-sm text-white/75">YouTube blocks it from being embedded, or it was removed.</p>
               <button type="button" onClick={onRemove} className={`mt-4 h-9 px-4 ${quietButtonClassName}`}>
                 Remove channel
@@ -140,7 +140,7 @@ export function Stage({
               )}
             </button>
             <span className="shrink-0 text-sm tabular-nums">
-              {formatPlaybackTime(progress)}
+              {duration > 0 ? formatPlaybackTimeLike(progress, duration) : formatPlaybackTime(progress)}
               <span className="text-white/60"> / {duration > 0 ? formatPlaybackTime(duration) : "--:--"}</span>
             </span>
             <input
@@ -180,7 +180,7 @@ export function Stage({
 
       <div className={`flex items-start justify-between gap-3 px-1 ${expanded ? "invisible" : ""}`}>
         <div className="min-w-0">
-          <h2 className="truncate text-xl font-semibold text-fg">{channel.video.title}</h2>
+          <h2 className="truncate text-xl font-medium tracking-tight text-fg">{channel.video.title}</h2>
           <p className="truncate text-sm text-fg-muted">by {channel.video.channelTitle}</p>
         </div>
         <Menu

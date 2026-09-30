@@ -38,7 +38,7 @@ export function Toast({ onDismiss, toast }: ToastProps) {
                 toast.undo?.();
                 onDismiss();
               }}
-              className="cursor-pointer rounded-md px-2 py-1 font-semibold underline-offset-2 hover:underline"
+              className="cursor-pointer rounded-md px-2 py-1 font-bold underline-offset-2 hover:underline"
             >
               Undo
             </button>

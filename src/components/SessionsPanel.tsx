@@ -71,7 +71,7 @@ export function SessionsPanel({
                   )}
                   <span className="min-w-0">
                     <span className="flex items-center gap-2">
-                      <span className="truncate font-semibold">{name}</span>
+                      <span className="truncate font-medium">{name}</span>
                       {isCurrent && anyPlaying ? (
                         <span className="h-2 w-2 shrink-0 rounded-full bg-live" aria-label="Playing" />
                       ) : null}

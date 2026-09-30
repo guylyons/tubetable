@@ -81,7 +81,7 @@ function SettingsPopover({ onChangeTheme, theme }: Pick<TopBarProps, "onChangeTh
               {THEMES.map(option => (
                 <label
                   key={option.value}
-                  className="cursor-pointer rounded-md px-2 py-1.5 text-center text-sm font-medium transition has-checked:bg-accent has-checked:text-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-focus"
+                  className="cursor-pointer rounded-md px-2 py-1.5 text-center text-sm font-medium transition has-checked:bg-accent has-checked:text-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus has-focus-visible:shadow-[0_0_0_2px_var(--tt-focus-inner)]"
                 >
                   <input
                     type="radio"
@@ -122,7 +122,7 @@ export function TopBar({ onChangeTheme, theme, ...searchProps }: TopBarProps) {
       <div className="mx-auto flex max-w-[1760px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6 lg:flex-nowrap">
         <div className="flex items-center gap-3 text-fg">
           <SlidersVertical size={26} strokeWidth={2.25} aria-hidden="true" />
-          <h1 className="text-xl font-semibold tracking-tight">Tubetable</h1>
+          <h1 className="text-xl font-bold tracking-tight">Tubetable</h1>
         </div>
 
         <SearchBar {...searchProps} className="order-last w-full lg:order-none lg:mx-auto lg:max-w-3xl lg:flex-1" />

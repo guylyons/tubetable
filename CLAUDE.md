@@ -24,6 +24,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `src/App.tsx` owns all state as one `MixLibrary` (the draft plus saved mixes). Saved mixes autosave: edits go straight into the library entry through `src/lib/mixLibrary.ts`, and only the unsaved draft has a Save button.
 - The library is stored in localStorage (`src/lib/mixStorage.ts`), so field changes must still load old saved mixes by filling in defaults. `readStoredMixState` also migrates the pre-autosave `draftCache` shape.
 - Styling is Tailwind v4 with theme tokens (`bg-panel`, `text-ink`, `bg-accent`...) defined as CSS variables in `src/index.css`. The Grey (default, Ableton-like), Dark and Light themes only swap those variables via `data-theme` on `<html>`, so components never branch on the theme. Shared class strings live in `src/components/ui.ts`. Icons come from `lucide-react`. MUI is **not** installed.
+- Type is Helvetica Neue, which ships Regular, Medium and Bold only: use `font-medium` or `font-bold`, never `font-semibold` (600 renders as Bold). `src/components/themeContrast.test.ts` checks every theme's text and focus colors against WCAG AA, so run it after changing a color token.
+- `PlayerLayer` must track slots in the same frame (`flushSync` on resize/scroll) and must never transition geometry; an animated box and its instantly resized iframe drift apart.
 - `src/components/uiContracts.test.ts` reads `.tsx` files as text and checks for specific class names and markup. Renaming classes or restructuring JSX can break it without any behavior change.
 
 ## Audio effects (lowpass filter, etc.)

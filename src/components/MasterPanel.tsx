@@ -28,7 +28,7 @@ export function MasterPanel({
   return (
     <section aria-labelledby="master-heading" className={`${panelClassName} p-4 sm:p-5`}>
       <div className="flex items-center justify-between gap-3">
-        <h2 id="master-heading" className="text-lg font-semibold uppercase tracking-[0.08em]">
+        <h2 id="master-heading" className="text-lg font-medium uppercase tracking-[0.08em]">
           Master
         </h2>
         <button

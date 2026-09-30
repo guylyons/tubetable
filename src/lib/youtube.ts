@@ -61,6 +61,19 @@ export function createYouTubePlayerVars(startSeconds: number) {
   };
 }
 
+// Formats `seconds` with the same fields and leading width as `referenceSeconds`, so a
+// "current / total" display keeps a steady width as the time counts up.
+export function formatPlaybackTimeLike(seconds: number, referenceSeconds: number) {
+  const reference = formatPlaybackTime(referenceSeconds).split(":");
+  const whole = Math.floor(Math.max(0, seconds));
+  const fields =
+    reference.length === 3
+      ? [Math.floor(whole / 3600), Math.floor((whole % 3600) / 60), whole % 60]
+      : [Math.floor(whole / 60), whole % 60];
+
+  return fields.map((field, index) => String(field).padStart(index === 0 ? reference[0]!.length : 2, "0")).join(":");
+}
+
 export function parseDurationText(text: string | undefined) {
   if (!text || !/^\d+(:\d{1,2}){1,2}$/.test(text.trim())) {
     return 0;

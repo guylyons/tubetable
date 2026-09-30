@@ -35,21 +35,24 @@
     --tt-card-hover: #c2c4c7;
     --tt-well: #8e9195;
     --tt-ink: #1e2023;
-    --tt-ink-muted: #45484c;
+    --tt-ink-muted: #34373b;
     --tt-fg: #f4f5f6;
-    --tt-fg-muted: #d0d3d6;
+    --tt-fg-muted: #e1e3e6;
     --tt-line: rgb(20 22 25 / 0.22);
     --tt-accent: #f7e6d1;
     --tt-accent-hover: #fff0de;
     --tt-accent-ink: #29231b;
     --tt-live: #37c86b;
-    --tt-danger: #b3261e;
+    --tt-danger: #8a1a13;
     --tt-focus: #8ec8ff;
+    /* Focus is a light ring around a dark one, so it stands out on light and dark surfaces alike. */
+    --tt-focus-inner: #0e2a52;
     --tt-thumb: #f3eee7;
+    --tt-thumb-edge: #2a2c30;
     /* Text fields: a near-white well with dark text, in every theme. */
     --tt-field: #ecebe8;
     --tt-field-ink: #1e2023;
-    --tt-field-muted: #6b6e73;
+    --tt-field-muted: #5c5f64;
   }
 
   :root[data-theme="dark"] {
@@ -60,11 +63,11 @@
     --tt-card-hover: #4b4d51;
     --tt-well: #2a2b2e;
     --tt-ink: #eceded;
-    --tt-ink-muted: #a9abae;
+    --tt-ink-muted: #c4c6c9;
     --tt-fg: #f2f2f3;
     --tt-fg-muted: #a9abae;
     --tt-line: rgb(0 0 0 / 0.35);
-    --tt-danger: #ff8a80;
+    --tt-danger: #ffaba4;
   }
 
   :root[data-theme="light"] {
@@ -83,8 +86,10 @@
     --tt-accent: #2b2d31;
     --tt-accent-hover: #3a3d42;
     --tt-accent-ink: #f7e6d1;
-    --tt-focus: #2f7de1;
+    --tt-focus: #1b5cc0;
+    --tt-focus-inner: #ffffff;
     --tt-thumb: #ffffff;
+    --tt-thumb-edge: #5a5e64;
     --tt-field: #ffffff;
   }
 
@@ -94,22 +99,15 @@
     min-height: 100vh;
     background: var(--tt-app);
     color: var(--tt-fg);
-    font-family:
-      "Inter var",
-      Inter,
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      sans-serif;
-    font-feature-settings: "tnum" 0;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Two-tone: a dark inner ring and a light outer ring, so focus shows on every surface. */
   :focus-visible {
     outline: 2px solid var(--tt-focus);
     outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--tt-focus-inner);
   }
 
   ::selection {
@@ -155,20 +153,19 @@
     margin-top: calc((var(--range-height) - 1.625rem) / 2);
     border-radius: 0.3rem;
     background: var(--tt-thumb);
-    box-shadow:
-      0 1px 3px rgb(0 0 0 / 0.35),
-      inset 0 0 0 1px rgb(0 0 0 / 0.12);
+    box-sizing: border-box;
+    border: 1px solid var(--tt-thumb-edge);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
   }
 
   .tt-range::-moz-range-thumb {
     width: 1.125rem;
     height: 1.625rem;
-    border: 0;
     border-radius: 0.3rem;
     background: var(--tt-thumb);
-    box-shadow:
-      0 1px 3px rgb(0 0 0 / 0.35),
-      inset 0 0 0 1px rgb(0 0 0 / 0.12);
+    box-sizing: border-box;
+    border: 1px solid var(--tt-thumb-edge);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
   }
 
   /* The stage scrubber: a thin bar whose round thumb shows on hover or focus. */

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   createYouTubePlayerVars,
   formatPlaybackTime,
+  formatPlaybackTimeLike,
   getPlayerStatus,
   parseDurationText,
   seekPlayer,
@@ -64,6 +65,14 @@ describe("syncPlayerPlayback", () => {
     syncPlayerPlayback(player, false);
 
     expect(calls).toEqual(["pauseVideo"]);
+  });
+});
+
+describe("formatPlaybackTimeLike", () => {
+  test("pads the current time to the duration's format so the display does not change width", () => {
+    expect(formatPlaybackTimeLike(5, 17861)).toBe("0:00:05");
+    expect(formatPlaybackTimeLike(65, 2920)).toBe("01:05");
+    expect(formatPlaybackTimeLike(5, 125)).toBe("0:05");
   });
 });
 

@@ -29,7 +29,7 @@ type ChannelTrayProps = {
 const STATUS_DOT_CLASS: Record<ChannelStatus["tone"], string> = {
   live: "bg-live",
   idle: "bg-[#5d6166]",
-  busy: "bg-amber-500 animate-pulse",
+  busy: "bg-amber-500 animate-pulse motion-reduce:animate-none",
   error: "bg-danger",
 };
 
@@ -52,9 +52,9 @@ function ChannelCard({
       style={{ "--channel": color } as CSSProperties}
     >
       <header className="flex h-10 items-center gap-2.5 rounded-t-[7px] bg-(--channel) pl-3 pr-1 text-[#1b1b1c]">
-        <span className="text-lg font-semibold tabular-nums">{number}</span>
+        <span className="text-lg font-bold tabular-nums">{number}</span>
         <span aria-hidden="true" className="h-5 w-px bg-black/25" />
-        <span className="truncate text-xs font-semibold uppercase tracking-wider">{label}</span>
+        <span className="truncate text-xs font-bold uppercase tracking-wider">{label}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs font-medium">
           <span aria-hidden="true" className={`h-2 w-2 rounded-full ${STATUS_DOT_CLASS[channelStatus.tone]}`} />
           {channelStatus.label}
@@ -62,24 +62,24 @@ function ChannelCard({
         <Menu label={`${label} options`} items={menuItems} buttonClassName="hover:bg-black/10" />
       </header>
 
-      <div className={`flex flex-1 flex-col gap-3 p-3 transition-opacity ${channel.silencedBy ? "opacity-60" : ""}`}>
+      <div className="flex flex-1 flex-col gap-3 p-3">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => onFocus(channel.id)}
             aria-label={isOnStage ? `${label} is on stage` : `Put ${label} on stage`}
-            className="relative aspect-video w-32 shrink-0 cursor-pointer overflow-hidden rounded-md bg-black bg-cover bg-center sm:w-36"
+            className={`relative aspect-video w-32 shrink-0 cursor-pointer overflow-hidden rounded-md bg-black bg-cover bg-center transition-opacity sm:w-36 ${channel.silencedBy ? "opacity-45" : ""}`}
             style={{ backgroundImage: `url("${channel.video.thumbnail}")` }}
             {...(isOnStage ? {} : { [PLAYER_SLOT_ATTRIBUTE]: channel.id })}
           >
             {isOnStage ? (
-              <span className="absolute inset-0 grid place-items-center bg-black/55 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-white">
+              <span className="absolute inset-0 grid place-items-center bg-black/55 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-white">
                 On stage
               </span>
             ) : null}
           </button>
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 font-semibold leading-snug" title={channel.video.title}>
+            <p className="line-clamp-2 font-medium leading-snug" title={channel.video.title}>
               {channel.video.title}
             </p>
             <p className="mt-0.5 truncate text-sm text-ink-muted">by {channel.video.channelTitle}</p>
@@ -99,7 +99,7 @@ function ChannelCard({
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-3 transition-opacity ${channel.silencedBy ? "opacity-60" : ""}`}>
           <input
             type="range"
             min={0}

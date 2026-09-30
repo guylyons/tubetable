@@ -137,7 +137,7 @@ export function SearchBar({
             }}
             placeholder={canAddMore ? "Search YouTube or paste a link" : "All five channels are in use"}
             disabled={!canAddMore}
-            className="h-11 w-full rounded-lg border border-line bg-field pl-11 pr-3 text-[0.95rem] text-field-ink shadow-inner outline-none transition placeholder:text-field-muted hover:bg-white focus:border-focus focus:bg-white focus:ring-2 focus:ring-focus/40 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-lg border border-line bg-field pl-11 pr-3 text-[0.95rem] text-field-ink shadow-inner outline-none transition placeholder:text-field-muted hover:bg-white focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
 
@@ -213,7 +213,7 @@ export function SearchBar({
                         <span>{result.channelTitle}</span>
                         {result.durationText ? <span>{result.durationText}</span> : null}
                         {result.viewCountText ? <span>{result.viewCountText}</span> : null}
-                        {isAlreadyAdded ? <span className="font-semibold">Already added</span> : null}
+                        {isAlreadyAdded ? <span className="font-medium">Already added</span> : null}
                       </p>
                     </div>
                   </div>

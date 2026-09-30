@@ -28,6 +28,13 @@ describe("UI interaction contracts", () => {
     );
   });
 
+  test("moves players with their slots in the same frame instead of animating after them", () => {
+    const layer = readSource("src/components/PlayerLayer.tsx");
+
+    expect(layer).not.toMatch(/transition-\[[^\]]*(top|left|width|height)/);
+    expect(layer).toContain("flushSync(");
+  });
+
   test("keeps the YouTube iframe's own buttons away from the keyboard and screen readers", () => {
     expect(readSource("src/components/PlayerLayer.tsx")).toMatch(/<div inert[^>]*>\s*<div ref=\{containerRef\}/);
   });
@@ -118,5 +125,12 @@ describe("UI interaction contracts", () => {
   test("shows no old logo art", () => {
     expect(existsSync(join(repoRoot, "src/logo.svg"))).toBe(false);
     expect(readSource("src/index.html")).not.toContain("logo.svg");
+  });
+
+  test("uses only weights Helvetica Neue ships, since 600 would render as Bold and flatten the hierarchy", () => {
+    expect(readSource("src/index.css")).toContain('font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;');
+    for (const name of [...componentFiles, "ui.ts"]) {
+      expect(`${name}: ${readSource(`src/components/${name}`).includes("font-semibold")}`).toBe(`${name}: false`);
+    }
   });
 });
